@@ -46,7 +46,7 @@ Recommended ML effort:
 
 | Stage | Topic | Deadline |
 |---|---|---|
-| Step 0 | Scoping / Kickoff Meeting | 07.05.2026 |
+| Step 0 | Scoping / Kickoff Meeting | 07.05.2026 | ✅ |
 | Step 1 | Data Discovery & Organization | 20.05.2026 |
 | Step 2 | Data Consumption & API | 10.06.2026 |
 | Step 3 | Automation & Pipelines | 16.06.2026 |
