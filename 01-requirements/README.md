@@ -4,23 +4,23 @@
 
 ```
 Airline/
-├── 01 Requirements/              ← Projektdokumentation (dieses Verzeichnis)
-│   ├── A - source/               ← Originaldokumente (unverändert, von extern)
+├── 01-requirements/              ← Projektdokumentation (dieses Verzeichnis)
+│   ├── a-source/               ← Originaldokumente (unverändert, von extern)
 │   │   ├── liora_airlines_original.pdf   ← Aufgabenstellung von Liora/DataScientest
 │   │   └── mentor_update_nicolas.md      ← Klärungen & Updates vom Mentor Nicolas
-│   ├── B - requirements/         ← Ausgearbeitete Projektanforderungen
+│   ├── b-requirements/         ← Ausgearbeitete Projektanforderungen
 │   │   ├── project_description_doc.md    ← Executive Summary, Ziele, Deliverables
 │   │   ├── project_context_doc.md        ← Technischer Projektkontext
 │   │   └── timeline_m.md                 ← Meilenstein-Timeline (Mermaid Gantt)
-│   └── C - architecture/         ← Architekturentscheidungen & Diagramme
+│   └── c-architecture/         ← Architekturentscheidungen & Diagramme
 │       ├── architecture_m.md             ← Systemarchitektur (Mermaid)
 │       └── dataflow_doc.md               ← Dataflow-Beschreibung (Prosa)
 │
-├── 02 API docs/                  ← Lufthansa Public API Dokumentation
+├── 02-api-docs/                  ← Lufthansa Public API Dokumentation
 │   ├── LH_public_API_swagger_2_0.json    ← Vollständige Swagger/OpenAPI Spec
 │   └── README.md                         ← API Übersicht & Auth-Hinweise
 │
-└── 03 Data Collection/           ← Step 1: Datenbeschaffung (Python)
+└── 03-data-collection/           ← Step 1: Datenbeschaffung (Python)
     ├── lufthansa_api/            ← API-Client Package
     │   ├── client.py             ← Haupt-Client (mock + real mode)
     │   ├── mock_data.py          ← Sample-Daten für Entwicklung ohne Credentials
@@ -54,4 +54,4 @@ Airline/
 | Architekturtext / Prosa | `*_doc.md` | `dataflow_doc.md` |
 | Architekturentscheidungen | `adr_NNN_*.md` | `adr_001_postgres_vs_mongo.md` |
 | Meeting Notes | `meeting_YYYY-MM-DD.md` | `meeting_2026-05-10.md` |
-| Quelldokumente (original) | in `A - source/` | `liora_airlines_original.pdf` |
+| Quelldokumente (original) | in `a-source/` | `liora_airlines_original.pdf` |

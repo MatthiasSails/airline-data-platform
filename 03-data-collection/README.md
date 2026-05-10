@@ -208,7 +208,7 @@ GET /references/airlines/{airlineCode}
 ## File Structure
 
 ```
-03 Data Collection/
+03-data-collection/
 ├── lufthansa_api/
 │   ├── __init__.py           # Package exports
 │   ├── client.py             # Main API client
@@ -239,7 +239,7 @@ GET /references/airlines/{airlineCode}
 
 ## API Documentation
 
-- Full Swagger spec: [`../02 API docs/LH_public_API_swagger_2_0.json`](../02%20API%20docs/LH_public_API_swagger_2_0.json)
+- Full Swagger spec: [`../02-api-docs/LH_public_API_swagger_2_0.json`](../02-api-docs/LH_public_API_swagger_2_0.json)
 - Lufthansa API: https://developer.lufthansa.com/docs
 - OAuth2 Flow: https://api.lufthansa.com/v1/oauth/token
 
