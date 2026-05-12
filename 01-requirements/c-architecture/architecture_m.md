@@ -138,10 +138,14 @@ graph TB
 
 ### Entity Relationship Diagram
 
+> **Note on airport codes:** `airports` uses IATA codes (3 chars, e.g. `BER`) from the LH API.
+> `flights` uses ICAO codes (4 chars, e.g. `EDDB`) from OpenSky.
+> No foreign key between the two — a IATA↔ICAO mapping table is needed in Phase 2.
+
 ```mermaid
 erDiagram
     AIRPORTS {
-        varchar code PK
+        varchar_3 code PK
         varchar name
         varchar city_code
         varchar country_code
@@ -150,23 +154,20 @@ erDiagram
     }
 
     AIRLINES {
-        varchar code PK
+        varchar_2 code PK
         varchar name
     }
 
     FLIGHTS {
-        varchar icao24 PK
+        varchar_10 icao24 PK
         bigint first_seen PK
         varchar callsign
         bigint last_seen
-        varchar departure_airport
-        varchar arrival_airport
+        varchar_4 departure_airport
+        varchar_4 arrival_airport
         int departure_horiz_distance
         int arrival_horiz_distance
     }
-
-    FLIGHTS }o--|| AIRPORTS : "departs from"
-    FLIGHTS }o--|| AIRPORTS : "arrives at"
 ```
 
 ---
