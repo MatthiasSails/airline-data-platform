@@ -1,0 +1,220 @@
+# CLAUDE.md — Airline Data Engineering Project
+
+This file provides guidance to Claude Code when working with this repository.
+
+---
+
+## Project Overview
+
+**Airline Data Engineering Platform** — A modern, cloud-style data pipeline that ingests flight and airline data from the Lufthansa API, transforms it, and serves it via analytics dashboards and REST APIs.
+
+**Main Stack:**
+- **Source**: Lufthansa API (OAuth2)
+- **Ingestion**: Python collectors
+- **Raw Storage**: MongoDB (JSON landing zone)
+- **Transformation**: Python ETL + Pandas
+- **Analytics Storage**: PostgreSQL (Star Schema)
+- **API Layer**: FastAPI
+- **Dashboards**: Streamlit / Dash
+- **Orchestration**: Airflow / Cron (optional)
+- **Streaming**: Kafka (optional)
+
+**Project Status**: Step 1 (Data Discovery & Organization) — deadline 20.05.2026
+
+---
+
+## Working Style
+
+**No worktrees.** Work directly in this repository. If a worktree is created automatically, exit it immediately.
+
+**Branches for changes:**
+- `main` = stable
+- `feature/` branches for larger changes
+- Small atomic commits
+
+**Documentation is code:**
+- Update docs together with code changes
+- Keep RFCs/ADRs in place as architectural decisions evolve
+- Use Markdown + Mermaid diagrams
+
+---
+
+## Directory Structure
+
+```
+airline/
+├── 01-requirements/          # Project context, architecture, timeline
+│   ├── a-source/            # Original PDF, mentor updates
+│   ├── b-requirements/       # Project description, timeline, scope
+│   └── c-architecture/       # Architecture diagrams, data flows, ERD
+├── 02-api-docs/              # Lufthansa Swagger spec, API documentation
+├── 03-data-collection/       # Python tools for data ingestion
+│   ├── lufthansa_api/        # API client (mock + real modes)
+│   ├── collectors/           # airports_collector.py, airlines_collector.py
+│   ├── data/                 # Output JSON files (MongoDB landing zone)
+│   └── schemas/              # Data validation schemas
+└── CLAUDE.md                 # This file
+```
+
+---
+
+## Data Pipeline Architecture
+
+```
+Step 1: Collection
+  ↓
+Lufthansa API (OAuth2, /references/airports, /references/airlines)
+  ↓
+MongoDB (raw JSON collections: db.airports, db.airlines)
+
+Step 2: Transformation (Python ETL)
+  ↓
+Extract nested JSON → Normalize → Validate → Output CSV
+
+Step 3: Storage (Analytical Warehouse)
+  ↓
+PostgreSQL (airports table, airlines table, Star Schema)
+
+Step 4: Serving
+  ↓
+FastAPI endpoints (/api/airports, /api/airlines, etc.)
+Streamlit/Dash dashboards (analytics, KPIs)
+
+Step 5: Orchestration (future)
+  ↓
+Airflow DAGs or Cron jobs (scheduled ingestion & transformation)
+Optional: Kafka for real-time event streams
+```
+
+**Key Principle:** Separation of OLTP (operational) from OLAP (analytical) storage.
+MongoDB = landing zone (schema-on-read). PostgreSQL = curated warehouse (schema-on-write).
+
+---
+
+## Core Engineering Principles
+
+- **Simplicity over complexity** — no overengineering for a learning project
+- **Pragmatism over perfection** — focus on end-to-end pipeline first, optimization later
+- **Clarity over cleverness** — readable code that others can understand
+- **Explicitness** — avoid hidden magic, state assumptions clearly
+- **Data quality matters** — garbage in = garbage out
+
+---
+
+## Coding Standards
+
+**Language & Environment:**
+- Python 3.12+
+- Type hints preferred
+- `pathlib` instead of `os.path`
+- Environment variables via `.env` (never committed)
+- Logging instead of `print()`
+
+**Preferred Libraries:**
+- FastAPI (REST APIs)
+- Pydantic (data validation)
+- SQLAlchemy (database ORM)
+- Pandas (data transformation)
+- PyMongo (MongoDB access)
+- psycopg2 (PostgreSQL access)
+
+**Avoid:**
+- Kubernetes (unnecessary at this scale)
+- Complex microservices (keep it monolithic)
+- Premature optimization
+- Magic and implicit behavior
+
+---
+
+## Quick Start
+
+### Demo with Mock Data (no credentials needed)
+
+```bash
+cd 03-data-collection
+python demo.py
+```
+
+This runs collectors with mock Lufthansa API responses.
+
+### Real Data Collection (with credentials)
+
+```bash
+export LH_CLIENT_ID="your_id"
+export LH_CLIENT_SECRET="your_secret"
+python collectors/airports_collector.py
+python collectors/airlines_collector.py
+```
+
+Credentials are read from environment, never committed to git.
+
+---
+
+## Key Files
+
+| File | Purpose |
+|---|---|
+| `01-requirements/b-requirements/project_description_doc.md` | Executive summary, timeline, milestones |
+| `01-requirements/c-architecture/architecture_m.md` | Architecture diagrams, layer descriptions |
+| `02-api-docs/LH_public_API_swagger_2_0.json` | Full Lufthansa API specification |
+| `03-data-collection/lufthansa_api/client.py` | Main API client (OAuth2, mock/real modes) |
+| `03-data-collection/collectors/airports_collector.py` | Airports data ingestion |
+| `03-data-collection/collectors/airlines_collector.py` | Airlines data ingestion |
+| `03-data-collection/lufthansa_api/schemas.py` | Pydantic models for data validation |
+| `03-data-collection/demo.py` | Mock data collector for testing |
+
+---
+
+## Important Architectural Decisions
+
+These decisions are documented in `/docs/adr/` (to be created):
+
+1. **ETL vs ELT**: Currently using ETL (transform before loading). Future: ELT (transform in warehouse via dbt).
+2. **MongoDB for raw storage**: Flexible JSON storage, schema-on-read. Enables replay and re-transformation.
+3. **PostgreSQL for analytics**: Structured Star Schema, SQL queries, BI-friendly.
+4. **Batch-first approach**: Periodic ingestion (nightly). Streaming (Kafka) is optional, only if real-time events become a requirement.
+5. **API contracts first**: Lufthansa Swagger spec drives schema design and collectors.
+
+---
+
+## Project Phases (Milestones)
+
+| Phase | Deadline | Focus |
+|---|---|---|
+| **Step 1** | 20.05.2026 | Data Discovery & Organization — UML, DB architecture, sample datasets |
+| **Step 2** | 10.06.2026 | Data Consumption & API — FastAPI, analytics endpoints, dashboards |
+| **Step 3** | 16.06.2026 | Automation & Pipelines — Airflow, scheduled jobs, optional Kafka |
+| **Step 4** | 02.07.2026 | Deployment & Frontend — Docker Compose, CI/CD, Streamlit/Dash |
+| **Final Defense** | 20.07.2026 | Architecture presentation & live demo |
+
+Current focus: **Step 1** — data collection and architecture design.
+
+---
+
+## When in Doubt
+
+Ask:
+- Is this change moving the project closer to the Step 1 deadline?
+- Is this the simplest way to solve the problem?
+- Does this change require documentation (ADR/RFC)?
+- Can I explain this decision to a non-technical person?
+
+---
+
+## Mentor Context
+
+**Mentor**: Nicolas ("NicoTheDataSherpa")
+
+**Key Guidance**:
+- ML performance is NOT the evaluation criterion — Data Engineering mastery is.
+- Suggest ML effort: 1–2 days maximum.
+- Focus on end-to-end pipeline and architecture reasoning.
+
+**Evaluation Focus**:
+- Data architecture quality
+- Data modeling (SQL + NoSQL)
+- ETL pipeline design
+- API design and documentation
+- Automation and orchestration
+- Docker deployment
+- Engineering reasoning and explanations
