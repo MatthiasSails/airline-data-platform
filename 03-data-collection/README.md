@@ -13,7 +13,7 @@ LufthansaAPIClient
         ↓
 Collectors (Airports, Airlines)
         ↓
-JSON Files (for MongoDB landing zone)
+LH API (Mock/Real) → PostgreSQL (Phase 1)
 ```
 
 ## Modes

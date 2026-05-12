@@ -28,9 +28,8 @@ Airline/
     ├── collectors/               ← Standalone Collector-Scripts
     │   ├── airports_collector.py ← Flughäfen abrufen & speichern
     │   └── airlines_collector.py ← Airlines abrufen & speichern
-    ├── data/                     ← Output-Verzeichnis (JSON → MongoDB landing zone)
     ├── demo.py                   ← Demo-Script (läuft ohne Credentials)
-    └── requirements.txt
+    └── explore_lh_api.ipynb      ← Jupyter Notebook für interaktive Exploration
 ```
 
 ## Geplante Verzeichnisse (noch nicht angelegt)
