@@ -1,5 +1,6 @@
 anyio==4.13.0
 psycopg2-binary==2.9.12
+python-dotenv==1.2.2
 appnope==0.1.4
 argon2-cffi==25.1.0
 argon2-cffi-bindings==25.1.0
