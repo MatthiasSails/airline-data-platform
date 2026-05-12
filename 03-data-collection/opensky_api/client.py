@@ -26,7 +26,7 @@ class OpenSkyClient:
         client_secret: Optional[str] = None,
         use_mock: bool = True
     ):
-        load_dotenv()
+        load_dotenv(override=True)
         self.client_id = client_id or os.getenv("OPENSKY_CLIENT_ID")
         self.client_secret = client_secret or os.getenv("OPENSKY_CLIENT_SECRET")
         self.use_mock = use_mock

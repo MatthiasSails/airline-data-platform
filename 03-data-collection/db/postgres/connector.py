@@ -120,7 +120,7 @@ class PostgresConnector:
 
 def from_env():
     """Create connector from .env file"""
-    load_dotenv()
+    load_dotenv(override=True)
     return PostgresConnector(
         host=os.getenv("DB_HOST"),
         port=int(os.getenv("DB_PORT", 5432)),
