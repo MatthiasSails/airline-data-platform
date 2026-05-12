@@ -206,39 +206,25 @@ graph TD
     
     API --> COLLECTORS["Collectors<br/>collectors/airports_collector.py<br/>collectors/airlines_collector.py"]
     
-    COLLECTORS -->|Calls| CLIENT["LufthansaAPIClient<br/>use_mock=True/False"]
+    COLLECTORS -->|Calls| CLIENT["LufthansaAPIClient / OpenSkyClient<br/>use_mock=True/False"]
     
-    COLLECTORS -->|Output| JSON_DATA["JSON Files<br/>data/airports.json<br/>data/airlines.json"]
-    
-    JSON_DATA --> ETL["Processing<br/>processing/transformers.py<br/>processing/validators.py"]
-    
-    ETL -->|Output| CSV_DATA["CSV Files<br/>data/airports.csv<br/>data/airlines.csv"]
-    
-    CSV_DATA --> PG_LOADER["PostgreSQL Loader<br/>processing/postgres_loader.py"]
-    CSV_DATA --> NEO_LOADER["Neo4j Loader<br/>processing/neo4j_loader.py"]
-    
-    PG_LOADER -->|Uses| PG_SCHEMA["PostgreSQL Schema<br/>schemas/postgres_schema.sql"]
-    NEO_LOADER -->|Uses| NEO_SCHEMA["Neo4j Schema<br/>schemas/neo4j_schema.cypher"]
-    
-    PG_LOADER --> PG["PostgreSQL DB<br/>tables: airports, airlines"]
-    NEO_LOADER --> NEO["Neo4j DB<br/>nodes: Airport, Airline"]
-    
-    PG --> API_SERVER["FastAPI<br/>GET /api/airports<br/>GET /api/airlines"]
-    NEO --> GRAPH["Graph Visualization"]
-    
+    COLLECTORS -->|UPSERT| CONNECTOR["PostgresConnector<br/>db/postgres/connector.py"]
+
+    OPENSKY["OpenSky API<br/>opensky_api/client.py"] --> COLLECTORS
+
+    CONNECTOR -->|Uses| PG_SCHEMA["PostgreSQL Schema<br/>db/postgres/schema.sql"]
+
+    CONNECTOR --> PG["PostgreSQL DB<br/>tables: airports, airlines, flights"]
+
+    PG --> API_SERVER["FastAPI<br/>GET /api/airports<br/>GET /api/airlines<br/>GET /api/flights"]
+
     style API fill:#4CAF50,color:#fff
+    style OPENSKY fill:#4CAF50,color:#fff
     style COLLECTORS fill:#0066CC,color:#fff
     style CLIENT fill:#0066CC,color:#fff
-    style JSON_DATA fill:#FF6B35,color:#fff
-    style ETL fill:#FFA500,color:#fff
-    style CSV_DATA fill:#FFEB3B,color:#000
-    style PG_LOADER fill:#0066CC,color:#fff
-    style NEO_LOADER fill:#00AA66,color:#fff
+    style CONNECTOR fill:#0066CC,color:#fff
     style PG_SCHEMA fill:#0066CC,color:#fff
-    style NEO_SCHEMA fill:#00AA66,color:#fff
     style PG fill:#0066CC,color:#fff
-    style NEO fill:#00AA66,color:#fff
     style API_SERVER fill:#9933CC,color:#fff
-    style GRAPH fill:#FF1493,color:#fff
 ```
 
