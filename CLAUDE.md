@@ -183,6 +183,7 @@ Credentials are read from environment, never committed to git.
 ADRs are in `01-requirements/c-architecture/`:
 
 1. **ADR 001** — PostgreSQL first, MongoDB in Phase 2. Direct DB write for Phase 1, two-layer architecture deferred.
+2. **ADR 002** — psycopg2-binary as PostgreSQL driver. Raw SQL over ORM for transparency and learning.
 2. **ETL vs ELT**: Currently using ETL (transform before loading). Future: ELT (transform in warehouse via dbt).
 3. **PostgreSQL for analytics**: Structured Star Schema, SQL queries, BI-friendly.
 4. **Batch-first approach**: Periodic ingestion (nightly). Streaming (Kafka) is optional.
