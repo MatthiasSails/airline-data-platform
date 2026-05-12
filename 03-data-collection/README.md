@@ -50,7 +50,7 @@ export LH_CLIENT_SECRET="your_client_secret"
 
 ### 1. Demo with Mock Data
 ```bash
-cd /Volumes/Rocket_2/DEV/git/Airline/03\ Data\ Collection
+cd 03-data-collection
 python demo.py
 ```
 
@@ -215,12 +215,10 @@ GET /references/airlines/{airlineCode}
 │   ├── schemas.py            # Data models
 │   └── mock_data.py          # Sample data for dev
 ├── collectors/
-│   ├── airports_collector.py # Fetch & save airports
-│   └── airlines_collector.py # Fetch & save airlines
-├── data/
-│   ├── airports.json         # Collected airport data
-│   └── airlines.json         # Collected airline data
+│   ├── airports_collector.py # Fetch airports → PostgreSQL
+│   └── airlines_collector.py # Fetch airlines → PostgreSQL
 ├── demo.py                   # Demo script
+├── explore_lh_api.ipynb      # Interactive exploration notebook
 └── README.md                 # This file
 ```
 
@@ -234,8 +232,7 @@ GET /references/airlines/{airlineCode}
    python collectors/airports_collector.py
    python collectors/airlines_collector.py
    ```
-3. **Load data into MongoDB** for raw landing zone
-4. **Analyze schemas** for PostgreSQL data warehouse design
+3. **Load data into PostgreSQL** (`dst_db` on training server)
 
 ## API Documentation
 

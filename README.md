@@ -1,0 +1,102 @@
+# Airline Data Engineering Project
+
+Data pipeline for Lufthansa flight data — from API to database.
+
+## Project Structure
+
+```
+airline/
+├── 01-requirements/       # Project specs and architecture docs
+├── 02-api-docs/           # Lufthansa API Swagger spec
+├── 03-data-collection/    # API client, collectors, notebooks
+├── requirements.txt       # Python dependencies (all pinned)
+└── README.md              # This file
+```
+
+## Development Setup
+
+### 1. Clone and enter the project
+```bash
+git clone <repo>
+cd airline
+```
+
+### 2. Create virtual environment
+```bash
+python3 -m venv .venv
+```
+
+A `.venv` folder is created locally. It is excluded from git (see `.gitignore`).
+
+### 3. Activate virtual environment
+```bash
+source .venv/bin/activate   # Mac / Linux
+```
+
+### 4. Install dependencies
+```bash
+pip install -r requirements.txt
+```
+
+This installs all pinned packages. The `requirements.txt` contains both direct dependencies (what we need) and transitive dependencies (what they need internally).
+
+### 5. Start exploring
+Open VS Code, select the `.venv` kernel in Jupyter, and open:
+```
+03-data-collection/explore_lh_api.ipynb
+```
+
+---
+
+## Dependency Management
+
+Direct dependencies we actually use:
+
+| Package | Why |
+|---|---|
+| `jupyter` | Interactive notebooks |
+| `requests` | HTTP calls to LH API |
+| `psycopg2-binary` | PostgreSQL connector |
+
+All other packages in `requirements.txt` are installed automatically as transitive dependencies.
+
+### Adding a new package
+
+```bash
+# 1. Add to requirements.txt (without version first)
+echo "pandas" >> requirements.txt
+
+# 2. Install
+pip install -r requirements.txt
+
+# 3. Pin the exact version
+pip freeze | grep pandas >> requirements.txt   # then clean up duplicates
+
+# 4. Commit
+git add requirements.txt
+git commit -m "Add pandas"
+```
+
+### Recreating the environment from scratch
+
+```bash
+rm -rf .venv
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+---
+
+## Database
+
+PostgreSQL 16 runs on the training server via Docker:
+
+| Setting | Value |
+|---|---|
+| Host | `54.229.39.220` |
+| Port | `5432` |
+| Database | `dst_db` |
+| Credentials | see `.env` (not in git) |
+
+Connection credentials are stored in `.env` — never commit that file.
