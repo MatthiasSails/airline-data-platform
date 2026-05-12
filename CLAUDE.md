@@ -11,7 +11,7 @@ This file provides guidance to Claude Code when working with this repository.
 **Main Stack:**
 - **Source**: Lufthansa API (OAuth2)
 - **Ingestion**: Python collectors
-- **Raw Storage**: MongoDB (JSON landing zone)
+- **Raw Storage**: PostgreSQL direct (Phase 1) → MongoDB landing zone (Phase 2, see ADR 001)
 - **Transformation**: Python ETL + Pandas
 - **Analytics Storage**: PostgreSQL (Star Schema)
 - **API Layer**: FastAPI
@@ -49,10 +49,11 @@ airline/
 │   └── c-architecture/       # Architecture diagrams, data flows, ERD
 ├── 02-api-docs/              # Lufthansa Swagger spec, API documentation
 ├── 03-data-collection/       # Python tools for data ingestion
-│   ├── lufthansa_api/        # API client (mock + real modes)
+│   ├── lufthansa_api/        # API client, schemas, mock data
 │   ├── collectors/           # airports_collector.py, airlines_collector.py
-│   ├── data/                 # Output JSON files (MongoDB landing zone)
-│   └── schemas/              # Data validation schemas
+│   ├── explore_lh_api.ipynb  # Interactive exploration notebook
+│   └── demo.py               # Demo script (no credentials needed)
+├── requirements.txt          # Pinned Python dependencies
 └── CLAUDE.md                 # This file
 ```
 
@@ -61,15 +62,19 @@ airline/
 ## Data Pipeline Architecture
 
 ```
-Step 1: Collection
+Step 1: Collection (Phase 1 — current)
   ↓
 Lufthansa API (OAuth2, /references/airports, /references/airlines)
   ↓
-MongoDB (raw JSON collections: db.airports, db.airlines)
+PostgreSQL directly (ADR 001: MongoDB deferred to Phase 2)
+
+Step 1b: Collection (Phase 2 — planned)
+  ↓
+Lufthansa API → MongoDB (raw landing zone) → ETL → PostgreSQL
 
 Step 2: Transformation (Python ETL)
   ↓
-Extract nested JSON → Normalize → Validate → Output CSV
+Extract nested JSON → Normalize → Validate → PostgreSQL
 
 Step 3: Storage (Analytical Warehouse)
   ↓
@@ -87,7 +92,7 @@ Optional: Kafka for real-time event streams
 ```
 
 **Key Principle:** Separation of OLTP (operational) from OLAP (analytical) storage.
-MongoDB = landing zone (schema-on-read). PostgreSQL = curated warehouse (schema-on-write).
+PostgreSQL = curated warehouse (schema-on-write). MongoDB as landing zone deferred to Phase 2 (see ADR 001).
 
 ---
 
@@ -115,8 +120,8 @@ MongoDB = landing zone (schema-on-read). PostgreSQL = curated warehouse (schema-
 - Pydantic (data validation)
 - SQLAlchemy (database ORM)
 - Pandas (data transformation)
-- PyMongo (MongoDB access)
-- psycopg2 (PostgreSQL access)
+- psycopg2-binary (PostgreSQL access, Phase 1)
+- PyMongo (MongoDB access, Phase 2)
 
 **Avoid:**
 - Kubernetes (unnecessary at this scale)
@@ -127,6 +132,14 @@ MongoDB = landing zone (schema-on-read). PostgreSQL = curated warehouse (schema-
 ---
 
 ## Quick Start
+
+### Setup
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
 ### Demo with Mock Data (no credentials needed)
 
@@ -167,12 +180,12 @@ Credentials are read from environment, never committed to git.
 
 ## Important Architectural Decisions
 
-These decisions are documented in `/docs/adr/` (to be created):
+ADRs are in `01-requirements/c-architecture/`:
 
-1. **ETL vs ELT**: Currently using ETL (transform before loading). Future: ELT (transform in warehouse via dbt).
-2. **MongoDB for raw storage**: Flexible JSON storage, schema-on-read. Enables replay and re-transformation.
+1. **ADR 001** — PostgreSQL first, MongoDB in Phase 2. Direct DB write for Phase 1, two-layer architecture deferred.
+2. **ETL vs ELT**: Currently using ETL (transform before loading). Future: ELT (transform in warehouse via dbt).
 3. **PostgreSQL for analytics**: Structured Star Schema, SQL queries, BI-friendly.
-4. **Batch-first approach**: Periodic ingestion (nightly). Streaming (Kafka) is optional, only if real-time events become a requirement.
+4. **Batch-first approach**: Periodic ingestion (nightly). Streaming (Kafka) is optional.
 5. **API contracts first**: Lufthansa Swagger spec drives schema design and collectors.
 
 ---
