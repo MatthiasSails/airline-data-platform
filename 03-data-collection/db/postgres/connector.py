@@ -74,6 +74,34 @@ class PostgresConnector:
 
         self.connection.commit()
 
+    def insert_flights(self, flights: list):
+        for flight in flights:
+            self.cursor.execute("""
+                INSERT INTO flights (
+                    icao24, callsign, first_seen, last_seen,
+                    departure_airport, arrival_airport,
+                    departure_horiz_distance, arrival_horiz_distance
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (icao24, first_seen) DO UPDATE SET
+                    callsign                 = EXCLUDED.callsign,
+                    last_seen                = EXCLUDED.last_seen,
+                    departure_airport        = EXCLUDED.departure_airport,
+                    arrival_airport          = EXCLUDED.arrival_airport,
+                    departure_horiz_distance = EXCLUDED.departure_horiz_distance,
+                    arrival_horiz_distance   = EXCLUDED.arrival_horiz_distance
+            """, (
+                flight.get("icao24"),
+                flight.get("callsign", "").strip() or None,
+                flight.get("firstSeen"),
+                flight.get("lastSeen"),
+                flight.get("estDepartureAirport"),
+                flight.get("estArrivalAirport"),
+                flight.get("estDepartureAirportHorizDistance"),
+                flight.get("estArrivalAirportHorizDistance")
+            ))
+        self.connection.commit()
+
     def insert_airlines(self, airlines: list):
         for airline in airlines:
             code = airline.get("AirlineCode")

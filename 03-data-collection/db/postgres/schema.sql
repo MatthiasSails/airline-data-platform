@@ -15,3 +15,15 @@ CREATE TABLE IF NOT EXISTS airlines (
     code  VARCHAR(2)   PRIMARY KEY,        -- IATA code, e.g. "LH"
     name  VARCHAR(255)                     -- e.g. "Lufthansa"
 );
+
+CREATE TABLE IF NOT EXISTS flights (
+    icao24                          VARCHAR(10)  NOT NULL,   -- Aircraft transponder address
+    callsign                        VARCHAR(20),             -- e.g. "EWG1R"
+    first_seen                      BIGINT       NOT NULL,   -- Unix timestamp departure
+    last_seen                       BIGINT       NOT NULL,   -- Unix timestamp arrival
+    departure_airport               VARCHAR(4),              -- ICAO code, e.g. "EDDB"
+    arrival_airport                 VARCHAR(4),              -- ICAO code, e.g. "EDDM"
+    departure_horiz_distance        INT,                     -- meters to departure airport
+    arrival_horiz_distance          INT,                     -- meters to arrival airport
+    PRIMARY KEY (icao24, first_seen)
+);
