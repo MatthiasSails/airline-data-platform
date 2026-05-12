@@ -90,13 +90,17 @@ pip install -r requirements.txt
 
 ## Database
 
-PostgreSQL 16 runs on the training server via Docker:
+PostgreSQL 16 runs on the training server via Docker.
 
-| Setting | Value |
-|---|---|
-| Host | `54.229.39.220` |
-| Port | `5432` |
-| Database | `dst_db` |
-| Credentials | see `.env` (not in git) |
+Connection settings are stored in `.env` (not in git — see `.env.example`):
 
-Connection credentials are stored in `.env` — never commit that file.
+```
+DB_HOST=<server-ip>    # changes on every VM restart
+DB_PORT=5432
+DB_NAME=dst_db
+DB_USER=...
+DB_PASSWORD=...
+```
+
+> **Note:** The training server (AWS) gets a new public IP on every restart.
+> Update `DB_HOST` in your `.env` after each restart.
