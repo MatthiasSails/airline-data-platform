@@ -32,6 +32,11 @@ This file provides guidance to Claude Code when working with this repository.
 - `feature/` branches for larger changes
 - Small atomic commits
 
+**Commit messages:**
+- Do NOT add `Co-Authored-By: Claude <noreply@anthropic.com>` trailers.
+- AI collaboration is documented once in the root README; individual commits stay clean.
+- Same rule for PR descriptions: no "🤖 Generated with Claude Code" footer.
+
 **Documentation is code:**
 - Update docs together with code changes
 - Keep RFCs/ADRs in place as architectural decisions evolve
