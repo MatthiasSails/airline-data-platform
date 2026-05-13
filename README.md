@@ -2,6 +2,8 @@
 
 Data pipeline for Lufthansa flight data — from API to database.
 
+> **AI collaboration:** This project is developed with [Claude](https://www.anthropic.com/claude) (Anthropic) as a coding assistant — used for architecture discussions, code generation, refactoring, and documentation. All design decisions, reviews, and final commits are made by the human authors.
+
 ## Project Structure
 
 ```
