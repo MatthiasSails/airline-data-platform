@@ -38,7 +38,7 @@ source .venv/bin/activate   # Mac / Linux
 pip install -r requirements.txt
 ```
 
-This installs all pinned packages. The `requirements.txt` contains both direct dependencies (what we need) and transitive dependencies (what they need internally).
+All packages are pinned to exact versions to guarantee reproducible environments across machines and CI. The file lists both the libraries we use directly (e.g. `requests`, `psycopg2-binary`) and the transitive dependencies they pull in — generated via `pip freeze` so every install produces the same versions.
 
 ### 5. Start exploring
 Open VS Code, select the `.venv` kernel in Jupyter, and open:
@@ -92,7 +92,7 @@ pip install -r requirements.txt
 
 PostgreSQL 16 runs on the training server via Docker.
 
-Connection settings are stored in `.env` (not in git — see `.env.example`):
+Connection settings are stored in `.env` (not in git):
 
 ```
 DB_HOST=<server-ip>    # changes on every VM restart
