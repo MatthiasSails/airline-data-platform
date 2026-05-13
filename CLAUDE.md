@@ -1,6 +1,8 @@
 # CLAUDE.md — Airline Data Engineering Project
 
-This file provides guidance to Claude Code when working with this repository.
+Project-level instructions for Claude Code when working in this repository.
+
+> Cross-cutting policies (no worktrees, no Co-Authored-By, secrets handling, etc.) live in the **global** CLAUDE.md. This file covers only what's specific to the airline-data-platform project.
 
 ---
 
@@ -23,31 +25,18 @@ This file provides guidance to Claude Code when working with this repository.
 
 ---
 
-## Working Style
+## Branching
 
-**No worktrees.** Work directly in this repository. If a worktree is created automatically, exit it immediately.
-
-**Branches for changes:**
-- `main` = stable
-- `feature/` branches for larger changes
-- Small atomic commits
-
-**Commit messages:**
-- Do NOT add `Co-Authored-By: Claude <noreply@anthropic.com>` trailers.
-- AI collaboration is documented once in the root README; individual commits stay clean.
-- Same rule for PR descriptions: no "🤖 Generated with Claude Code" footer.
-
-**Documentation is code:**
-- Update docs together with code changes
-- Keep RFCs/ADRs in place as architectural decisions evolve
-- Use Markdown + Mermaid diagrams
+- `main` = stable, deployable state
+- `feature/<topic>` branches for larger changes
+- Use Markdown + Mermaid for any new diagrams
 
 ---
 
 ## Directory Structure
 
 ```
-airline/
+airline-data-platform/
 ├── 01-requirements/          # Project context, architecture, timeline
 │   ├── a-source/            # Original PDF, mentor updates
 │   ├── b-requirements/       # Project description, timeline, scope
@@ -117,7 +106,7 @@ PostgreSQL = curated warehouse (schema-on-write). MongoDB as landing zone deferr
 - Python 3.12+
 - Type hints preferred
 - `pathlib` instead of `os.path`
-- Environment variables via `.env` (never committed)
+- Environment variables via `.env` (see global CLAUDE.md for secrets policy)
 - Logging instead of `print()`
 
 **Preferred Libraries:**
@@ -183,16 +172,23 @@ Credentials are read from environment, never committed to git.
 
 ---
 
-## Important Architectural Decisions
+## Architectural Decisions (ADRs)
 
-ADRs are in `01-requirements/c-architecture/`:
+ADRs are tracked in `01-requirements/c-architecture/`:
 
-1. **ADR 001** — PostgreSQL first, MongoDB in Phase 2. Direct DB write for Phase 1, two-layer architecture deferred.
-2. **ADR 002** — psycopg2-binary as PostgreSQL driver. Raw SQL over ORM for transparency and learning.
-2. **ETL vs ELT**: Currently using ETL (transform before loading). Future: ELT (transform in warehouse via dbt).
-3. **PostgreSQL for analytics**: Structured Star Schema, SQL queries, BI-friendly.
-4. **Batch-first approach**: Periodic ingestion (nightly). Streaming (Kafka) is optional.
-5. **API contracts first**: Lufthansa Swagger spec drives schema design and collectors.
+- **ADR 001** — PostgreSQL first, MongoDB deferred to Phase 2. Direct DB write for Phase 1; two-layer raw/curated architecture comes later.
+- **ADR 002** — `psycopg2-binary` as PostgreSQL driver. Raw SQL over ORM for transparency and learning value.
+
+---
+
+## Architectural Principles
+
+These are working assumptions, not yet promoted to ADRs:
+
+- **ETL, not ELT (for now)** — transform in Python before loading. May move to ELT (dbt in warehouse) later.
+- **PostgreSQL for analytics** — Star Schema, SQL queries, BI-friendly.
+- **Batch-first** — periodic ingestion (nightly). Streaming (Kafka) only if needed.
+- **API contracts first** — the Lufthansa Swagger spec drives schema design and collector code.
 
 ---
 
