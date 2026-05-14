@@ -139,9 +139,26 @@ PostgreSQL = curated warehouse (schema-on-write). MongoDB as landing zone deferr
 
 ---
 
-## VM Neustart — IP-Update-Prozedur
+## Liora VM — Infrastruktur
 
-Die Liora VM (AWS EC2) bekommt bei jedem Neustart eine neue öffentliche IP. Danach sind zwei Dinge zu aktualisieren:
+Die Liora VM ist eine AWS EC2-Instanz (Ubuntu). SSH-Zugang via:
+
+```bash
+ssh Liora_VM
+# Config: ~/.ssh/config → Host Liora_VM, User ubuntu, IdentityFile ~/.ssh/data_enginering_machine.pem
+```
+
+Claude kann selbst `ssh Liora_VM <befehl>` ausführen — der Key liegt lokal und der Alias ist in `~/.ssh/config` eingetragen.
+
+**PostgreSQL läuft als Docker Container**, nicht nativ installiert:
+- `pg_container` — `postgres:16-alpine`, Port `5432`
+- `pgadmin4_container` — pgAdmin 4, Port `5050`
+
+`dpkg -l | grep postgres` findet nichts — immer `docker ps` zur Prüfung verwenden.
+
+### VM Neustart — IP-Update-Prozedur
+
+Die VM bekommt bei jedem Neustart eine neue öffentliche IP. Danach sind zwei Dinge zu aktualisieren:
 
 ```bash
 # 1. SSH-Konfiguration
