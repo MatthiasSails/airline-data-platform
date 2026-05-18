@@ -158,18 +158,17 @@ Claude kann selbst `ssh Liora_VM <befehl>` ausführen — der Key liegt lokal un
 
 ### VM Neustart — IP-Update-Prozedur
 
-Die VM bekommt bei jedem Neustart eine neue öffentliche IP. Danach sind zwei Dinge zu aktualisieren:
+Die VM bekommt bei jedem Neustart eine neue öffentliche IP. Ein Cloudflare-DDNS-Updater auf der VM trägt die neue IP automatisch ein.
+
+**`DB_HOST` und `~/.ssh/config` müssen nicht manuell angepasst werden** — beide nutzen den Hostnamen `liora-vm.matthiaskoehler.com`.
+
+Nach einem Neustart ~1–2 Minuten warten, bis Cloudflare aktualisiert ist, dann normal verbinden:
 
 ```bash
-# 1. SSH-Konfiguration
-# ~/.ssh/config → HostName auf neue IP setzen (Host Liora_VM)
-
-# 2. .env im Projekt-Root
-# DB_HOST=<neue_ip>
+ssh Liora_VM "docker ps"
 ```
 
-Kein Kernel-Restart in Jupyter nötig — `load_dotenv(override=True)` liest `.env` bei jedem Aufruf neu.  
-Wenn SSH sich mit "Host key verification failed" beschwert: `ssh-keygen -R <alte_ip>` → neu verbinden.
+Wenn SSH sich mit "Host key verification failed" beschwert (alter Host-Key gecacht): `ssh-keygen -R liora-vm.matthiaskoehler.com` → neu verbinden.
 
 ---
 
@@ -181,7 +180,13 @@ Wenn SSH sich mit "Host key verification failed" beschwert: `ssh-keygen -R <alte
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+
+# Kernel für JupyterLab / VS Code registrieren (einmalig pro Rechner)
+python -m ipykernel install --user --name airline-data-platform --display-name "airline-data-platform"
 ```
+
+In VS Code: Kernel-Dialog → **Python Environments... → airline-data-platform** auswählen.  
+Falls `.venv` nach einer Projekt-Umbenennung kaputt ist (Symptom: `bad interpreter`): `rm -rf .venv` und obige Schritte wiederholen.
 
 ### Demo with Mock Data (no credentials needed)
 

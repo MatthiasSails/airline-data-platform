@@ -49,6 +49,54 @@ Key endpoints: `/flights/departure`, `/flights/arrival`, `/flights/aircraft`
 
 ---
 
+## ADS-B Exchange & Alternatives (Evaluated 2026-05-13)
+
+### ADS-B Exchange via RapidAPI (⚠️ Not Recommended)
+
+- **Cost:** $10/month (Community Tier)
+- **Rate Limit:** 10,000 requests/month (~330/day)
+- **Auth:** API key via HTTP header
+- **Data:** Raw ADS-B (500ms update frequency, ICAO24 hex)
+- **Status:** Commercial, restriction: "non-commercial use only" in ToS
+- **Blocker:** Non-commercial restriction incompatible with DataScientest project context
+
+### adsb.lol API (⭐ Recommended)
+
+- **Cost:** $0 (Free, open-source, community-driven)
+- **Rate Limit:** Dynamic based on load (very generous; no published hard limit)
+- **Auth:** Currently none (future: API key for feeders; currently public)
+- **Data:** Live ADS-B from global receiver network (ICAO24 hex, near-real-time)
+- **Status:** ✅ Active, open-source, drop-in replacement for ADSBexchange.com
+- **Advantage:** No licensing restrictions; compatible with existing ADSBExchange client code
+- **Docs:** https://api.adsb.lol/docs (interactive OpenAPI)
+- **Technical:** Python/asyncio/aiohttp, Kubernetes-hosted
+
+**See also:** `adsb_lol_api_doc.md` for detailed API specification.
+
+---
+
+## Comparison: OpenSky vs adsb.lol vs ADSBExchange
+
+| Dimension | OpenSky | adsb.lol | ADSBExchange RapidAPI |
+|-----------|---------|----------|----------------------|
+| **Cost** | Free | Free | $10/month |
+| **Auth** | OAuth2 (required) | None (public) | API key |
+| **Rate Limit** | 4,000 req/day (registered) | Dynamic/unlimited | 10,000 req/month |
+| **Data Type** | Structured (flights, departures, arrivals) | Raw ADS-B (streaming) | Raw ADS-B (REST) |
+| **Update Frequency** | Periodic | Near-real-time (500ms) | Per-request |
+| **Code Format** | ICAO | ICAO24 hex | ICAO24 hex |
+| **Historical Data** | 1 hour lookback | Limited | Per-request |
+| **Licensing** | Academic-friendly, free non-commercial | Open-source (ODbL) | Non-commercial only ⚠️ |
+| **Stability** | Academic (established) | Community (mature) | Commercial (volatile) |
+
+**Phase 2 Hybrid Strategy (Recommended):**
+- Primary: OpenSky (structured flight legs, status)
+- Secondary: adsb.lol (raw position tracking, live updates, dashboard visualization)
+
+See ADR 003 for detailed rationale.
+
+---
+
 ## Other Providers (not evaluated)
 
 | API | Cost | Notes |
@@ -56,13 +104,14 @@ Key endpoints: `/flights/departure`, `/flights/arrival`, `/flights/aircraft`
 | Airlabs | 500 req/month free | Schedules, status |
 | AeroDataBox | 100 req/month free | Flight status, airport info |
 | FlightAware | from ~$150/month | Professional grade |
-| ADS-B Exchange | Free | Raw ADS-B, no filtering |
 | Kaggle datasets | Free | Historical CSVs only |
 
 ---
 
 ## Next Steps
 
-- [ ] Retry LH API registration or get shared token via mentor
-- [ ] Build IATA↔ICAO mapping table (Phase 2)
-- [ ] Evaluate Airlabs as fallback if LH token stays unavailable
+- [ ] Implement adsb.lol collector (Phase 2 start) — parallel to OpenSky
+- [x] Evaluated ADS-B Exchange alternatives (completed 2026-05-13)
+- [ ] Design IATA↔ICAO mapping table (Phase 2) — needed to join airports (IATA) ↔ flights (ICAO)
+- [ ] Build MongoDB landing zone schema for raw ADS-B JSON (Phase 2)
+- [ ] Retry LH API registration or get shared token via mentor (Phase 1, ongoing)
