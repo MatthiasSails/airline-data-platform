@@ -1,4 +1,9 @@
-"""Collect airport reference data from Lufthansa API → PostgreSQL"""
+"""Collect airport reference data from Lufthansa API → PostgreSQL
+
+DEPRECATED (Phase 1 artifact): The LH API key was never obtained; this collector
+cannot run against the real API. Planned replacement: OurAirports CSV loader →
+MongoDB airline_landing.airports_ref (ICAO↔IATA mapping). See ADR 004 and ADR 005.
+"""
 
 import sys
 from pathlib import Path

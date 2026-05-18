@@ -1,4 +1,9 @@
-"""Collect airline reference data from Lufthansa API → PostgreSQL"""
+"""Collect airline reference data from Lufthansa API → PostgreSQL
+
+DEPRECATED (Phase 1 artifact): The LH API key was never obtained; this collector
+cannot run against the real API. No replacement planned — airline reference data
+is not a current data source. See ADR 004.
+"""
 
 import sys
 from pathlib import Path

@@ -41,6 +41,13 @@ class MongoConnector:
             raise RuntimeError("Not connected — use 'with MongoConnector(...) as db'")
         return self._client[self.db_name][name]
 
+    def insert_raw(self, collection_name: str, document: dict) -> str:
+        """Insert one raw API document into any collection. Returns the inserted _id."""
+        col = self.collection(collection_name)
+        result = col.insert_one(document)
+        logger.debug("Inserted document _id=%s into %s", result.inserted_id, collection_name)
+        return str(result.inserted_id)
+
     def insert_adsb_snapshot(self, collection_name: str, snapshot: dict) -> str:
         """Insert one raw adsb.lol API snapshot. Returns the inserted _id."""
         col = self.collection(collection_name)
