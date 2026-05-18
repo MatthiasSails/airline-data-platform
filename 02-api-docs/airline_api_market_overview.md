@@ -97,6 +97,18 @@ See ADR 003 for detailed rationale.
 
 ---
 
+## Static Reference Data
+
+| Source | Cost | Content | Relevance |
+|---|---|---|---|
+| **OurAirports.com** | Free, CSV download | ~28k airports, IATA + ICAO + coordinates + country | ⭐ Solves the IATA↔ICAO mapping problem (ADR 003) |
+| **OpenFlights.org** | Free, CSV | Airlines, airports, routes | Outdated but usable as fallback |
+| **Kaggle (airline datasets)** | Free | Historical CSVs (e.g. BTS On-Time Performance) | Useful for backfill / testing |
+
+**OurAirports import plan (Phase 2):** One-time CSV download from `ourairports.com/data/airports.csv` → load into `iata_icao_codes` table in PostgreSQL. Gives a stable join key between Lufthansa API (IATA) and OpenSky/adsb.lol (ICAO/ICAO24). No API calls needed, no rate limits.
+
+---
+
 ## Other Providers (not evaluated)
 
 | API | Cost | Notes |
@@ -104,7 +116,6 @@ See ADR 003 for detailed rationale.
 | Airlabs | 500 req/month free | Schedules, status |
 | AeroDataBox | 100 req/month free | Flight status, airport info |
 | FlightAware | from ~$150/month | Professional grade |
-| Kaggle datasets | Free | Historical CSVs only |
 
 ---
 

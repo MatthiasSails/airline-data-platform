@@ -83,6 +83,8 @@ Both streams flow into the same PostgreSQL warehouse via ETL (Phase 2). OpenSky 
 - Lufthansa airports (IATA) ↔ OpenSky airports (ICAO)
 - Not needed for adsb.lol (no airport codes in response)
 
+**Data source for the mapping table:** [OurAirports.com](https://ourairports.com/data/) provides a free CSV (`airports.csv`) with ~28k airports including both IATA and ICAO codes plus coordinates. One-time import, no API calls, no rate limits. This is the recommended approach over building the mapping from live API responses.
+
 See `architecture_m.md` ERD section for foreign key design.
 
 ### Data Flow (Phase 2)
