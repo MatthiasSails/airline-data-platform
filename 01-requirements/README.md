@@ -1,76 +1,77 @@
-# Airline Data Engineering Project
+# 01 — Requirements & Architecture
 
-## Repository Structure
-
-```
-Airline/
-├── 01-requirements/              ← Projektdokumentation (dieses Verzeichnis)
-│   ├── a-source/               ← Originaldokumente (unverändert, von extern)
-│   │   ├── liora_airlines_original.pdf   ← Aufgabenstellung von Liora/DataScientest
-│   │   └── mentor_update_nicolas.md      ← Klärungen & Updates vom Mentor Nicolas
-│   ├── b-requirements/         ← Ausgearbeitete Projektanforderungen
-│   │   ├── project_description_doc.md    ← Executive Summary, Ziele, Deliverables
-│   │   ├── project_context_doc.md        ← Technischer Projektkontext
-│   │   └── timeline_m.md                 ← Meilenstein-Timeline (Mermaid Gantt)
-│   └── c-architecture/         ← Architekturentscheidungen & Diagramme
-│       ├── architecture_m.md             ← Systemarchitektur (Mermaid)
-│       └── dataflow_doc.md               ← Dataflow-Beschreibung (Prosa)
-│
-├── 02-api-docs/                  ← Lufthansa Public API Dokumentation
-│   ├── LH_public_API_swagger_2_0.json    ← Vollständige Swagger/OpenAPI Spec
-│   └── README.md                         ← API Übersicht & Auth-Hinweise
-│
-├── 03-data-collection/           ← Step 1: Datenbeschaffung (Python)
-│   ├── lufthansa_api/            ← API-Client Package
-│   │   ├── client.py             ← Haupt-Client (mock + real mode)
-│   │   ├── mock_data.py          ← Sample-Daten für Entwicklung ohne Credentials
-│   │   └── schemas.py            ← Datenmodelle
-│   ├── opensky_api/              ← OpenSky Network Client (OAuth2)
-│   │   ├── client.py
-│   │   ├── mock_data.py
-│   │   └── schemas.py
-│   ├── collectors/               ← Standalone Collector-Scripts
-│   │   ├── airports_collector.py ← Flughäfen → PostgreSQL
-│   │   ├── airlines_collector.py ← Airlines → PostgreSQL
-│   │   └── adsb_collector.py     ← ADS-B Positionen → MongoDB Landing Zone
-│   ├── db/
-│   │   ├── postgres/             ← PostgreSQL Connector + Schema
-│   │   │   ├── connector.py
-│   │   │   └── schema.sql
-│   │   └── mongo/                ← MongoDB Connector (Landing Zone)
-│   │       └── connector.py
-│   ├── explore_lh_api.ipynb      ← Lufthansa API Exploration
-│   ├── explore_opensky_api.ipynb ← OpenSky API Exploration
-│   ├── explore_adsb_lol.ipynb    ← adsb.lol API Exploration
-│   ├── explore_mongo_vm.ipynb    ← MongoDB Landing Zone Exploration
-│   ├── collect_adsb.ipynb        ← ADS-B Collector: Schritt-für-Schritt Walkthrough
-│   └── demo.py                   ← Demo-Script (läuft ohne Credentials)
-│
-└── 04-dashboard/                 ← Step 1 Deliverable: Landing Zone Visualisierung
-    └── adsb-dashboard/           ← Streamlit App (live auf Liora VM, Port 8502)
-        ├── app.py
-        ├── Dockerfile
-        ├── docker-compose.yml
-        └── deploy.sh
-```
-
-## Geplante Verzeichnisse (noch nicht angelegt)
-
-```
-Airline/
-├── 05-backend/                   ← FastAPI Service
-├── 06-devops/                    ← Docker Compose, CI/CD, GitHub Actions
-└── 07-final-defense/             ← Präsentation & Demo
-```
+Documentation entry point for the **Airline Data Engineering Platform** — DataScientest / Liora Data Engineer Bootcamp project.
 
 ---
 
-## File Naming Convention
+## What this project is
 
-| Typ | Suffix / Pattern | Beispiel |
+A multi-source data platform that ingests airline / flight data into a MongoDB landing zone, transforms it into a curated PostgreSQL warehouse, and exposes it through a FastAPI backend and a Streamlit dashboard. Built as the capstone project of a Data Engineering bootcamp.
+
+**Why it exists:** to demonstrate end-to-end Data Engineering — API ingestion, multi-database architecture, ETL, automation, containerization, and CI/CD — under realistic constraints (no premium API access, partially blocked network, evolving requirements).
+
+**Live demo:** http://liora-vm.matthiaskoehler.com:8502 — Streamlit dashboard reading the MongoDB landing zone.
+
+---
+
+## Status (as of 2026-05-18)
+
+| Phase | Deadline | Status |
 |---|---|---|
-| Reine Mermaid-Diagramme | `*_m.md` | `architecture_m.md`, `timeline_m.md` |
-| Architekturtext / Prosa | `*_doc.md` | `dataflow_doc.md` |
-| Architekturentscheidungen | `adr_NNN_*.md` | `adr_001_postgres_vs_mongo.md` |
-| Meeting Notes | `meeting_YYYY-MM-DD.md` | `meeting_2026-05-10.md` |
-| Quelldokumente (original) | in `a-source/` | `liora_airlines_original.pdf` |
+| Step 0 — Scoping & Kickoff | 07.05.2026 | ✅ done |
+| Step 1 — Data Discovery & Organization | 20.05.2026 | 🚧 in progress |
+| Step 2 — Data Consumption & API | 10.06.2026 | ⏳ pending |
+| Step 3 — Automation & Pipelines | 16.06.2026 | ⏳ pending |
+| Step 4 — Deployment & Frontend | 02.07.2026 | ⏳ pending |
+| Final Defense | 20.07.2026 | ⏳ pending |
+
+**Currently live:**
+- ADS-B collector writing to MongoDB landing zone on Liora VM ✅
+- Streamlit dashboard reading the landing zone ✅
+- PostgreSQL connector + schema (airports, airlines, flights) ✅
+
+**Next up:** UML / ERD documentation, ETL pipeline (MongoDB → PostgreSQL).
+
+---
+
+## Team & Context
+
+**Team:** Matthias Köhler, Pavel, Chaithra (3 people)
+**Mentor:** Nicolas ("NicoTheDataSherpa")
+**Program:** DataScientest Data Engineer Bootcamp, cohort `apr26_bde_airlines`
+
+**Constraints worth knowing as a reader:**
+- No Lufthansa API key available
+- OpenSky API blocked on Liora VM (outbound HTTPS) — local-only
+- ML is explicitly de-prioritized (mentor approved)
+- Strategic pivot: MongoDB positioned as multi-source hub, not single-feed buffer ([ADR 004](adr/004-mongo-as-multisource-hub.md))
+
+For the full original assignment see [source/](source/).
+
+---
+
+## How to navigate this folder
+
+| Path | What's inside |
+|---|---|
+| **[scope.md](scope.md)** | What we deliver per phase, what's out of scope, non-goals |
+| **[timeline.md](timeline.md)** | Mermaid Gantt chart of milestones |
+| **[architecture/](architecture/)** | Phase diagrams, data flow, ERD |
+| **[adr/](adr/)** | Architecture Decision Records — *why* the design looks like it does |
+| **[source/](source/)** | Original Liora assignment + mentor messages (immutable) |
+
+**New to the repo?** Read in this order: this file → [scope.md](scope.md) → [architecture/README.md](architecture/README.md) → [adr/](adr/).
+
+---
+
+## Repository structure beyond this folder
+
+```
+airline-data-platform/
+├── 01-requirements/        ← you are here
+├── 02-api-docs/            ← external API documentation (Lufthansa Swagger, etc.)
+├── 03-data-collection/     ← collectors, connectors, exploration notebooks
+└── 04-dashboard/           ← Streamlit dashboard (deployed to Liora VM)
+```
+
+Pending: `05-backend/` (FastAPI), `06-devops/` (Docker Compose + CI/CD), `07-final-defense/`.

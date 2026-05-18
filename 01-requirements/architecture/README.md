@@ -1,8 +1,12 @@
-# Architecture Diagrams
+# Architecture
 
 Architecture evolves per project phase. Each phase diagram shows the complete system at that point in time.
 
-See `timeline_m.md` for deadlines. See `adr_*.md` for decisions behind each change.
+**Related:**
+- [data-flow.md](data-flow.md) — prose explanation of data flow
+- [erd.md](erd.md) — Entity Relationship Diagram
+- [../adr/](../adr/) — Architecture Decision Records (why)
+- [../timeline.md](../timeline.md) — deadlines
 
 ---
 
@@ -148,37 +152,7 @@ graph TB
 
 ### Entity Relationship Diagram
 
-> **Note on airport codes:** `airports` uses IATA codes (3 chars, e.g. `BER`) from the LH API.
-> `flights` uses ICAO codes (4 chars, e.g. `EDDB`) from OpenSky.
-> No foreign key between the two — a IATA↔ICAO mapping table is needed in Phase 2.
-
-```mermaid
-erDiagram
-    AIRPORTS {
-        varchar_3 code PK
-        varchar name
-        varchar city_code
-        varchar country_code
-        float latitude
-        float longitude
-    }
-
-    AIRLINES {
-        varchar_2 code PK
-        varchar name
-    }
-
-    FLIGHTS {
-        varchar_10 icao24 PK
-        bigint first_seen PK
-        varchar callsign
-        bigint last_seen
-        varchar_4 departure_airport
-        varchar_4 arrival_airport
-        int departure_horiz_distance
-        int arrival_horiz_distance
-    }
-```
+Moved to [erd.md](erd.md).
 
 ---
 
