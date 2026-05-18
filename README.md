@@ -32,7 +32,7 @@ graph LR
     MDB -->|ETL| PG[("PostgreSQL<br/>Warehouse")]
 
     PG --> API["FastAPI<br/>backend"]
-    MDB -.->|direct read<br/>(Step 1)| DASH["Streamlit<br/>Dashboard"]
+    MDB -.->|"direct read<br/>Step 1"| DASH["Streamlit<br/>Dashboard"]
     API --> DASH
 
     style ADSB fill:#4CAF50,color:#fff
