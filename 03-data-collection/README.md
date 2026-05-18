@@ -1,250 +1,84 @@
-# Lufthansa API Data Collection
+# 03 — Data Collection
 
-Step 1 of the Airline Data Engineering project: **Data Discovery & Organization**
+Ingestion-Layer der Airline Data Platform. Python Collectors + Notebooks, die Rohdaten aus aktiven Quellen in die MongoDB Landing Zone `airline_landing` schreiben.
 
-## Overview
-
-Python tools to collect **Airports** and **Airlines** reference data from the Lufthansa Public API.
+## Datenfluss
 
 ```
-Lufthansa API (OAuth2)
-        ↓
-LufthansaAPIClient
-        ↓
-Collectors (Airports, Airlines)
-        ↓
-LH API (Mock/Real) → PostgreSQL (Phase 1)
+adsb.lol (Liora VM, no auth)  ──►  MongoDB airline_landing.adsb_raw     ┐
+OpenSky API (lokaler Mac)     ──►  MongoDB airline_landing.opensky_raw  ├─► (Phase 3) ETL → PostgreSQL Star Schema
+OurAirports CSV (geplant)     ──►  MongoDB airline_landing.airports_ref ┘
 ```
 
-## Modes
+Hintergrund: [`adr/004-mongo-as-multisource-hub.md`](../01-requirements/adr/004-mongo-as-multisource-hub.md), [`adr/005-opensky-mongo-migration.md`](../01-requirements/adr/005-opensky-mongo-migration.md).
 
-### 🧪 Mock Mode (Development)
-No credentials needed - uses pre-loaded sample data.
+## Index
 
-```python
-from lufthansa_api.client import LufthansaAPIClient
+| Pfad | Quelle | Rolle | Status |
+|---|---|---|---|
+| `opensky_api/client.py` | OpenSky | OAuth2 API Client (Live + Mock) | aktiv |
+| `opensky_api/mock_data.py` | OpenSky | Mock-Responses für `--mock` Lauf | aktiv |
+| `collectors/opensky_collector.py` | OpenSky | Collector → `opensky_raw`, lokal | aktiv |
+| `collect_opensky.ipynb` | OpenSky | Produktiver Walkthrough Collector | aktiv |
+| `explore_opensky_api.ipynb` | OpenSky | Ad-hoc API Exploration | aktiv |
+| `collectors/adsb_collector.py` | adsb.lol | Collector → `adsb_raw`, Cron auf Liora VM | aktiv |
+| `collect_adsb.ipynb` | adsb.lol | Produktiver Walkthrough Collector | aktiv |
+| `explore_adsb_lol.ipynb` | adsb.lol | Ad-hoc API Exploration | aktiv |
+| `explore_mongo_vm.ipynb` | MongoDB | Landing Zone Inspektion (quellen-übergreifend) | aktiv |
+| `db/mongo/` | MongoDB | Connector + Doku Landing Zone | aktiv |
+| `db/postgres/` | PostgreSQL | Connector + Phase-1-Schema (für Phase 3 ETL) | aktiv |
+| Lufthansa API | — | — | **geschlossen** (kein Key, ADR 004) |
 
-client = LufthansaAPIClient(use_mock=True)
-airports = client.get_airports()
-airlines = client.get_airlines()
-```
+Konvention: `collect_*.ipynb` = produktiver Walkthrough mit Mongo-Write; `explore_*.ipynb` = ad-hoc Inspektion ohne Side-Effects.
 
-### 🔐 Real API Mode (Production)
-Requires Lufthansa API credentials (OAuth2).
+## Quickstart
 
-```python
-client = LufthansaAPIClient(
-    client_id="your_client_id",
-    client_secret="your_client_secret",
-    use_mock=False
-)
-```
+### OpenSky (lokal)
 
-Or use environment variables:
-```bash
-export LH_CLIENT_ID="your_client_id"
-export LH_CLIENT_SECRET="your_client_secret"
-```
-
-## Quick Start
-
-### 1. Demo with Mock Data
 ```bash
 cd 03-data-collection
-python demo.py
+
+# Mock-Lauf, keine Credentials nötig
+python collectors/opensky_collector.py --mock
+
+# Live, mit Credentials in .env (OPENSKY_CLIENT_ID / OPENSKY_CLIENT_SECRET):
+python collectors/opensky_collector.py --hours 24
 ```
 
-**Output:**
-```
-============================================================
-DEMO: Lufthansa API Client (Mock Mode)
-============================================================
+OpenSky-Auth ist von der Liora VM blockiert — Collector muss lokal laufen (siehe ADR 005).
 
-1. Getting mock airports...
-   Found 5 airports:
-     - BER: Berlin Brandenburg
-     - TXL: Berlin Tegel
-     - CDG: Paris Charles de Gaulle
-     ...
+### adsb.lol (Liora VM)
 
-2. Getting mock airlines...
-   Found 5 airlines:
-     - LH: Lufthansa
-     - BA: British Airways
-     ...
-```
+Läuft als Cron auf `Liora_VM`. Manuell:
 
-### 2. Collect Real Data (when credentials arrive)
 ```bash
-python collectors/airports_collector.py
-python collectors/airlines_collector.py
+ssh Liora_VM
+cd /opt/airline-data-platform/03-data-collection
+python collectors/adsb_collector.py
 ```
 
-### 3. Use in Your Code
-```python
-from lufthansa_api.client import LufthansaAPIClient
-import json
+### Landing Zone inspizieren
 
-client = LufthansaAPIClient(use_mock=True)
-
-# Get all airports (paginated)
-response = client.get_airports(limit=100, offset=0)
-airports = response["ResourceResponse"]["Airport"]
-
-# Get specific airport
-ber = client.get_airports(airport_code="BER")
-
-# Get nearest airports to coordinates
-nearest = client.get_nearest_airports(latitude=52.5, longitude=13.4)
-
-# Get all airlines
-response = client.get_airlines(limit=100)
-airlines = response["ResourceResponse"]["Airline"]
-
-# Get specific airline
-lh = client.get_airlines(airline_code="LH")
+```bash
+jupyter lab explore_mongo_vm.ipynb
 ```
 
-## API Endpoints (from Swagger 2.0)
+## Environment
 
-### Airports
-
-#### Get All Airports
-```
-GET /references/airports
-Query Params:
-  - limit: 1-100 (default: 20)
-  - offset: skip N records (default: 0)
-  - lang: 2-letter ISO language code (optional)
-  - LHoperated: true/false - only LH-operated locations (optional)
-```
-
-#### Get Specific Airport
-```
-GET /references/airports/{airportCode}
-  - airportCode: 3-letter IATA code (e.g., "BER", "CDG")
-  - lang: language code (optional)
-```
-
-#### Get Nearest Airports
-```
-GET /references/airports/nearest/{latitude},{longitude}
-  - latitude: -90 to +90
-  - longitude: -180 to +180
-  - lang: language code (optional)
-
-Returns: 5 closest airports
-```
-
-### Airlines
-
-#### Get All Airlines
-```
-GET /references/airlines
-Query Params:
-  - limit: 1-100 (default: 20)
-  - offset: skip N records (default: 0)
-```
-
-#### Get Specific Airline
-```
-GET /references/airlines/{airlineCode}
-  - airlineCode: 2-letter IATA code (e.g., "LH", "BA")
-```
-
-## Response Format
-
-### Airports Response
-```json
-{
-  "ResourceResponse": {
-    "Airport": [
-      {
-        "AirportCode": "BER",
-        "CityCode": "BER",
-        "CountryCode": "DE",
-        "LocationType": "Airport",
-        "Names": {
-          "Name": [
-            {
-              "@LanguageCode": "en",
-              "$": "Berlin Brandenburg"
-            }
-          ]
-        },
-        "Position": {
-          "Coordinate": {
-            "Latitude": 52.364,
-            "Longitude": 13.502
-          }
-        }
-      }
-    ]
-  }
-}
-```
-
-### Airlines Response
-```json
-{
-  "ResourceResponse": {
-    "Airline": [
-      {
-        "AirlineCode": "LH",
-        "Names": {
-          "Name": [
-            {
-              "@LanguageCode": "en",
-              "$": "Lufthansa"
-            }
-          ]
-        }
-      }
-    ]
-  }
-}
-```
-
-## File Structure
+`.env` in `03-data-collection/` (lokal, gitignored):
 
 ```
-03-data-collection/
-├── lufthansa_api/
-│   ├── __init__.py           # Package exports
-│   ├── client.py             # Main API client
-│   ├── schemas.py            # Data models
-│   └── mock_data.py          # Sample data for dev
-├── collectors/
-│   ├── airports_collector.py # Fetch airports → PostgreSQL
-│   └── airlines_collector.py # Fetch airlines → PostgreSQL
-├── demo.py                   # Demo script
-├── explore_lh_api.ipynb      # Interactive exploration notebook
-└── README.md                 # This file
+OPENSKY_CLIENT_ID=...
+OPENSKY_CLIENT_SECRET=...
+MONGO_URI=mongodb://localhost:27017
+MONGO_DB=airline_landing
 ```
 
-## Next Steps
+## API-Dokumentation
 
-1. **Waiting for:** Lufthansa API Credentials (Client ID + Secret)
-2. **Then:** Run collectors with real API:
-   ```bash
-   export LH_CLIENT_ID="..."
-   export LH_CLIENT_SECRET="..."
-   python collectors/airports_collector.py
-   python collectors/airlines_collector.py
-   ```
-3. **Load data into PostgreSQL** (`dst_db` on training server)
+Siehe [`../02-api-docs/`](../02-api-docs/) — OpenSky, adsb.lol, sowie Markt-Überblick.
 
-## API Documentation
+## Nächste Schritte
 
-- Full Swagger spec: [`../02-api-docs/LH_public_API_swagger_2_0.json`](../02-api-docs/LH_public_API_swagger_2_0.json)
-- Lufthansa API: https://developer.lufthansa.com/docs
-- OAuth2 Flow: https://api.lufthansa.com/v1/oauth/token
-
-## Authentication
-
-The Lufthansa API uses OAuth2 (flow: `accessCode`).
-
-- **Token Endpoint:** `https://api.lufthansa.com/v1/oauth/token`
-- **Scopes:** `read:LH Open API`
-
-See the Swagger spec for details.
+1. `airports_ref` Loader (OurAirports CSV → MongoDB)
+2. Phase 3 ETL: Mongo Raw → PostgreSQL Star Schema (siehe `04-transform/` sobald angelegt)

@@ -12,7 +12,7 @@ Project-level instructions for Claude Code when working in this repository.
 
 **Main Stack:**
 - **Sources**:
-  - Lufthansa API (OAuth2, IATA codes) — ⚠️ Mock only, no API key available (see ADR 004)
+  - Lufthansa API — ❌ closed, no API key obtained (see ADR 004); code removed in 03-data-collection cleanup 2026-05-18
   - OpenSky Network (OAuth2, ICAO codes) — ✅ Active locally (VM blocked, see ADR 004/005)
   - adsb.lol (no auth, ICAO24 hex) — ✅ Active on VM (see ADR 003)
 - **Ingestion**: Python collectors
@@ -50,14 +50,12 @@ airline-data-platform/
 │   ├── adsb_lol_api_doc.md             # adsb.lol technical spec (Phase 2)
 │   └── airline_api_market_overview.md  # API comparison matrix
 ├── 03-data-collection/       # Python tools for data ingestion
-│   ├── lufthansa_api/        # LH API client (mock only — no key)
 │   ├── opensky_api/          # OpenSky API client (OAuth2)
-│   ├── collectors/           # adsb_collector, opensky_collector (active); airports/airlines (deprecated)
+│   ├── collectors/           # adsb_collector, opensky_collector
 │   ├── db/                   # postgres/, mongo/
 │   ├── collect_adsb.ipynb    # ADS-B collector walkthrough
 │   ├── collect_opensky.ipynb # OpenSky collector walkthrough
-│   ├── explore_*.ipynb       # Exploration notebooks per source
-│   └── demo.py               # Demo script (no credentials needed)
+│   └── explore_*.ipynb       # Exploration notebooks per source / Mongo landing zone
 ├── requirements.txt          # Pinned Python dependencies
 └── CLAUDE.md                 # This file
 ```
