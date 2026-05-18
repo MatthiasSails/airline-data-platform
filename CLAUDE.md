@@ -14,7 +14,7 @@ Project-level instructions for Claude Code when working in this repository.
 - **Sources**:
   - Lufthansa API (OAuth2, IATA codes) — ⚠️ Mock only, registration blocked
   - OpenSky Network (OAuth2, ICAO codes) — ✅ Active in Phase 1
-  - adsb.lol (no auth, ICAO24 hex) — 📋 Planned for Phase 2 (see ADR 003)
+  - adsb.lol (no auth, ICAO24 hex) — ✅ Active (Phase 2, see ADR 003)
 - **Ingestion**: Python collectors
 - **Raw Storage**: PostgreSQL direct (Phase 1) → MongoDB landing zone (Phase 2, see ADR 001)
 - **Transformation**: Python ETL + Pandas
@@ -150,11 +150,19 @@ ssh Liora_VM
 
 Claude kann selbst `ssh Liora_VM <befehl>` ausführen — der Key liegt lokal und der Alias ist in `~/.ssh/config` eingetragen.
 
-**PostgreSQL läuft als Docker Container**, nicht nativ installiert:
+**Laufende Docker Container:**
 - `pg_container` — `postgres:16-alpine`, Port `5432`
 - `pgadmin4_container` — pgAdmin 4, Port `5050`
+- `mongo_container` — `mongo:7-jammy`, Port `27017`, Volume `mongo_data`, gestartet mit `--auth`
 
 `dpkg -l | grep postgres` findet nichts — immer `docker ps` zur Prüfung verwenden.
+
+**MongoDB-Verbindung** (Phase 2 Landing Zone):
+```
+MONGO_URI=mongodb://<user>:<pass>@liora-vm.matthiaskoehler.com:27017/<db>?authSource=admin
+MONGO_DB=airline_landing
+```
+`authSource=admin` ist zwingend — der User ist in der `admin`-DB angelegt, ohne diesen Parameter schlägt die Auth fehl. Credentials in `.env` (lokal, nicht committed).
 
 ### VM Neustart — IP-Update-Prozedur
 
@@ -187,6 +195,17 @@ python -m ipykernel install --user --name airline-data-platform --display-name "
 
 In VS Code: Kernel-Dialog → **Python Environments... → airline-data-platform** auswählen.  
 Falls `.venv` nach einer Projekt-Umbenennung kaputt ist (Symptom: `bad interpreter`): `rm -rf .venv` und obige Schritte wiederholen.
+
+### Exploration Notebooks
+
+Naming convention: `explore_<quelle>.ipynb` in `03-data-collection/`.
+
+| Notebook | Quelle |
+|---|---|
+| `explore_lh_api.ipynb` | Lufthansa API (Mock) |
+| `explore_opensky_api.ipynb` | OpenSky Network |
+| `explore_adsb_lol.ipynb` | adsb.lol API |
+| `explore_mongo_vm.ipynb` | MongoDB Landing Zone (Liora VM) |
 
 ### Demo with Mock Data (no credentials needed)
 
