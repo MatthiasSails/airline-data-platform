@@ -13,6 +13,8 @@ Concrete deliverables per phase, with explicit non-goals.
 **In scope:**
 - Live ADS-B data collection from adsb.lol (Berlin, 60 nm radius)
 - MongoDB landing zone (`airline_landing.adsb_raw`) on Liora VM
+- OpenSky Network collection via local CLI (`collectors/opensky_collector.py`) → `airline_landing.opensky_raw`
+- Cross-collection join exploration: ADS-B ↔ OpenSky via ICAO24 transponder address
 - PostgreSQL warehouse schema (airports, airlines, flights)
 - Streamlit dashboard visualizing the landing zone (live on VM)
 - UML / ERD documentation
@@ -20,7 +22,7 @@ Concrete deliverables per phase, with explicit non-goals.
 
 **Out of scope:**
 - Lufthansa API integration (no key available — see [ADR 004](adr/004-mongo-as-multisource-hub.md))
-- OpenSky from Liora VM (outbound HTTPS blocked — local-only collector)
+- OpenSky from Liora VM (outbound HTTPS blocked — local-only collector, see [ADR 005](adr/005-opensky-mongo-migration.md))
 
 ---
 

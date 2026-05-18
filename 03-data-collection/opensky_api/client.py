@@ -63,6 +63,9 @@ class OpenSkyClient:
             params=params,
             headers={"Authorization": f"Bearer {self._token}"}
         )
+        # OpenSky returns 404 when no flights exist for the given window — treat as empty
+        if response.status_code == 404:
+            return []
         response.raise_for_status()
         return response.json()
 

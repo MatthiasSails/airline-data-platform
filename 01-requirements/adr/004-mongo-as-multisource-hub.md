@@ -72,7 +72,7 @@ The ETL layer reads from any of these collections and produces the curated Postg
 
 **Workflow:**
 - ADS-B collector runs on VM (cron, every 5 min) → `adsb_raw`
-- OpenSky collector runs locally as Jupyter notebook → `opensky_raw`
+- OpenSky collector runs locally as CLI script (`python collectors/opensky_collector.py`) → `opensky_raw`
 - Kaggle / reference loaders are one-shot scripts
 
 **Team:**

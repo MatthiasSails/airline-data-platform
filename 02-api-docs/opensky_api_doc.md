@@ -65,3 +65,21 @@ Returns all flights for a specific aircraft (max 30 days).
   - EDDB = Berlin Brandenburg (BER in IATA)
   - EDDM = Munich (MUC in IATA)
 - Time windows must not exceed 7 days per request
+
+## Known API Gotchas
+
+### HTTP 404 = no results (not an error)
+
+Both `/flights/departure` and `/flights/arrival` return **HTTP 404** when no flights exist
+for the requested airport + time window. This is not an error — treat it as an empty list.
+
+Fix in `opensky_api/client.py`: catch `status_code == 404` before `raise_for_status()` and return `[]`.
+
+### Arrivals data has a processing lag
+
+Arrival data is processed significantly slower than departure data. For recent time windows
+(< ~6 hours ending now), `/flights/arrival` frequently returns 404 (= 0 results) even when
+flights have clearly landed. Departures for the same window are usually complete.
+
+**Recommendation:** Use at least a **24–30 hour look-back window** to get reliable arrivals data.
+Collecting with `--hours 6` will almost always yield 0 arrivals for current data.

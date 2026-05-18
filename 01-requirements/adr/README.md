@@ -10,6 +10,7 @@ Each ADR documents one significant decision: the context, the choice, the altern
 | [002](002-psycopg2.md) | psycopg2 as PostgreSQL Driver | Accepted | 2026-05-12 |
 | [003](003-dual-stream.md) | Dual-Stream ADS-B Strategy (OpenSky + adsb.lol) | Accepted | 2026-05-13 |
 | [004](004-mongo-as-multisource-hub.md) | MongoDB as Multi-Source Landing Zone Hub | Accepted | 2026-05-18 |
+| [005](005-opensky-mongo-migration.md) | OpenSky Pipeline Migration: PostgreSQL → MongoDB | Accepted | 2026-05-18 |
 
 ## Format
 

@@ -189,7 +189,7 @@ Naming convention: `explore_<quelle>.ipynb` in `03-data-collection/`.
 | `explore_lh_api.ipynb` | Lufthansa API (Mock) |
 | `explore_opensky_api.ipynb` | OpenSky Network |
 | `explore_adsb_lol.ipynb` | adsb.lol API |
-| `explore_mongo_vm.ipynb` | MongoDB Landing Zone (Liora VM) |
+| `explore_mongo_vm.ipynb` | MongoDB Landing Zone — beide Collections (`adsb_raw` + `opensky_raw`) inkl. Cross-Collection Join (Sektionen 9–11) |
 
 ### Demo with Mock Data (no credentials needed)
 
@@ -219,6 +219,15 @@ python collectors/opensky_collector.py --hours 6
 
 `airports_collector.py` and `airlines_collector.py` are **deprecated** (LH API key never obtained).
 Credentials (OPENSKY_CLIENT_ID/SECRET, MONGO_URI) are read from `.env`, never committed.
+
+### Cross-Collection Join: ADS-B ↔ OpenSky
+
+Join-Key: `adsb_raw.ac[].hex` = `opensky_raw.flights[].icao24` (ICAO24 Transponderadresse, identisch)
+
+- **ADS-B** liefert: Echtzeit-Position, Höhe, Geschwindigkeit, Flugzeugtyp (Momentaufnahme)
+- **OpenSky** ergänzt: Abflug- / Zielflughafen, Callsign, Abflugzeit (historisches Zeitfenster)
+- Match-Rate naturgemäß gering (ADS-B = Snapshot, OpenSky = Zeitfenster) — mit wachsender OpenSky-History steigt die Rate
+- Implementiert in `explore_mongo_vm.ipynb` Sektion 11
 
 ---
 
