@@ -1,108 +1,104 @@
-# Airline Data Engineering Project
+# Airline Data Engineering Platform
 
-Data pipeline for Lufthansa flight data — from API to database.
+End-to-end data pipeline for live airline / flight data — built as the capstone project of the **DataScientest Data Engineer Bootcamp**.
 
-> **AI collaboration:** This project is developed with [Claude](https://www.anthropic.com/claude) (Anthropic) as a coding assistant — used for architecture discussions, code generation, refactoring, and documentation. All design decisions, reviews, and final commits are made by the human authors.
-
-## Project Structure
-
-```
-airline/
-├── 01-requirements/       # Project specs and architecture docs
-├── 02-api-docs/           # Lufthansa API Swagger spec
-├── 03-data-collection/    # API client, collectors, notebooks
-├── requirements.txt       # Python dependencies (all pinned)
-└── README.md              # This file
-```
-
-## Development Setup
-
-### 1. Clone and enter the project
-```bash
-git clone <repo>
-cd airline
-```
-
-### 2. Create virtual environment
-```bash
-python3 -m venv .venv
-```
-
-A `.venv` folder is created locally. It is excluded from git (see `.gitignore`).
-
-### 3. Activate virtual environment
-```bash
-source .venv/bin/activate   # Mac / Linux
-```
-
-### 4. Install dependencies
-```bash
-pip install -r requirements.txt
-```
-
-All packages are pinned to exact versions to guarantee reproducible environments across machines and CI. The file lists both the libraries we use directly (e.g. `requests`, `psycopg2-binary`) and the transitive dependencies they pull in — generated via `pip freeze` so every install produces the same versions.
-
-### 5. Start exploring
-Open VS Code, select the `.venv` kernel in Jupyter, and open:
-```
-03-data-collection/explore_lh_api.ipynb
-```
+🛫 **Live demo:** http://liora-vm.matthiaskoehler.com:8502
+📋 **Project status:** Step 1 in progress (deadline 20.05.2026) — see [01-requirements](01-requirements/README.md)
 
 ---
 
-## Dependency Management
+## What this is
 
-Direct dependencies we actually use:
+A multi-source data platform that ingests live ADS-B and airline data into a **MongoDB landing zone**, transforms it into a **PostgreSQL warehouse**, and exposes it through a **FastAPI** backend and a **Streamlit** dashboard.
 
-| Package | Why |
+The platform is built under real-world constraints: no premium API access, a partially network-restricted training VM, and an evolving feature set — which makes it a more realistic Data Engineering exercise than a textbook example.
+
+![ADS-B Dashboard Screenshot](docs/images/dashboard-screenshot.jpg)
+
+---
+
+## Architecture at a glance
+
+```mermaid
+graph LR
+    ADSB["adsb.lol API<br/>(live ADS-B)"]
+    OS["OpenSky Network<br/>(local only)"]
+    KAG["Kaggle datasets<br/>(historical)"]
+
+    ADSB -->|raw JSON| MDB[("MongoDB<br/>Landing Zone")]
+    OS -->|raw JSON| MDB
+    KAG -->|raw JSON| MDB
+
+    MDB -->|ETL| PG[("PostgreSQL<br/>Warehouse")]
+
+    PG --> API["FastAPI<br/>backend"]
+    MDB -.->|direct read<br/>(Step 1)| DASH["Streamlit<br/>Dashboard"]
+    API --> DASH
+
+    style ADSB fill:#4CAF50,color:#fff
+    style OS fill:#4CAF50,color:#fff
+    style KAG fill:#4CAF50,color:#fff
+    style MDB fill:#FF6B35,color:#fff
+    style PG fill:#0066CC,color:#fff
+    style API fill:#9933CC,color:#fff
+    style DASH fill:#9933CC,color:#fff
+```
+
+**Why MongoDB as a multi-source hub?** See [ADR 004](01-requirements/adr/004-mongo-as-multisource-hub.md) — driven by real project constraints (no Lufthansa key, VM blocks OpenSky), but also a strong Data Engineering pattern: decouple ingestion from transformation.
+
+---
+
+## Status
+
+| Step | Topic | Deadline | Status |
+|---|---|---|---|
+| 0 | Scoping & Kickoff | 07.05.2026 | ✅ |
+| 1 | Data Discovery & Organization | 20.05.2026 | 🚧 |
+| 2 | Data Consumption & API | 10.06.2026 | ⏳ |
+| 3 | Automation & Pipelines | 16.06.2026 | ⏳ |
+| 4 | Deployment & Frontend | 02.07.2026 | ⏳ |
+| Final Defense | Presentation & Demo | 20.07.2026 | ⏳ |
+
+**Live now:** ADS-B collector → MongoDB landing zone → Streamlit dashboard.
+**Next:** UML/ERD, ETL pipeline, FastAPI backend.
+
+---
+
+## Team
+
+| | Role |
 |---|---|
-| `jupyter` | Interactive notebooks |
-| `requests` | HTTP calls to LH API |
-| `psycopg2-binary` | PostgreSQL connector |
-
-All other packages in `requirements.txt` are installed automatically as transitive dependencies.
-
-### Adding a new package
-
-```bash
-# 1. Add to requirements.txt (without version first)
-echo "pandas" >> requirements.txt
-
-# 2. Install
-pip install -r requirements.txt
-
-# 3. Pin the exact version
-pip freeze | grep pandas >> requirements.txt   # then clean up duplicates
-
-# 4. Commit
-git add requirements.txt
-git commit -m "Add pandas"
-```
-
-### Recreating the environment from scratch
-
-```bash
-rm -rf .venv
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
+| **Matthias Köhler** | Data Engineering, infrastructure, deployment |
+| **Pavel** | Data Engineering, API integration |
+| **Chaithra** | Data Engineering |
+| Nicolas (mentor) | DataScientest — bootcamp supervision |
 
 ---
 
-## Database
+## Repository structure
 
-PostgreSQL 16 runs on the training server via Docker.
+| Path | What's inside |
+|---|---|
+| **[01-requirements/](01-requirements/README.md)** | Project specs, architecture, ADRs, timeline |
+| **[02-api-docs/](02-api-docs/)** | External API references (Lufthansa Swagger, etc.) |
+| **[03-data-collection/](03-data-collection/)** | Collectors, DB connectors, exploration notebooks |
+| **[04-dashboard/](04-dashboard/adsb-dashboard/)** | Streamlit dashboard (deployed to Liora VM) |
+| **[docs/](docs/setup.md)** | Setup guide and additional documentation |
 
-Connection settings are stored in `.env` (not in git):
+Pending: `05-backend/` (FastAPI), `06-devops/` (Docker Compose, CI/CD), `07-final-defense/`.
 
-```
-DB_HOST=<server-ip>    # changes on every VM restart
-DB_PORT=5432
-DB_NAME=dst_db
-DB_USER=...
-DB_PASSWORD=...
-```
+---
 
-> **Note:** The training server (AWS) gets a new public IP on every restart.
-> Update `DB_HOST` in your `.env` after each restart.
+## Documentation
+
+- **[Scope & deliverables](01-requirements/scope.md)** — what we build per phase, explicit non-goals
+- **[Architecture](01-requirements/architecture/README.md)** — phase diagrams, data flow, ERD
+- **[Architecture Decision Records](01-requirements/adr/)** — *why* the design looks like it does
+- **[Local setup](docs/setup.md)** — venv, dependencies, `.env`, running notebooks
+- **[ADS-B collector walkthrough](03-data-collection/collect_adsb.ipynb)** — step-by-step Jupyter notebook explaining the collector
+
+---
+
+## AI collaboration
+
+This project is developed with [Claude](https://www.anthropic.com/claude) (Anthropic) as a coding assistant — used for architecture discussions, code generation, refactoring, and documentation. All design decisions, reviews, and final commits are made by the human authors.
