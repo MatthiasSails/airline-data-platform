@@ -36,33 +36,43 @@ graph LR
 
 ---
 
-## Phase 2 — Two-Layer Storage
-*Deadline: within Step 2 — 10.06.2026*
+## Phase 2 — Two-Layer Storage 🚧
+*Deadline: within Step 2 — 10.06.2026 — in progress*
 
-Introduce MongoDB as raw landing zone (original target architecture). See ADR 001.
+MongoDB as raw landing zone active for ADS-B stream. ETL to PostgreSQL pending.
 
 ```mermaid
 graph LR
-    LH["Lufthansa API<br/>OAuth2"]
+    ADSB["adsb.lol API<br/>public REST"]
     OS["OpenSky Network API<br/>OAuth2"]
 
-    LH -->|raw JSON| MDB["MongoDB<br/>landing zone<br/>db.airports<br/>db.airlines<br/>db.flights"]
-    OS -->|raw JSON| MDB
+    ADSB -->|raw JSON snapshots| COL["adsb_collector.py"]
+    OS -->|flights| PG
 
-    MDB -->|extract| ETL["Python ETL<br/>Pandas<br/>normalize + validate"]
+    COL -->|insert_one| MDB["MongoDB<br/>airline_landing.adsb_raw<br/>Liora VM :27017"]
 
+    MDB -->|pending| ETL["Python ETL<br/>Pandas<br/>normalize + validate"]
     ETL -->|UPSERT| PG["PostgreSQL 16<br/>airports<br/>airlines<br/>flights"]
 
-    style LH fill:#4CAF50,color:#fff
+    MDB -->|direct read| DASH["Streamlit Dashboard<br/>adsb-dashboard<br/>Liora VM :8502"]
+
+    style ADSB fill:#4CAF50,color:#fff
     style OS fill:#4CAF50,color:#fff
+    style COL fill:#0066CC,color:#fff
     style MDB fill:#FF6B35,color:#fff
-    style ETL fill:#FFA500,color:#fff
+    style ETL fill:#FFA500,color:#fff,stroke-dasharray:5 5
     style PG fill:#0066CC,color:#fff
+    style DASH fill:#9933CC,color:#fff
 ```
 
-**What will be added:**
-- `db/mongo/` — MongoDB connector
-- `etl/` — transformers, validators
+**What exists now:**
+- `db/mongo/connector.py` — MongoDB connector ✅
+- `collectors/adsb_collector.py` — ADS-B collector ✅
+- `airline_landing.adsb_raw` — live collection on Liora VM ✅
+- `04-dashboard/adsb-dashboard/` — Streamlit dashboard deployed ✅
+
+**What is pending:**
+- `etl/` — ETL pipeline: adsb_raw → PostgreSQL
 
 ---
 

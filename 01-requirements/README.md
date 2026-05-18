@@ -20,27 +20,47 @@ Airline/
 │   ├── LH_public_API_swagger_2_0.json    ← Vollständige Swagger/OpenAPI Spec
 │   └── README.md                         ← API Übersicht & Auth-Hinweise
 │
-└── 03-data-collection/           ← Step 1: Datenbeschaffung (Python)
-    ├── lufthansa_api/            ← API-Client Package
-    │   ├── client.py             ← Haupt-Client (mock + real mode)
-    │   ├── mock_data.py          ← Sample-Daten für Entwicklung ohne Credentials
-    │   └── schemas.py            ← Datenmodelle
-    ├── collectors/               ← Standalone Collector-Scripts
-    │   ├── airports_collector.py ← Flughäfen abrufen & speichern
-    │   └── airlines_collector.py ← Airlines abrufen & speichern
-    ├── demo.py                   ← Demo-Script (läuft ohne Credentials)
-    └── explore_lh_api.ipynb      ← Jupyter Notebook für interaktive Exploration
+├── 03-data-collection/           ← Step 1: Datenbeschaffung (Python)
+│   ├── lufthansa_api/            ← API-Client Package
+│   │   ├── client.py             ← Haupt-Client (mock + real mode)
+│   │   ├── mock_data.py          ← Sample-Daten für Entwicklung ohne Credentials
+│   │   └── schemas.py            ← Datenmodelle
+│   ├── opensky_api/              ← OpenSky Network Client (OAuth2)
+│   │   ├── client.py
+│   │   ├── mock_data.py
+│   │   └── schemas.py
+│   ├── collectors/               ← Standalone Collector-Scripts
+│   │   ├── airports_collector.py ← Flughäfen → PostgreSQL
+│   │   ├── airlines_collector.py ← Airlines → PostgreSQL
+│   │   └── adsb_collector.py     ← ADS-B Positionen → MongoDB Landing Zone
+│   ├── db/
+│   │   ├── postgres/             ← PostgreSQL Connector + Schema
+│   │   │   ├── connector.py
+│   │   │   └── schema.sql
+│   │   └── mongo/                ← MongoDB Connector (Landing Zone)
+│   │       └── connector.py
+│   ├── explore_lh_api.ipynb      ← Lufthansa API Exploration
+│   ├── explore_opensky_api.ipynb ← OpenSky API Exploration
+│   ├── explore_adsb_lol.ipynb    ← adsb.lol API Exploration
+│   ├── explore_mongo_vm.ipynb    ← MongoDB Landing Zone Exploration
+│   ├── collect_adsb.ipynb        ← ADS-B Collector: Schritt-für-Schritt Walkthrough
+│   └── demo.py                   ← Demo-Script (läuft ohne Credentials)
+│
+└── 04-dashboard/                 ← Step 1 Deliverable: Landing Zone Visualisierung
+    └── adsb-dashboard/           ← Streamlit App (live auf Liora VM, Port 8502)
+        ├── app.py
+        ├── Dockerfile
+        ├── docker-compose.yml
+        └── deploy.sh
 ```
 
 ## Geplante Verzeichnisse (noch nicht angelegt)
 
 ```
 Airline/
-├── 04 Data Engineering/          ← ETL, PostgreSQL Warehouse, Airflow DAGs
-├── 05 Backend/                   ← FastAPI Service
-├── 06 Dashboard/                 ← Streamlit / Dash Frontend
-├── 07 DevOps/                    ← Docker Compose, CI/CD, GitHub Actions
-└── 08 Final Defense/             ← Präsentation & Demo
+├── 05-backend/                   ← FastAPI Service
+├── 06-devops/                    ← Docker Compose, CI/CD, GitHub Actions
+└── 07-final-defense/             ← Präsentation & Demo
 ```
 
 ---

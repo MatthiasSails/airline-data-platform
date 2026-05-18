@@ -1,7 +1,7 @@
 # ADR 003 — Dual-Stream ADS-B Strategy: OpenSky + adsb.lol
 
-**Status:** Proposed  
-**Date:** 2026-05-13  
+**Status:** Accepted  
+**Date:** 2026-05-13 — Implemented: 2026-05-18  
 **Author:** Session consolidation (2026-05-13)
 
 ---
@@ -104,10 +104,11 @@ adsb.lol API (ICAO24)    →  MongoDB raw landing zone
 ## Consequences
 
 **Phase 2 Deliverables (updated):**
-- adsb.lol collector module (`collectors/adsb_collector.py`)
-- MongoDB schema and connector (`db/mongo/connector.py`)
-- ETL pipeline for raw ADS-B flattening
-- IATA ↔ ICAO mapping table
+- adsb.lol collector module (`collectors/adsb_collector.py`) ✅
+- MongoDB schema and connector (`db/mongo/connector.py`) ✅
+- Streamlit dashboard on Liora VM (`04-dashboard/adsb-dashboard/`) ✅
+- ETL pipeline for raw ADS-B flattening ⏳
+- IATA ↔ ICAO mapping table ⏳
 
 **Tech Stack Addition:**
 - No new external dependency (adsb.lol is HTTP REST, same as OpenSky)
