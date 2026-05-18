@@ -1,0 +1,8 @@
+services:
+  adsb-dashboard:
+    build: .
+    container_name: adsb_dashboard
+    network_mode: host
+    environment:
+      MONGO_URI: ${MONGO_URI}
+    restart: unless-stopped
