@@ -35,9 +35,15 @@ def live_map(label: str):
     c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("Flight", label)
     c2.metric("Registration", current.get("registration") or "—")
-    c3.metric("Altitude", f"{current.get('alt_baro', '?')} ft")
-    c4.metric("Speed", f"{int(current.get('gs') or 0)} kts")
-    c5.metric("Track", f"{int(current.get('track') or 0)}°")
+    def fmt_num(val, decimals=0):
+        try:
+            return f"{round(float(val), decimals)}" if val is not None else "—"
+        except (ValueError, TypeError):
+            return "—"
+
+    c3.metric("Altitude", f"{fmt_num(current.get('alt_baro'))} ft")
+    c4.metric("Speed", f"{fmt_num(current.get('gs'))} kts")
+    c5.metric("Track", f"{fmt_num(current.get('track'))}°")
 
     st.caption(
         f"Last update: {current['collected_at']}  |  {len(df)} positions collected  |  "
