@@ -17,7 +17,7 @@ Project-level instructions for Claude Code when working in this repository.
   - adsb.lol (no auth, ICAO24 hex) — ✅ Active (see ADR 003)
 - **Ingestion**: Python collectors (currently run locally; future: dedicated cloud VM, see ADR 007)
 - **Bronze / Raw Landing Zone**: **MongoDB Atlas** `airline_landing` (see ADR 006). May be replaced later by a different bronze store.
-- **Silver / Analytics Warehouse**: **Neon Postgres** (managed serverless) — planned, Pavel sets up (see ADR 007)
+- **Silver / Analytics Warehouse**: managed serverless Postgres — **Neon is the leading candidate, Pavel evaluating** (see ADR 007). Decision not yet final.
 - **Transformation**: Python ETL + Pandas (Bronze → Silver)
 - **API Layer**: FastAPI (Step 2)
 - **Dashboards**: Streamlit / Dash
@@ -73,17 +73,18 @@ Phase 2 — Ingestion (current, see ADR 004 + ADR 006):
   Kaggle / reference data         →  MongoDB Atlas airline_landing.kaggle_* / airports_ref ┘
 
 Phase 3 — Transformation (planned, see ADR 007):
-  ETL reads from MongoDB Atlas → normalises → loads Neon Postgres Star Schema
+  ETL reads from MongoDB Atlas → normalises → loads Silver Postgres Star Schema
+  (Silver provider TBD — Neon leading candidate, Pavel evaluating)
 
 Phase 4 — Serving (planned):
-  FastAPI endpoints + Streamlit/Dash dashboards read from Neon Postgres
+  FastAPI endpoints + Streamlit/Dash dashboards read from Silver Postgres
 
 Phase 5 — Orchestration (planned):
   Cron / Airflow / Lambda — exact tooling TBD; sub-minute streaming as a stretch goal
 ```
 
 **Key Principle:** MongoDB Atlas is the raw landing zone (schema-on-read, one document per API call).
-Neon Postgres is the curated analytical warehouse (schema-on-write, Star Schema).
+The Silver layer is a managed serverless Postgres (curated analytical warehouse, schema-on-write, Star Schema) — provider not yet committed.
 
 ---
 
@@ -127,7 +128,7 @@ Neon Postgres is the curated analytical warehouse (schema-on-write, Star Schema)
 Seit 2026-05-27 ist dieses Projekt **nicht mehr** an Liora_VM gebunden (siehe ADR 007). Geplante Infrastruktur:
 
 - **Bronze (Landing Zone):** MongoDB Atlas Cluster `mongo-mk1` (Free Tier, eu-west-1) — `mongodb+srv://...mongo-mk1.ptb1k2b.mongodb.net/...`. Connection-String in `.env` (Projekt-Root).
-- **Silver (Warehouse):** Neon Postgres (managed serverless) — Pavel richtet ein, Connection-String kommt später in `.env`.
+- **Silver (Warehouse):** managed serverless Postgres — Neon ist führender Kandidat, **Pavel evaluiert noch**. Connection-String kommt nach Entscheidung in `.env`.
 - **Compute (dedicated VM mit fester IP):** offen — AWS EC2 Free Tier (favorisiert wegen AWS SAA-Lernziel) oder Hetzner Cloud.
 - **Lokale Entwicklung:** Mac mit `.venv` + `MONGO_URI` aus `.env` zeigt auf Atlas. Collectors laufen lokal, schreiben direkt nach Atlas.
 

@@ -19,7 +19,8 @@ the Liora VM hosting only the Streamlit dashboard container and the (now unused)
 2. **Pavel's research (Perplexity, May 2026)** sketched a fully serverless AWS
    architecture: Lambda + EventBridge for ETL, S3 as data lake, **Neon Postgres**
    as the analytics warehouse, FastAPI on Lambda via Mangum, frontend on
-   Vercel/Netlify. The Neon piece is widely accepted as a good fit; the rest
+   Vercel/Netlify. The Neon idea is the strongest candidate for the Silver
+   layer but is **not yet committed** — Pavel will evaluate it; the rest
    trades VM operability for AWS-specific lock-in and complexity.
 3. **AWS SAA learning goal** (Matthias) — the project should be a vehicle for
    practicing AWS primitives (EC2, Elastic IP, IAM, Security Groups) rather
@@ -45,9 +46,13 @@ the project's compute lives going forward.
    be re-evaluated later (e.g. S3 raw lake as Pavel suggested), but is stable
    for Step 2.
 
-4. **Neon Postgres is the Silver / analytical warehouse.** Pavel sets it up.
-   This replaces both the original "Postgres on Liora VM" plan and Pavel's
-   alternative Supabase suggestion (GitHub issue #3).
+4. **The Silver / analytical warehouse will be a managed serverless Postgres**
+   — exact provider **not yet decided**. **Neon is the leading candidate** and
+   Pavel will evaluate it (this replaces the original "Postgres on Liora VM"
+   plan). Supabase from issue #3 is unlikely (too much beyond just the DB).
+   Self-hosted Postgres is rejected for the same reasons as MongoDB in ADR 006.
+   Final commit on Neon (or an alternative) is deferred until Pavel reports
+   back from the evaluation.
 
 5. **Pavel's full serverless vision (Lambda / EventBridge / Mangum / Vercel) is
    parked for now.** Reasons: end-to-end working system first, then optimise.
@@ -70,12 +75,16 @@ the project's compute lives going forward.
   complexity that is not needed at the project's data volume.
 - Migrating from a VM to Lambda later is well-trodden ground; the reverse is not.
 
-**Why Neon (and not Supabase or self-hosted Postgres)?**
+**Why Neon is the leading candidate (still under evaluation):**
 - Managed, serverless, generous free tier — same arguments as Atlas for MongoDB.
 - Pavel already started investigating it; concentrating his contribution there
   makes coordination easy.
 - Supabase ships Postgres + Auth + Storage + Realtime; we only want the database.
   Neon is the leaner choice.
+
+Final commit on Neon is held until Pavel reports back. The ADR is accepted on
+the **principle** (managed serverless Postgres, evaluated by Pavel) — not on
+the specific vendor.
 
 **Why decouple from Liora VM at all?**
 - Liora VM is primarily Liora's learning environment. Airline workloads share
@@ -118,6 +127,9 @@ the project's compute lives going forward.
 - Provision new compute VM (AWS or Hetzner).
 - Whitelist its IP in Atlas Network Access; remove old Liora IP.
 - Migrate `adsb_dashboard` container off Liora VM.
-- Pavel: provision Neon project, share connection string into team channel.
+- **Pavel: evaluate Neon for the Silver warehouse role.** Report back with
+  a recommendation (Neon vs. alternative, plus tooling thoughts for the
+  Star Schema layer). Once decided, provision and share the connection
+  string into the team channel.
 - Update `01-requirements/c-architecture/architecture_m.md` to reflect this.
 - Reply to GitHub issues #1/#2/#3 with the chosen direction.
