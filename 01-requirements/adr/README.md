@@ -12,6 +12,7 @@ Each ADR documents one significant decision: the context, the choice, the altern
 | [004](004-mongo-as-multisource-hub.md) | MongoDB as Multi-Source Landing Zone Hub | Accepted | 2026-05-18 |
 | [005](005-opensky-mongo-migration.md) | OpenSky Pipeline Migration: PostgreSQL → MongoDB | Accepted | 2026-05-18 |
 | [006](006-mongo-atlas-migration.md) | MongoDB Migration: Self-hosted on VM → MongoDB Atlas | Accepted | 2026-05-27 |
+| [007](007-decouple-from-liora-vm.md) | Decouple from Liora VM; Dedicated Cloud Compute + Neon Postgres | Accepted | 2026-05-27 |
 
 ## Format
 

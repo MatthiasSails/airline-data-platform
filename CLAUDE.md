@@ -12,19 +12,20 @@ Project-level instructions for Claude Code when working in this repository.
 
 **Main Stack:**
 - **Sources**:
-  - Lufthansa API — ❌ closed, no API key obtained (see ADR 004); code removed in 03-data-collection cleanup 2026-05-18
-  - OpenSky Network (OAuth2, ICAO codes) — ✅ Active locally (VM blocked, see ADR 004/005)
-  - adsb.lol (no auth, ICAO24 hex) — ✅ Active on VM (see ADR 003)
-- **Ingestion**: Python collectors
-- **Raw Storage**: MongoDB landing zone (`airline_landing`) — multi-source hub (see ADR 004)
-- **Transformation**: Python ETL + Pandas
-- **Analytics Storage**: PostgreSQL (Star Schema)
-- **API Layer**: FastAPI
+  - Lufthansa API — ❌ closed, no API key obtained (see ADR 004)
+  - OpenSky Network (OAuth2, ICAO codes) — ✅ Active locally (see ADR 004/005)
+  - adsb.lol (no auth, ICAO24 hex) — ✅ Active (see ADR 003)
+- **Ingestion**: Python collectors (currently run locally; future: dedicated cloud VM, see ADR 007)
+- **Bronze / Raw Landing Zone**: **MongoDB Atlas** `airline_landing` (see ADR 006). May be replaced later by a different bronze store.
+- **Silver / Analytics Warehouse**: **Neon Postgres** (managed serverless) — planned, Pavel sets up (see ADR 007)
+- **Transformation**: Python ETL + Pandas (Bronze → Silver)
+- **API Layer**: FastAPI (Step 2)
 - **Dashboards**: Streamlit / Dash
-- **Orchestration**: Airflow / Cron (optional)
-- **Streaming**: Kafka (optional)
+- **Compute**: dedicated cloud VM with fixed IP — planned, AWS EC2 (Free Tier) or Hetzner Cloud (see ADR 007). **Liora VM is no longer part of this project.**
+- **Orchestration**: Airflow / Cron (optional, Step 3)
+- **Streaming**: open — vision is sub-minute updates, exact tooling TBD
 
-**Project Status**: Step 1 (Data Discovery & Organization) — deadline 20.05.2026
+**Project Status**: Step 1 complete (Atlas migration 2026-05-27). Step 2 (FastAPI + Analytics Endpoints) — deadline 10.06.2026.
 
 ---
 
@@ -65,24 +66,24 @@ airline-data-platform/
 ## Data Pipeline Architecture
 
 ```
-Phase 2 — Ingestion (current, see ADR 004):
+Phase 2 — Ingestion (current, see ADR 004 + ADR 006):
 
-  adsb.lol (live ADS-B, VM cron)  →  MongoDB airline_landing.adsb_raw      ┐
-  OpenSky API (local Mac only)    →  MongoDB airline_landing.opensky_raw   ├→ ETL → PostgreSQL (curated)
-  Kaggle / reference data         →  MongoDB airline_landing.kaggle_* / airports_ref ┘
+  adsb.lol (live ADS-B)           →  MongoDB Atlas airline_landing.adsb_raw      ┐
+  OpenSky API (local Mac only)    →  MongoDB Atlas airline_landing.opensky_raw   ├→ ETL → Neon Postgres (Star Schema)
+  Kaggle / reference data         →  MongoDB Atlas airline_landing.kaggle_* / airports_ref ┘
 
-Phase 3 — Transformation (planned):
-  ETL reads from MongoDB collections → normalises → loads PostgreSQL Star Schema
+Phase 3 — Transformation (planned, see ADR 007):
+  ETL reads from MongoDB Atlas → normalises → loads Neon Postgres Star Schema
 
 Phase 4 — Serving (planned):
-  FastAPI endpoints + Streamlit/Dash dashboards read from PostgreSQL
+  FastAPI endpoints + Streamlit/Dash dashboards read from Neon Postgres
 
 Phase 5 — Orchestration (planned):
-  Airflow DAGs or cron jobs; optional Kafka for real-time streams
+  Cron / Airflow / Lambda — exact tooling TBD; sub-minute streaming as a stretch goal
 ```
 
-**Key Principle:** MongoDB is the raw landing zone (schema-on-read, one document per API call).
-PostgreSQL is the curated analytical warehouse (schema-on-write, Star Schema).
+**Key Principle:** MongoDB Atlas is the raw landing zone (schema-on-read, one document per API call).
+Neon Postgres is the curated analytical warehouse (schema-on-write, Star Schema).
 
 ---
 
@@ -121,44 +122,16 @@ PostgreSQL is the curated analytical warehouse (schema-on-write, Star Schema).
 
 ---
 
-## Liora VM — Infrastruktur
+## Compute & Hosting
 
-Die Liora VM ist eine AWS EC2-Instanz (Ubuntu). SSH-Zugang via:
+Seit 2026-05-27 ist dieses Projekt **nicht mehr** an Liora_VM gebunden (siehe ADR 007). Geplante Infrastruktur:
 
-```bash
-ssh Liora_VM
-# Config: ~/.ssh/config → Host Liora_VM, User ubuntu, IdentityFile ~/.ssh/data_enginering_machine.pem
-```
+- **Bronze (Landing Zone):** MongoDB Atlas Cluster `mongo-mk1` (Free Tier, eu-west-1) — `mongodb+srv://...mongo-mk1.ptb1k2b.mongodb.net/...`. Connection-String in `.env` (Projekt-Root).
+- **Silver (Warehouse):** Neon Postgres (managed serverless) — Pavel richtet ein, Connection-String kommt später in `.env`.
+- **Compute (dedicated VM mit fester IP):** offen — AWS EC2 Free Tier (favorisiert wegen AWS SAA-Lernziel) oder Hetzner Cloud.
+- **Lokale Entwicklung:** Mac mit `.venv` + `MONGO_URI` aus `.env` zeigt auf Atlas. Collectors laufen lokal, schreiben direkt nach Atlas.
 
-Claude kann selbst `ssh Liora_VM <befehl>` ausführen — der Key liegt lokal und der Alias ist in `~/.ssh/config` eingetragen.
-
-**Laufende Docker Container:**
-- `pg_container` — `postgres:16-alpine`, Port `5432`
-- `pgadmin4_container` — pgAdmin 4, Port `5050`
-- `mongo_container` — `mongo:7-jammy`, Port `27017`, Volume `mongo_data`, gestartet mit `--auth`
-
-`dpkg -l | grep postgres` findet nichts — immer `docker ps` zur Prüfung verwenden.
-
-**MongoDB-Verbindung** (Phase 2 Landing Zone):
-```
-MONGO_URI=mongodb://<user>:<pass>@liora-vm.matthiaskoehler.com:27017/<db>?authSource=admin
-MONGO_DB=airline_landing
-```
-`authSource=admin` ist zwingend — der User ist in der `admin`-DB angelegt, ohne diesen Parameter schlägt die Auth fehl. Credentials in `.env` (lokal, nicht committed).
-
-### VM Neustart — IP-Update-Prozedur
-
-Die VM bekommt bei jedem Neustart eine neue öffentliche IP. Ein Cloudflare-DDNS-Updater auf der VM trägt die neue IP automatisch ein.
-
-**`DB_HOST` und `~/.ssh/config` müssen nicht manuell angepasst werden** — beide nutzen den Hostnamen `liora-vm.matthiaskoehler.com`.
-
-Nach einem Neustart ~1–2 Minuten warten, bis Cloudflare aktualisiert ist, dann normal verbinden:
-
-```bash
-ssh Liora_VM "docker ps"
-```
-
-Wenn SSH sich mit "Host key verification failed" beschwert (alter Host-Key gecacht): `ssh-keygen -R liora-vm.matthiaskoehler.com` → neu verbinden.
+**Atlas Network Access:** jede Compute-IP (Mac, neue VM) muss in der Atlas-Whitelist stehen. Symptom bei fehlender Whitelist: `pymongo.errors.ServerSelectionTimeoutError: SSL handshake failed: ... TLSV1_ALERT_INTERNAL_ERROR` (siehe `knowledgebase/troubleshooting.md`).
 
 ---
 
@@ -206,7 +179,7 @@ cd 03-data-collection
 # ADS-B — single run (or --interval 60 for continuous):
 python collectors/adsb_collector.py
 
-# OpenSky — local Mac only (VM blocked); last 24h by default:
+# OpenSky — local Mac only; last 24h by default:
 python collectors/opensky_collector.py
 python collectors/opensky_collector.py --mock   # no credentials needed
 python collectors/opensky_collector.py --hours 6
@@ -216,7 +189,7 @@ python collectors/opensky_collector.py --hours 6
 ```
 
 `airports_collector.py` and `airlines_collector.py` are **deprecated** (LH API key never obtained).
-Credentials (OPENSKY_CLIENT_ID/SECRET, MONGO_URI) are read from `.env`, never committed.
+Credentials (`OPENSKY_CLIENT_ID/SECRET`, `MONGO_URI`) are read from `.env` **at the project root** (`airline-data-platform/.env`) — not from `03-data-collection/.env` as it was historically. `python-dotenv` finds the project-root file via parent-directory search.
 
 ### Cross-Collection Join: ADS-B ↔ OpenSky
 
