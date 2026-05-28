@@ -33,10 +33,10 @@ graph LR
     style PG fill:#0066CC,color:#fff
 ```
 
-**What exists now:**
-- `lufthansa_api/` — LH client (mock + real mode)
+**What existed at Phase 1 close:**
 - `opensky_api/` — OpenSky client (OAuth2)
 - `db/postgres/` — connector + schema
+- Note: Lufthansa API integration was planned but never implemented (no key — see ADR 004)
 
 ---
 
@@ -53,12 +53,12 @@ graph LR
     ADSB -->|raw JSON snapshots| COL["adsb_collector.py"]
     OS -->|flights| PG
 
-    COL -->|insert_one| MDB["MongoDB<br/>airline_landing.adsb_raw<br/>Liora VM :27017"]
+    COL -->|insert_one| MDB["MongoDB Atlas<br/>airline_landing.adsb_raw<br/>mongo-mk1 (eu-central-1)"]
 
     MDB -->|pending| ETL["Python ETL<br/>Pandas<br/>normalize + validate"]
-    ETL -->|UPSERT| PG["PostgreSQL 16<br/>airports<br/>airlines<br/>flights"]
+    ETL -->|UPSERT| PG["PostgreSQL<br/>airports<br/>airlines<br/>flights"]
 
-    MDB -->|direct read| DASH["Streamlit Dashboard<br/>adsb-dashboard<br/>Liora VM :8502"]
+    MDB -->|direct read| DASH["Streamlit Dashboard<br/>adsb-dashboard"]
 
     style ADSB fill:#4CAF50,color:#fff
     style OS fill:#4CAF50,color:#fff
@@ -72,8 +72,9 @@ graph LR
 **What exists now:**
 - `db/mongo/connector.py` — MongoDB connector ✅
 - `collectors/adsb_collector.py` — ADS-B collector ✅
-- `airline_landing.adsb_raw` — live collection on Liora VM ✅
-- `04-dashboard/adsb-dashboard/` — Streamlit dashboard deployed ✅
+- `collectors/opensky_collector.py` — OpenSky collector (local only) ✅
+- `airline_landing.adsb_raw` / `opensky_raw` / `flight_tracker_raw` — live on Atlas ✅
+- `04-dashboard/adsb-dashboard/` — Streamlit dashboard ✅
 
 **What is pending:**
 - `etl/` — ETL pipeline: adsb_raw → PostgreSQL
@@ -156,26 +157,28 @@ Moved to [erd.md](erd.md).
 
 ---
 
-### File Dependencies (Phase 1)
+### File Dependencies (Phase 2)
 
 ```mermaid
 graph TD
-    LH["lufthansa_api/client.py"]
     OS["opensky_api/client.py"]
+    ADSB["adsb.lol API"]
 
-    LH --> COL["collectors/"]
-    OS --> COL
+    OS --> COL["collectors/"]
+    ADSB --> COL
 
-    COL --> CONN["db/postgres/connector.py"]
-    CONN --> SCHEMA["db/postgres/schema.sql"]
-    CONN --> PG["PostgreSQL DB"]
+    COL --> CONN["db/mongo/connector.py"]
+    CONN --> MDB["MongoDB Atlas"]
+    MDB --> ETL["ETL (Phase 3)"]
+    ETL --> PG["PostgreSQL"]
     PG --> API["FastAPI (Phase 3)"]
 
-    style LH fill:#4CAF50,color:#fff
     style OS fill:#4CAF50,color:#fff
+    style ADSB fill:#4CAF50,color:#fff
     style COL fill:#0066CC,color:#fff
     style CONN fill:#0066CC,color:#fff
-    style SCHEMA fill:#0066CC,color:#fff
+    style MDB fill:#FF6B35,color:#fff
+    style ETL fill:#FFA500,color:#fff
     style PG fill:#0066CC,color:#fff
     style API fill:#9933CC,color:#fff
 ```

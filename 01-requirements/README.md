@@ -10,7 +10,7 @@ A multi-source data platform that ingests airline / flight data into a MongoDB l
 
 **Why it exists:** to demonstrate end-to-end Data Engineering — API ingestion, multi-database architecture, ETL, automation, containerization, and CI/CD — under realistic constraints (no premium API access, partially blocked network, evolving requirements).
 
-**Live demo:** http://liora-vm.matthiaskoehler.com:8502 — Streamlit dashboard reading the MongoDB landing zone.
+**Live:** ADS-B and OpenSky collectors write to MongoDB Atlas landing zone.
 
 ---
 
@@ -26,8 +26,7 @@ A multi-source data platform that ingests airline / flight data into a MongoDB l
 | Final Defense | 20.07.2026 | ⏳ pending |
 
 **Currently live:**
-- ADS-B collector writing to MongoDB landing zone on Liora VM ✅
-- Streamlit dashboard reading the landing zone ✅
+- ADS-B and OpenSky collectors writing to MongoDB Atlas landing zone ✅
 - PostgreSQL connector + schema (airports, airlines, flights) ✅
 
 **Next up:** UML / ERD documentation, ETL pipeline (MongoDB → PostgreSQL).
@@ -41,8 +40,7 @@ A multi-source data platform that ingests airline / flight data into a MongoDB l
 **Program:** DataScientest Data Engineer Bootcamp, cohort `apr26_bde_airlines`
 
 **Constraints worth knowing as a reader:**
-- No Lufthansa API key available
-- OpenSky API blocked on Liora VM (outbound HTTPS) — local-only
+- OpenSky API blocked on external VMs (outbound HTTPS) — local-only collector (see ADR 005)
 - ML is explicitly de-prioritized (mentor approved)
 - Strategic pivot: MongoDB positioned as multi-source hub, not single-feed buffer ([ADR 004](adr/004-mongo-as-multisource-hub.md))
 
@@ -69,7 +67,7 @@ For the full original assignment see [source/](source/).
 ```
 airline-data-platform/
 ├── 01-requirements/        ← you are here
-├── 02-api-docs/            ← external API documentation (Lufthansa Swagger, etc.)
+├── 02-api-docs/            ← external API documentation (OpenSky, adsb.lol, market overview)
 ├── 03-data-collection/     ← collectors, connectors, exploration notebooks
 └── 04-dashboard/           ← Streamlit dashboard (deployed to Liora VM)
 ```
