@@ -135,14 +135,14 @@ The Silver layer is a managed serverless Postgres (curated analytical warehouse,
 
 ## Compute & Hosting
 
-Seit 2026-05-27 ist dieses Projekt **nicht mehr** an Liora_VM gebunden (siehe ADR 007). Geplante Infrastruktur:
+As of 2026-05-27 this project is **no longer** tied to Liora VM (see ADR 007). Planned infrastructure:
 
-- **Bronze (Landing Zone):** MongoDB Atlas Cluster `mongo-mk1` (Free Tier, eu-west-1) — `mongodb+srv://...mongo-mk1.ptb1k2b.mongodb.net/...`. Connection-String in `.env` (Projekt-Root).
-- **Silver (Warehouse):** managed serverless Postgres — Neon ist führender Kandidat, **Pavel evaluiert noch**. Connection-String kommt nach Entscheidung in `.env`.
-- **Compute (dedicated VM mit fester IP):** offen — AWS EC2 Free Tier (favorisiert wegen AWS SAA-Lernziel) oder Hetzner Cloud.
-- **Lokale Entwicklung:** Mac mit `.venv` + `MONGO_URI` aus `.env` zeigt auf Atlas. Collectors laufen lokal, schreiben direkt nach Atlas.
+- **Bronze (Landing Zone):** MongoDB Atlas cluster `mongo-mk1` (Free Tier, eu-central-1) — `mongodb+srv://...mongo-mk1.ptb1k2b.mongodb.net/...`. Connection string in `.env` at project root.
+- **Silver (Warehouse):** managed serverless Postgres — Neon is the leading candidate, **Pavel evaluating**. Connection string goes into `.env` after decision.
+- **Compute (dedicated VM with fixed IP):** open — AWS EC2 Free Tier (preferred for AWS SAA learning goal) or Hetzner Cloud.
+- **Local development:** Mac with `.venv` + `MONGO_URI` from `.env` pointing to Atlas. Collectors run locally, write directly to Atlas.
 
-**Atlas Network Access:** jede Compute-IP (Mac, neue VM) muss in der Atlas-Whitelist stehen. Symptom bei fehlender Whitelist: `pymongo.errors.ServerSelectionTimeoutError: SSL handshake failed: ... TLSV1_ALERT_INTERNAL_ERROR` (siehe `knowledgebase/troubleshooting.md`).
+**Atlas Network Access:** every compute IP (Mac, new VM) must be whitelisted in the Atlas project. Symptom when missing: `pymongo.errors.ServerSelectionTimeoutError: SSL handshake failed: ... TLSV1_ALERT_INTERNAL_ERROR` (see `knowledgebase/troubleshooting.md`).
 
 ---
 
@@ -159,14 +159,14 @@ pip install -r requirements.txt
 python -m ipykernel install --sys-prefix --name python3 --display-name ".venv"
 ```
 
-**Kernel-Konvention:** Alle Notebooks nutzen den **venv-internen Kernel** (`kernelspec name: python3`, `display_name: .venv`, liegt in `.venv/share/jupyter/kernels/python3`). In VS Code / JupyterLab immer den **`.venv`**-Kernel wählen — keinen separaten `--user`-Kernel anlegen, sonst entsteht ein zweiter Kernel und Notebooks zeigen "kernel not found".  
-Falls `.venv` nach einer Projekt-Umbenennung kaputt ist (Symptom: `bad interpreter`): `rm -rf .venv` und obige Schritte wiederholen.
+**Kernel convention:** All notebooks use the **venv-internal kernel** (`kernelspec name: python3`, `display_name: .venv`, located at `.venv/share/jupyter/kernels/python3`). Always select the **`.venv`** kernel in VS Code / JupyterLab — do not install a separate `--user` kernel, or a second kernel entry will appear and notebooks show "kernel not found".  
+If `.venv` is broken after a project rename (symptom: `bad interpreter`): `rm -rf .venv` and repeat the setup steps above.
 
 ### VS Code MongoDB Extension
 
 **MongoDB for VS Code** (official MongoDB extension) ist installiert und verbunden.
 Verbindung via SRV-URI in Command Palette: `Cmd+Shift+P` → `MongoDB: Connect` → `Connect with Connection String`.
-Playground (`Create playground`) ermöglicht Ad-hoc-Queries direkt gegen `airline_landing`.
+Playground (`Create playground`) enables ad-hoc queries directly against `airline_landing`.
 Onboarding-Details und alle DB-User: `docs/mongodb-access.md`.
 
 ### Exploration Notebooks
@@ -202,9 +202,9 @@ Credentials (`OPENSKY_CLIENT_ID/SECRET`, `MONGO_URI`) are read from `.env` **at 
 
 Join-Key: `adsb_raw.ac[].hex` = `opensky_raw.flights[].icao24` (ICAO24 Transponderadresse, identisch)
 
-- **ADS-B** liefert: Echtzeit-Position, Höhe, Geschwindigkeit, Flugzeugtyp (Momentaufnahme)
-- **OpenSky** ergänzt: Abflug- / Zielflughafen, Callsign, Abflugzeit (historisches Zeitfenster)
-- Match-Rate naturgemäß gering (ADS-B = Snapshot, OpenSky = Zeitfenster) — mit wachsender OpenSky-History steigt die Rate
+- **ADS-B** provides: real-time position, altitude, speed, aircraft type (snapshot)
+- **OpenSky** adds: departure/destination airport, callsign, departure time (historical window)
+- Match rate is naturally low (ADS-B = snapshot, OpenSky = time window) — increases as OpenSky history grows
 - Implementiert in `explore_mongo_atlas.ipynb` Sektion 11
 
 ---
