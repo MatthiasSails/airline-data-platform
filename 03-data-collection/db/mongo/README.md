@@ -29,8 +29,12 @@ coll = mongo.collection("opensky_raw")
 
 ## Environment
 
+`.env` im Projekt-Root (`airline-data-platform/.env`):
+
 ```
-MONGO_URI=mongodb://localhost:27017         # lokal (OpenSky Collector)
-MONGO_URI=mongodb://<liora-vm>:27017        # VM (adsb.lol Collector)
+MONGO_URI=mongodb+srv://airline-collector-rw:<PASSWORD>@mongo-mk1.ptb1k2b.mongodb.net/?appName=mongo-mk1
 MONGO_DB=airline_landing
 ```
+
+Für Read-Only Notebooks: `airline-reader-ro` Credentials nutzen.
+Details und Atlas-Onboarding: [`docs/mongodb-access.md`](../../../docs/mongodb-access.md).

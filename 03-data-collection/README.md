@@ -27,7 +27,6 @@ Hintergrund: [`adr/004-mongo-as-multisource-hub.md`](../01-requirements/adr/004-
 | `explore_mongo_atlas.ipynb` | MongoDB Atlas | Landing Zone Inspektion aller 3 Collections inkl. Cross-Join | aktiv |
 | `db/mongo/` | MongoDB | Connector + Doku Landing Zone | aktiv |
 | `db/postgres/` | PostgreSQL | Connector + Phase-1-Schema (für Phase 3 ETL) | aktiv |
-| Lufthansa API | — | — | **geschlossen** (kein Key, ADR 004) |
 
 Konvention: `collect_*.ipynb` = produktiver Walkthrough mit Mongo-Write; `explore_*.ipynb` = ad-hoc Inspektion ohne Side-Effects.
 

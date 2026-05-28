@@ -30,43 +30,42 @@ All packages are **pinned to exact versions** (`pip freeze` output) to guarantee
 
 ## 4. Configure `.env`
 
-Copy the template and fill in real values:
-
-```bash
-cp .env.example .env  # if a template exists; otherwise create from scratch
-```
-
-Required variables:
+Create `.env` at the project root and fill in real values (credentials via secure channel — never commit):
 
 ```env
-# PostgreSQL (Liora training server)
-DB_HOST=liora-vm.matthiaskoehler.com
-DB_PORT=5432
-DB_NAME=dst_db
-DB_USER=...
-DB_PASSWORD=...
-
-# MongoDB (Liora VM — landing zone)
-MONGO_URI=mongodb://airline_admin:...@liora-vm.matthiaskoehler.com:27017/airline_landing?authSource=admin
+# MongoDB Atlas (Landing Zone — Bronze)
+MONGO_URI=mongodb+srv://airline-collector-rw:<PASSWORD>@mongo-mk1.ptb1k2b.mongodb.net/?appName=mongo-mk1
 MONGO_DB=airline_landing
 
-# OpenSky Network (OAuth2 — local only, VM blocks outbound)
+# OpenSky Network (OAuth2 — local only, external VMs block outbound auth)
 OPENSKY_CLIENT_ID=...
 OPENSKY_CLIENT_SECRET=...
 ```
 
-Credentials are stored in macOS Keychain or shared via secure channel — never commit `.env`.
+For read-only access (exploration notebooks) use the `airline-reader-ro` credentials instead:
 
-## 5. Start exploring
+```env
+MONGO_URI=mongodb+srv://airline-reader-ro:<PASSWORD>@mongo-mk1.ptb1k2b.mongodb.net/?appName=mongo-mk1
+```
+
+Full credential reference and Atlas access setup: [docs/mongodb-access.md](mongodb-access.md).
+
+## 5. Atlas Network Access
+
+Your current IP must be whitelisted in the Atlas project's Network Access list.
+If you see `SSL handshake failed` or `ServerSelectionTimeoutError`, the IP is missing.
+Add it via the Atlas web console → Network Access → Add IP Address.
+
+## 6. Start exploring
 
 Open VS Code, select the `.venv` kernel in Jupyter, then open any notebook:
 
 ```
-03-data-collection/collect_adsb.ipynb       ← ADS-B collector walkthrough
-03-data-collection/explore_mongo_vm.ipynb   ← MongoDB landing zone exploration
-03-data-collection/explore_adsb_lol.ipynb   ← adsb.lol API exploration
-03-data-collection/explore_opensky_api.ipynb ← OpenSky API exploration
-03-data-collection/explore_lh_api.ipynb     ← Lufthansa API (mock, no key available)
+03-data-collection/collect_adsb.ipynb         ← ADS-B collector walkthrough
+03-data-collection/collect_opensky.ipynb       ← OpenSky collector walkthrough
+03-data-collection/explore_mongo_atlas.ipynb   ← MongoDB landing zone exploration (all 3 collections)
+03-data-collection/explore_adsb_lol.ipynb      ← adsb.lol API exploration
+03-data-collection/explore_opensky_api.ipynb   ← OpenSky API exploration
 ```
 
 ---
@@ -98,26 +97,9 @@ pip install -r requirements.txt
 
 ---
 
-## Deploying the dashboard
+## Database endpoints
 
-The Streamlit dashboard lives in `04-dashboard/adsb-dashboard/` and deploys to the Liora VM via:
-
-```bash
-bash 04-dashboard/adsb-dashboard/deploy.sh
-```
-
-The script reads `MONGO_URI` from local `.env`, SSHes into the VM, pulls the latest `main`, and rebuilds the Docker container. See [04-dashboard/adsb-dashboard/](../04-dashboard/adsb-dashboard/) for details.
-
----
-
-## Database hosts
-
-PostgreSQL and MongoDB both run on the Liora VM (AWS Ubuntu):
-
-| Service | Host | Port |
+| Service | Host | Note |
 |---|---|---|
-| PostgreSQL 16 | liora-vm.matthiaskoehler.com | 5432 |
-| MongoDB 7 | liora-vm.matthiaskoehler.com | 27017 |
-| Streamlit dashboard | liora-vm.matthiaskoehler.com | 8502 |
-
-> The VM hostname is kept stable via Cloudflare DDNS — the actual AWS public IP changes on every VM restart, but the hostname always resolves to the current IP within ~5 minutes.
+| MongoDB Atlas | `mongo-mk1.ptb1k2b.mongodb.net` (SRV) | Bronze landing zone — Atlas Free Tier, eu-central-1 |
+| PostgreSQL | TBD — Neon (leading candidate, Pavel evaluating) | Silver warehouse, see ADR 007 |
