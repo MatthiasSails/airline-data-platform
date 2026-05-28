@@ -28,8 +28,9 @@ The SRV URI contains the password in plain text — it is a secret and must
 The initial team passwords were distributed by email (onboarding, 2026-05-28).
 Email is *not* a secure channel — it sits in plain text on mail servers, can be
 forwarded, and persists in backups. These credentials should therefore be
-**rotated**, and future passwords shared via an encrypted channel (Bitwarden
-Shared Vault or Signal). See "Rotating a password" below.
+**rotated**, and future passwords shared via an encrypted channel (e.g. Signal),
+or — once on the AWS VM — via an AWS secret store (see below). See "Rotating a
+password" below.
 
 ---
 
@@ -50,8 +51,8 @@ MONGO_DB=airline_landing
 ```
 
 The initial passwords were sent by Matthias via email (2026-05-28). Going forward,
-passwords are distributed via Bitwarden (`airline-data-platform` vault) or Signal —
-not via email, Slack, or chat (see the secret note above).
+passwords are distributed via an encrypted channel (e.g. Signal) — not via email,
+Slack, or chat (see the secret note above).
 
 ### Step 2 — Test the connection
 
@@ -128,7 +129,7 @@ EOF
 | Error | Cause | Fix |
 |---|---|---|
 | `ServerSelectionTimeoutError` | IP not in Atlas allowlist | Contact Matthias with your IP: `curl -s ifconfig.me` |
-| `Authentication failed` | Wrong password in URI | Re-copy URI from vault |
+| `Authentication failed` | Wrong password in URI | Re-copy the URI from the channel it was shared on |
 | `SSL handshake failed` | VPN interrupting TLS | Split-tunnel or disable VPN for the Atlas domain |
 | `MONGO_URI not set` | `.env` missing or wrong working directory | Check `pwd` — must be the project root |
 
@@ -168,7 +169,7 @@ invalidates the old password:
 1. Atlas → **Database Access** → pick the user → **Edit**
 2. **Edit Password** → **Autogenerate Secure Password** → **Copy**
 3. **Update User**
-4. Distribute the new password via Bitwarden or Signal
+4. Distribute the new password via an encrypted channel (e.g. Signal)
 5. Everyone updates `MONGO_URI` in their local `.env`
 
 The old password stops working immediately — anyone still holding it (e.g. in an
