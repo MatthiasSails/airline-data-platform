@@ -133,3 +133,34 @@ the specific vendor.
   string into the team channel.
 - Update `01-requirements/c-architecture/architecture_m.md` to reflect this.
 - Reply to GitHub issues #1/#2/#3 with the chosen direction.
+
+---
+
+## Addendum 2026-05-28 — Addressing: dual-stack, not IPv6-only
+
+While scoping the new compute VM, IPv6-only was considered as a cost lever
+(AWS bills every public IPv4 at ~$0.005/h ≈ $3.60/mo since Feb 2024; IPv6 is
+free). Investigation showed **IPv6-only does not work for this project**:
+
+1. **MongoDB Atlas is reached outbound over IPv4** (Atlas is IPv4 in practice).
+   An IPv6-only instance cannot reach an IPv4-only target without NAT64 via a
+   NAT Gateway (~$32/mo) — which wipes out any IPv4 savings.
+2. **The dev machine has no global IPv6** (only ULA addresses; `curl -6` to the
+   internet returns empty). SSH to an IPv6-only instance would be impossible
+   from our side.
+
+**Decision:** run the instance **dual-stack (IPv4 + IPv6)**:
+- Web ingress → Cloudflare **orange** proxy (may use the IPv6 AAAA record;
+  Cloudflare bridges IPv4 clients to an IPv6 origin).
+- Atlas outbound + SSH → over **IPv4**.
+
+This **refines, not reverses** the Elastic-IP/IPv4 plan in decision #2 above —
+IPv6 is added as an AAAA record for the web path rather than going IPv6-only.
+
+**Cost:** public IPv4 is included in the 12-month Free Tier → **$0 in year one**.
+After that, ~$3.60/mo for the IPv4. Optional later optimisation: **SSM Session
+Manager** for shell access without a public IP — but Atlas outbound remains the
+real IPv4 anchor, so SSH alone doesn't remove the IPv4 dependency.
+
+Documented in issue #1 comments. Background reference:
+`knowledgebase/tools/aws-networking-notes.md`.
