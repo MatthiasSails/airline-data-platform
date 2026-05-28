@@ -59,6 +59,8 @@ class MongoConnector:
 def from_env() -> MongoConnector:
     """Create connector from .env / environment variables."""
     load_dotenv(override=True)
-    uri = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+    uri = os.getenv("MONGO_URI")
+    if not uri:
+        raise RuntimeError("MONGO_URI not set — check .env at project root")
     db_name = os.getenv("MONGO_DB", "airline_landing")
     return MongoConnector(uri=uri, db_name=db_name)

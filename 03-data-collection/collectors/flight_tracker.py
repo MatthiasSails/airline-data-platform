@@ -23,9 +23,9 @@ Usage:
     # Continuous polling every 30 seconds:
     python collectors/flight_tracker.py --hex 3c5eee --flight EW7755 --interval 30
 
-Environment variables (via .env in 03-data-collection/):
-    MONGO_URI   — MongoDB connection string  (default: mongodb://localhost:27017)
-    MONGO_DB    — database name              (default: airline_landing)
+Environment variables (via .env at project root):
+    MONGO_URI   — MongoDB Atlas SRV connection string  (required)
+    MONGO_DB    — database name                        (default: airline_landing)
 """
 
 import argparse

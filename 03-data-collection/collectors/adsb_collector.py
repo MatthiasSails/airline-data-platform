@@ -10,9 +10,9 @@ Usage:
     # Continuous polling every N seconds:
     python collectors/adsb_collector.py --interval 60
 
-Environment variables (via .env):
-    MONGO_URI   — MongoDB connection string  (default: mongodb://localhost:27017)
-    MONGO_DB    — database name              (default: airline_landing)
+Environment variables (via .env at project root):
+    MONGO_URI   — MongoDB Atlas SRV connection string  (required)
+    MONGO_DB    — database name                        (default: airline_landing)
 """
 
 import argparse

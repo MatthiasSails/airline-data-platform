@@ -16,11 +16,11 @@ Usage:
     # Mock mode (no credentials needed):
     python collectors/opensky_collector.py --mock
 
-Environment variables (via .env in 03-data-collection/):
+Environment variables (via .env at project root):
     OPENSKY_CLIENT_ID      — OAuth2 client ID
     OPENSKY_CLIENT_SECRET  — OAuth2 client secret
-    MONGO_URI              — MongoDB connection string  (default: mongodb://localhost:27017)
-    MONGO_DB               — database name              (default: airline_landing)
+    MONGO_URI              — MongoDB Atlas SRV connection string  (required)
+    MONGO_DB               — database name                        (default: airline_landing)
 """
 
 import argparse
