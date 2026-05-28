@@ -177,10 +177,9 @@ Naming convention: `explore_<quelle>.ipynb` in `03-data-collection/`.
 
 | Notebook | Quelle |
 |---|---|
-| `explore_lh_api.ipynb` | Lufthansa API (Mock) |
 | `explore_opensky_api.ipynb` | OpenSky Network |
 | `explore_adsb_lol.ipynb` | adsb.lol API |
-| `explore_mongo_vm.ipynb` | MongoDB Landing Zone — alle 3 Collections (`adsb_raw`, `opensky_raw`, `flight_tracker_raw`) inkl. Cross-Collection Join (Sek. 9–11) + flight_tracker Exploration (Sek. 12–14) |
+| `explore_mongo_atlas.ipynb` | MongoDB Atlas Landing Zone — alle 3 Collections (`adsb_raw`, `opensky_raw`, `flight_tracker_raw`) inkl. Cross-Collection Join (Sek. 9–11) + flight_tracker Exploration (Sek. 12–14) |
 
 ### Demo with Mock Data (no credentials needed)
 
@@ -218,7 +217,7 @@ Join-Key: `adsb_raw.ac[].hex` = `opensky_raw.flights[].icao24` (ICAO24 Transpond
 - **ADS-B** liefert: Echtzeit-Position, Höhe, Geschwindigkeit, Flugzeugtyp (Momentaufnahme)
 - **OpenSky** ergänzt: Abflug- / Zielflughafen, Callsign, Abflugzeit (historisches Zeitfenster)
 - Match-Rate naturgemäß gering (ADS-B = Snapshot, OpenSky = Zeitfenster) — mit wachsender OpenSky-History steigt die Rate
-- Implementiert in `explore_mongo_vm.ipynb` Sektion 11
+- Implementiert in `explore_mongo_atlas.ipynb` Sektion 11
 
 ---
 

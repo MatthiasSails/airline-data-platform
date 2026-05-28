@@ -5,9 +5,9 @@ Ingestion-Layer der Airline Data Platform. Python Collectors + Notebooks, die Ro
 ## Datenfluss
 
 ```
-adsb.lol (Liora VM, no auth)  ──►  MongoDB airline_landing.adsb_raw     ┐
-OpenSky API (lokaler Mac)     ──►  MongoDB airline_landing.opensky_raw  ├─► (Phase 3) ETL → PostgreSQL Star Schema
-OurAirports CSV (geplant)     ──►  MongoDB airline_landing.airports_ref ┘
+adsb.lol (lokal od. Cloud VM)  ──►  MongoDB Atlas airline_landing.adsb_raw     ┐
+OpenSky API (lokaler Mac)      ──►  MongoDB Atlas airline_landing.opensky_raw  ├─► (Phase 3) ETL → PostgreSQL Star Schema
+OurAirports CSV (geplant)      ──►  MongoDB Atlas airline_landing.airports_ref ┘
 ```
 
 Hintergrund: [`adr/004-mongo-as-multisource-hub.md`](../01-requirements/adr/004-mongo-as-multisource-hub.md), [`adr/005-opensky-mongo-migration.md`](../01-requirements/adr/005-opensky-mongo-migration.md).
@@ -21,10 +21,10 @@ Hintergrund: [`adr/004-mongo-as-multisource-hub.md`](../01-requirements/adr/004-
 | `collectors/opensky_collector.py` | OpenSky | Collector → `opensky_raw`, lokal | aktiv |
 | `collect_opensky.ipynb` | OpenSky | Produktiver Walkthrough Collector | aktiv |
 | `explore_opensky_api.ipynb` | OpenSky | Ad-hoc API Exploration | aktiv |
-| `collectors/adsb_collector.py` | adsb.lol | Collector → `adsb_raw`, Cron auf Liora VM | aktiv |
+| `collectors/adsb_collector.py` | adsb.lol | Collector → `adsb_raw` (lokal od. Cloud VM) | aktiv |
 | `collect_adsb.ipynb` | adsb.lol | Produktiver Walkthrough Collector | aktiv |
 | `explore_adsb_lol.ipynb` | adsb.lol | Ad-hoc API Exploration | aktiv |
-| `explore_mongo_vm.ipynb` | MongoDB | Landing Zone Inspektion (quellen-übergreifend) | aktiv |
+| `explore_mongo_atlas.ipynb` | MongoDB Atlas | Landing Zone Inspektion aller 3 Collections inkl. Cross-Join | aktiv |
 | `db/mongo/` | MongoDB | Connector + Doku Landing Zone | aktiv |
 | `db/postgres/` | PostgreSQL | Connector + Phase-1-Schema (für Phase 3 ETL) | aktiv |
 | Lufthansa API | — | — | **geschlossen** (kein Key, ADR 004) |
@@ -45,32 +45,32 @@ python collectors/opensky_collector.py --mock
 python collectors/opensky_collector.py --hours 24
 ```
 
-OpenSky-Auth ist von der Liora VM blockiert — Collector muss lokal laufen (siehe ADR 005).
+OpenSky-Auth (`auth.opensky-network.org`) ist von externen VMs blockiert — Collector muss lokal laufen (siehe ADR 005).
 
-### adsb.lol (Liora VM)
-
-Läuft als Cron auf `Liora_VM`. Manuell:
+### adsb.lol (lokal oder Cloud VM)
 
 ```bash
-ssh Liora_VM
-cd /opt/airline-data-platform/03-data-collection
+cd 03-data-collection
 python collectors/adsb_collector.py
+# oder kontinuierlich:
+python collectors/adsb_collector.py --interval 60
 ```
 
 ### Landing Zone inspizieren
 
 ```bash
-jupyter lab explore_mongo_vm.ipynb
+jupyter lab 03-data-collection/explore_mongo_atlas.ipynb
 ```
 
 ## Environment
 
-`.env` in `03-data-collection/` (lokal, gitignored):
+`.env` im **Projekt-Root** `airline-data-platform/.env` (lokal, gitignored):
 
 ```
 OPENSKY_CLIENT_ID=...
 OPENSKY_CLIENT_SECRET=...
-MONGO_URI=mongodb://localhost:27017
+MONGO_URI=mongodb+srv://airline-reader-ro:<password>@mongo-mk1.ptb1k2b.mongodb.net/airline_landing
+MONGO_URI_RW=mongodb+srv://airline-collector-rw:<password>@mongo-mk1.ptb1k2b.mongodb.net/airline_landing
 MONGO_DB=airline_landing
 ```
 
