@@ -50,16 +50,28 @@ airline-data-platform/
 │   ├── opensky_api_doc.md              # OpenSky technical spec
 │   ├── adsb_lol_api_doc.md             # adsb.lol technical spec (Phase 2)
 │   └── airline_api_market_overview.md  # API comparison matrix
-├── 03-data-collection/       # Python tools for data ingestion
+├── 03-data-collection/       # Python tools for data ingestion (+ own README)
 │   ├── opensky_api/          # OpenSky API client (OAuth2)
 │   ├── collectors/           # adsb_collector, opensky_collector
 │   ├── db/                   # postgres/, mongo/
 │   ├── collect_adsb.ipynb    # ADS-B collector walkthrough
 │   ├── collect_opensky.ipynb # OpenSky collector walkthrough
 │   └── explore_*.ipynb       # Exploration notebooks per source / Mongo landing zone
+├── 04-dashboard/             # Streamlit dashboard (code)
+├── docs/                     # Cross-cutting operational/engineering docs (see below)
 ├── requirements.txt          # Pinned Python dependencies
 └── CLAUDE.md                 # This file
 ```
+
+### Documentation layout
+
+Three homes for docs, by audience and lifespan — keep them separate:
+
+- **Numbered folders (`01-`, `02-`)** — bootcamp **phase deliverables**. Evaluators navigate these; do not reorganize them mid-project.
+- **`docs/`** — **cross-cutting operational/engineering docs** that belong to no single phase (setup, access runbooks, infra). Has its own index `docs/README.md`.
+- **Module `README.md`** — "how to run *this* module", co-located in each code dir (`03-data-collection/README.md`).
+
+Rule of thumb: phase-specific → numbered folder; operates the running system → `docs/`; describes one code module → that module's README. Learning artefacts (bootcamp theory, not project docs) do **not** belong in this repo — they go to `knowledgebase/methodology/`.
 
 ---
 
