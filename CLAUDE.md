@@ -164,20 +164,20 @@ If `.venv` is broken after a project rename (symptom: `bad interpreter`): `rm -r
 
 ### VS Code MongoDB Extension
 
-**MongoDB for VS Code** (official MongoDB extension) ist installiert und verbunden.
-Verbindung via SRV-URI in Command Palette: `Cmd+Shift+P` → `MongoDB: Connect` → `Connect with Connection String`.
+**MongoDB for VS Code** (official MongoDB extension) is installed and connected.
+Connect via SRV URI in the Command Palette: `Cmd+Shift+P` → `MongoDB: Connect` → `Connect with Connection String`.
 Playground (`Create playground`) enables ad-hoc queries directly against `airline_landing`.
-Onboarding-Details und alle DB-User: `docs/mongodb-access.md`.
+Onboarding details and all DB users: `docs/mongodb-access.md`.
 
 ### Exploration Notebooks
 
-Naming convention: `explore_<quelle>.ipynb` in `03-data-collection/`.
+Naming convention: `explore_<source>.ipynb` in `03-data-collection/`.
 
-| Notebook | Quelle |
+| Notebook | Source |
 |---|---|
 | `explore_opensky_api.ipynb` | OpenSky Network |
 | `explore_adsb_lol.ipynb` | adsb.lol API |
-| `explore_mongo_atlas.ipynb` | MongoDB Atlas Landing Zone — alle 3 Collections (`adsb_raw`, `opensky_raw`, `flight_tracker_raw`) inkl. Cross-Collection Join (Sek. 9–11) + flight_tracker Exploration (Sek. 12–14) |
+| `explore_mongo_atlas.ipynb` | MongoDB Atlas landing zone — all 3 collections (`adsb_raw`, `opensky_raw`, `flight_tracker_raw`) incl. cross-collection join (sec. 9–11) + flight_tracker exploration (sec. 12–14) |
 
 ### Active Collectors (Phase 2)
 
