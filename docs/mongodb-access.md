@@ -14,18 +14,22 @@ None of this requires any configuration — it is all handled automatically by P
 
 ## Roles Overview
 
-| DB User | Atlas Role | Used by |
-|---|---|---|
-| `airline-collector-rw` | `readWriteAnyDatabase` | OpenSky collector (Mac), ADS-B collector (Liora VM) |
-| `airline-reader-ro` | `read` (all databases) | Notebooks, ETL jobs (Bronze → Silver), FastAPI, Dashboard |
-| `matthiaskoehler_db_user` | `atlasAdmin` (personal admin) | Matthias — Atlas console + direct DB work |
+Two access levels are available. Pick whichever fits your task — you decide.
 
-**Note:** FastAPI and dashboards that read from the Silver layer (Neon Postgres) will use a
-separate read-only credential on Neon — not this Atlas credential.
+| DB User | Atlas Role | What it gives you |
+|---|---|---|
+| `airline-collector-rw` | `atlasAdmin` | **Full access** — read, write, delete, manage collections/indexes, plus user and cluster administration. Shared team account; also used by the collectors. |
+| `airline-reader-ro` | `read` (all databases) | **Read-only** across all databases. Use this when you only need to query data and want zero risk of changing anything. |
+| `matthiaskoehler_db_user` | `atlasAdmin` | Matthias' personal admin account. |
 
 The SRV URI contains the password in plain text — it is a secret and must
-**never be committed to Git**. Share exclusively via an encrypted channel
-(Bitwarden Shared Vault or Signal).
+**never be committed to Git**.
+
+The initial team passwords were distributed by email (onboarding, 2026-05-28).
+Email is *not* a secure channel — it sits in plain text on mail servers, can be
+forwarded, and persists in backups. These credentials should therefore be
+**rotated**, and future passwords shared via an encrypted channel (Bitwarden
+Shared Vault or Signal). See "Rotating a password" below.
 
 ---
 
@@ -36,26 +40,34 @@ The SRV URI contains the password in plain text — it is a secret and must
 In the project root `airline-data-platform/` (already gitignored):
 
 ```bash
-# For collector machines (write access):
+# Full access (read + write + admin):
 MONGO_URI=mongodb+srv://airline-collector-rw:<PASSWORD>@mongo-mk1.ptb1k2b.mongodb.net/?appName=mongo-mk1
 MONGO_DB=airline_landing
 
-# For notebooks and ETL jobs (read Bronze layer only):
+# Read-only:
 MONGO_URI=mongodb+srv://airline-reader-ro:<PASSWORD>@mongo-mk1.ptb1k2b.mongodb.net/?appName=mongo-mk1
 MONGO_DB=airline_landing
 ```
 
-Passwords are distributed by Matthias via Bitwarden (`airline-data-platform` vault)
-or Signal — never via Slack, email, or chat.
+The initial passwords were sent by Matthias via email (2026-05-28). Going forward,
+passwords are distributed via Bitwarden (`airline-data-platform` vault) or Signal —
+not via email, Slack, or chat (see the secret note above).
 
 ### Step 2 — Test the connection
 
 ```bash
 python - <<'EOF'
+# load_dotenv() reads the .env file and injects its keys into the process
+# environment. The secret (the connection URI with the password) therefore
+# never appears in this source code — only in .env, which is gitignored.
+# This is why the script itself is safe to commit, share, or paste.
 from dotenv import load_dotenv; load_dotenv()
 import os
 from pymongo import MongoClient
 
+# os.getenv() reads the secret from the environment at runtime — never hardcoded.
+# Best practice (12-factor app config): configuration and credentials live in the
+# environment, the code stays free of secrets. Same pattern as db/mongo/connector.py.
 uri = os.getenv("MONGO_URI")
 if not uri:
     raise RuntimeError("MONGO_URI not set — is .env present?")
@@ -64,6 +76,33 @@ c = MongoClient(uri, serverSelectionTimeoutMS=5000)
 print(c.admin.command("ping"))   # expected: {'ok': 1.0}
 c.close()
 EOF
+```
+
+**Why secret management is done this way:**
+- A hardcoded password ends up in Git history forever — even if deleted later, it stays in old commits. Environment variables avoid this entirely.
+- `.env` is in `.gitignore`, so the secret lives only on each machine, never in the repo.
+- The code reads `MONGO_URI` the same way everywhere (local Mac, VM, CI), so the *same* code runs against local Mongo, the Liora VM, or Atlas — only the `.env` differs.
+- This mirrors the production-grade pattern: secrets injected at runtime (here via `.env`; in cloud setups via a secrets manager), never baked into the artifact.
+
+### Future: secret management on the AWS VM
+
+Once the collectors and dashboard move to a dedicated AWS EC2 instance, the `.env`
+file should be replaced by an AWS-native secret store. Two options:
+
+| Service | Use | Cost |
+|---|---|---|
+| **SSM Parameter Store** (`SecureString`) | Config + secrets, KMS-encrypted. No auto-rotation. | Standard tier free |
+| **AWS Secrets Manager** | Dedicated secret store with automatic rotation, RDS integration. | ~$0.40/secret/month |
+
+For this project, **Parameter Store is sufficient and free**. The key gain over `.env`:
+the EC2 instance gets an **IAM role** (instance profile) that allows
+`ssm:GetParameter` — `MONGO_URI` is fetched from the AWS API at runtime, decrypted
+via KMS, and lives only in memory. No plain-text secret on disk, no email handoff,
+and every access is audited via CloudTrail.
+
+```
+EC2 instance (IAM role)  →  ssm:GetParameter / secretsmanager:GetSecretValue
+                         →  MONGO_URI in memory only, never written to disk
 ```
 
 ### Step 3 — List collections (airline-reader-ro)
@@ -117,6 +156,23 @@ must be present.
 `~/airline-data-platform/03-data-collection/.env`.
 
 **Local (OpenSky collector):** `.env` in the project root.
+
+---
+
+## Rotating a password
+
+If a credential may have leaked (sent over an insecure channel, committed by
+accident, shared too widely), rotate it — this takes ~30 seconds and instantly
+invalidates the old password:
+
+1. Atlas → **Database Access** → pick the user → **Edit**
+2. **Edit Password** → **Autogenerate Secure Password** → **Copy**
+3. **Update User**
+4. Distribute the new password via Bitwarden or Signal
+5. Everyone updates `MONGO_URI` in their local `.env`
+
+The old password stops working immediately — anyone still holding it (e.g. in an
+old email) is locked out.
 
 ---
 
