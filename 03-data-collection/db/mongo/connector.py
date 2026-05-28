@@ -2,6 +2,7 @@
 
 import logging
 import os
+import re
 from datetime import datetime, timezone
 
 from dotenv import load_dotenv
@@ -9,6 +10,11 @@ from pymongo import MongoClient
 from pymongo.collection import Collection
 
 logger = logging.getLogger(__name__)
+
+
+def _redact_uri(uri: str) -> str:
+    """Mask the credentials in a connection URI before logging it."""
+    return re.sub(r"(://)[^/?#]*@", r"\1***:***@", uri)
 
 
 class MongoConnector:
@@ -22,7 +28,7 @@ class MongoConnector:
         self._client = MongoClient(self.uri, serverSelectionTimeoutMS=5000)
         # Fail fast if the server is unreachable
         self._client.admin.command("ping")
-        logger.info("MongoDB connected: %s / %s", self.uri, self.db_name)
+        logger.info("MongoDB connected: %s / %s", _redact_uri(self.uri), self.db_name)
         return self
 
     def close(self) -> None:
