@@ -180,7 +180,7 @@ Naming convention: `explore_<quelle>.ipynb` in `03-data-collection/`.
 | `explore_lh_api.ipynb` | Lufthansa API (Mock) |
 | `explore_opensky_api.ipynb` | OpenSky Network |
 | `explore_adsb_lol.ipynb` | adsb.lol API |
-| `explore_mongo_vm.ipynb` | MongoDB Landing Zone — beide Collections (`adsb_raw` + `opensky_raw`) inkl. Cross-Collection Join (Sektionen 9–11) |
+| `explore_mongo_vm.ipynb` | MongoDB Landing Zone — alle 3 Collections (`adsb_raw`, `opensky_raw`, `flight_tracker_raw`) inkl. Cross-Collection Join (Sek. 9–11) + flight_tracker Exploration (Sek. 12–14) |
 
 ### Demo with Mock Data (no credentials needed)
 
