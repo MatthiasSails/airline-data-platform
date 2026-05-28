@@ -8,11 +8,10 @@ Project-level instructions for Claude Code when working in this repository.
 
 ## Project Overview
 
-**Airline Data Engineering Platform** — A modern, cloud-style data pipeline that ingests flight and airline data from the Lufthansa API, transforms it, and serves it via analytics dashboards and REST APIs.
+**Airline Data Engineering Platform** — A modern, cloud-style data pipeline that ingests live flight data from ADS-B and OpenSky sources, transforms it, and serves it via analytics dashboards and REST APIs.
 
 **Main Stack:**
 - **Sources**:
-  - Lufthansa API — ❌ closed, no API key obtained (see ADR 004)
   - OpenSky Network (OAuth2, ICAO codes) — ✅ Active locally (see ADR 004/005)
   - adsb.lol (no auth, ICAO24 hex) — ✅ Active (see ADR 003)
 - **Ingestion**: Python collectors (currently run locally; future: dedicated cloud VM, see ADR 007)
@@ -46,7 +45,6 @@ airline-data-platform/
 │   ├── b-requirements/       # Project description, timeline, scope
 │   └── c-architecture/       # Architecture diagrams, ADRs, data flows, ERD
 ├── 02-api-docs/              # API documentation & market overview
-│   ├── LH_public_API_swagger_2_0.json  # Lufthansa Swagger spec
 │   ├── opensky_api_doc.md              # OpenSky technical spec
 │   ├── adsb_lol_api_doc.md             # adsb.lol technical spec (Phase 2)
 │   └── airline_api_market_overview.md  # API comparison matrix
@@ -181,15 +179,6 @@ Naming convention: `explore_<quelle>.ipynb` in `03-data-collection/`.
 | `explore_adsb_lol.ipynb` | adsb.lol API |
 | `explore_mongo_atlas.ipynb` | MongoDB Atlas Landing Zone — alle 3 Collections (`adsb_raw`, `opensky_raw`, `flight_tracker_raw`) inkl. Cross-Collection Join (Sek. 9–11) + flight_tracker Exploration (Sek. 12–14) |
 
-### Demo with Mock Data (no credentials needed)
-
-```bash
-cd 03-data-collection
-python demo.py
-```
-
-This runs collectors with mock Lufthansa API responses.
-
 ### Active Collectors (Phase 2)
 
 ```bash
@@ -207,7 +196,6 @@ python collectors/opensky_collector.py --hours 6
 # collect_adsb.ipynb, collect_opensky.ipynb
 ```
 
-`airports_collector.py` and `airlines_collector.py` are **deprecated** (LH API key never obtained).
 Credentials (`OPENSKY_CLIENT_ID/SECRET`, `MONGO_URI`) are read from `.env` **at the project root** (`airline-data-platform/.env`) — not from `03-data-collection/.env` as it was historically. `python-dotenv` finds the project-root file via parent-directory search.
 
 ### Cross-Collection Join: ADS-B ↔ OpenSky
@@ -225,21 +213,17 @@ Join-Key: `adsb_raw.ac[].hex` = `opensky_raw.flights[].icao24` (ICAO24 Transpond
 
 | File | Purpose |
 |---|---|
-| `01-requirements/b-requirements/project_description_doc.md` | Executive summary, timeline, milestones |
-| `01-requirements/c-architecture/architecture_m.md` | Architecture diagrams, layer descriptions |
+| `01-requirements/scope.md` | Deliverables per phase, explicit non-goals |
+| `01-requirements/architecture/README.md` | Architecture diagrams, layer descriptions |
 | `02-api-docs/airline_api_market_overview.md` | API market comparison & integration status |
-| `02-api-docs/LH_public_API_swagger_2_0.json` | Full Lufthansa API specification |
 | `02-api-docs/opensky_api_doc.md` | OpenSky API technical reference |
 | `02-api-docs/adsb_lol_api_doc.md` | adsb.lol API technical reference (Phase 2) |
-| `03-data-collection/lufthansa_api/client.py` | LH API client (mock only) |
 | `03-data-collection/opensky_api/client.py` | OpenSky API client (OAuth2, mock/real) |
 | `03-data-collection/collectors/adsb_collector.py` | ADS-B collector → MongoDB adsb_raw |
 | `03-data-collection/collectors/opensky_collector.py` | OpenSky collector → MongoDB opensky_raw (local only) |
-| `03-data-collection/collectors/airports_collector.py` | ⚠️ DEPRECATED (LH API) — rewrite planned |
-| `03-data-collection/collectors/airlines_collector.py` | ⚠️ DEPRECATED (LH API) — not replaced |
+| `03-data-collection/collectors/flight_tracker.py` | Single-flight tracker → MongoDB flight_tracker_raw |
 | `03-data-collection/db/mongo/connector.py` | MongoDB connector (insert_raw, insert_adsb_snapshot) |
 | `03-data-collection/db/postgres/schema.sql` | PostgreSQL schema (airports, airlines, flights) |
-| `03-data-collection/demo.py` | Mock data collector for testing |
 
 ---
 
@@ -250,7 +234,7 @@ ADRs are tracked in `01-requirements/adr/`:
 - **ADR 001** — PostgreSQL first, MongoDB deferred to Phase 2.
 - **ADR 002** — `psycopg2-binary` as PostgreSQL driver. Raw SQL over ORM for transparency.
 - **ADR 003** — Dual-stream ADS-B: adsb.lol (free, ODbL) + OpenSky into MongoDB landing zone.
-- **ADR 004** — MongoDB as multi-source landing zone hub. No LH key; OpenSky runs locally only (VM blocked); adsb.lol is the only VM-side live source.
+- **ADR 004** — MongoDB as multi-source landing zone hub. OpenSky runs locally only (VM blocked); adsb.lol is the only VM-side live source.
 - **ADR 005** — OpenSky pipeline migration: Phase-1 PostgreSQL schema-at-ingest → Phase-2 raw JSON per API call into MongoDB opensky_raw.
 
 ---
@@ -262,7 +246,7 @@ These are working assumptions, not yet promoted to ADRs:
 - **ETL, not ELT (for now)** — transform in Python before loading. May move to ELT (dbt in warehouse) later.
 - **PostgreSQL for analytics** — Star Schema, SQL queries, BI-friendly.
 - **Batch-first** — periodic ingestion (nightly). Streaming (Kafka) only if needed.
-- **API contracts first** — the Lufthansa Swagger spec drives schema design and collector code.
+- **API contracts first** — document the API response shape before writing collector code.
 
 ---
 

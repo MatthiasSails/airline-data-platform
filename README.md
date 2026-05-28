@@ -2,8 +2,7 @@
 
 End-to-end data pipeline for live airline / flight data — built as the capstone project of the **DataScientest Data Engineer Bootcamp**.
 
-🛫 **Live demo:** http://liora-vm.matthiaskoehler.com:8502
-📋 **Project status:** Step 1 in progress (deadline 20.05.2026) — see [01-requirements](01-requirements/README.md)
+📋 **Project status:** Step 1 complete (2026-05-27), Step 2 in progress (deadline 10.06.2026) — see [01-requirements](01-requirements/README.md)
 
 ---
 
@@ -44,7 +43,7 @@ graph LR
     style DASH fill:#9933CC,color:#fff
 ```
 
-**Why MongoDB as a multi-source hub?** See [ADR 004](01-requirements/adr/004-mongo-as-multisource-hub.md) — driven by real project constraints (no Lufthansa key, VM blocks OpenSky), but also a strong Data Engineering pattern: decouple ingestion from transformation.
+**Why MongoDB as a multi-source hub?** See [ADR 004](01-requirements/adr/004-mongo-as-multisource-hub.md) — driven by real project constraints (VM blocks OpenSky, no premium API access), but also a strong Data Engineering pattern: decouple ingestion from transformation.
 
 ---
 
@@ -80,9 +79,9 @@ graph LR
 | Path | What's inside |
 |---|---|
 | **[01-requirements/](01-requirements/README.md)** | Project specs, architecture, ADRs, timeline |
-| **[02-api-docs/](02-api-docs/)** | External API references (Lufthansa Swagger, etc.) |
+| **[02-api-docs/](02-api-docs/)** | External API references (OpenSky, adsb.lol, market overview) |
 | **[03-data-collection/](03-data-collection/)** | Collectors, DB connectors, exploration notebooks |
-| **[04-dashboard/](04-dashboard/adsb-dashboard/)** | Streamlit dashboard (deployed to Liora VM) |
+| **[04-dashboard/](04-dashboard/adsb-dashboard/)** | Streamlit dashboard |
 | **[docs/](docs/setup.md)** | Setup guide and additional documentation |
 
 Pending: `05-backend/` (FastAPI), `06-devops/` (Docker Compose, CI/CD), `07-final-defense/`.
