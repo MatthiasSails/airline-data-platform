@@ -152,6 +152,13 @@ python -m ipykernel install --user --name airline-data-platform --display-name "
 In VS Code: Kernel-Dialog → **Python Environments... → airline-data-platform** auswählen.  
 Falls `.venv` nach einer Projekt-Umbenennung kaputt ist (Symptom: `bad interpreter`): `rm -rf .venv` und obige Schritte wiederholen.
 
+### VS Code MongoDB Extension
+
+**MongoDB for VS Code** (official MongoDB extension) ist installiert und verbunden.
+Verbindung via SRV-URI in Command Palette: `Cmd+Shift+P` → `MongoDB: Connect` → `Connect with Connection String`.
+Playground (`Create playground`) ermöglicht Ad-hoc-Queries direkt gegen `airline_landing`.
+Onboarding-Details und alle DB-User: `docs/mongodb-access.md`.
+
 ### Exploration Notebooks
 
 Naming convention: `explore_<quelle>.ipynb` in `03-data-collection/`.

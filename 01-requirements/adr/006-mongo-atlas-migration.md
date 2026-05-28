@@ -35,7 +35,7 @@ MongoDB Atlas Free Tier (M0, 512 MB) covers the project's data volume comfortabl
 ## Decision
 
 Migrate the `airline_landing` database from the self-hosted MongoDB on Liora VM
-to **MongoDB Atlas** (cluster `mongo-mk1`, region eu-west-1).
+to **MongoDB Atlas** (cluster `mongo-mk1`, region eu-central-1 Frankfurt).
 
 `MONGO_URI` in all `.env` files points to the Atlas SRV connection string:
 
