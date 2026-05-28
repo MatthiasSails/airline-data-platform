@@ -157,11 +157,11 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-# Kernel für JupyterLab / VS Code registrieren (einmalig pro Rechner)
-python -m ipykernel install --user --name airline-data-platform --display-name "airline-data-platform"
+# venv-internen Jupyter-Kernel registrieren (einmalig pro venv)
+python -m ipykernel install --sys-prefix --name python3 --display-name ".venv"
 ```
 
-In VS Code: Kernel-Dialog → **Python Environments... → airline-data-platform** auswählen.  
+**Kernel-Konvention:** Alle Notebooks nutzen den **venv-internen Kernel** (`kernelspec name: python3`, `display_name: .venv`, liegt in `.venv/share/jupyter/kernels/python3`). In VS Code / JupyterLab immer den **`.venv`**-Kernel wählen — keinen separaten `--user`-Kernel anlegen, sonst entsteht ein zweiter Kernel und Notebooks zeigen "kernel not found".  
 Falls `.venv` nach einer Projekt-Umbenennung kaputt ist (Symptom: `bad interpreter`): `rm -rf .venv` und obige Schritte wiederholen.
 
 ### VS Code MongoDB Extension
