@@ -196,7 +196,7 @@ python collectors/opensky_collector.py --hours 6
 # collect_adsb.ipynb, collect_opensky.ipynb
 ```
 
-Credentials (`OPENSKY_CLIENT_ID/SECRET`, `MONGO_URI`) are read from `.env` **at the project root** (`airline-data-platform/.env`) — not from `03-data-collection/.env` as it was historically. `python-dotenv` finds the project-root file via parent-directory search.
+Credentials (`OPENSKY_CLIENT_ID/SECRET`, `MONGO_URI`, `MONGO_URI_RW`) are read from `.env` **at the project root** (`airline-data-platform/.env`) — not from `03-data-collection/.env` as it was historically. `python-dotenv` finds the project-root file via parent-directory search. Collectors connect with `from_env(write=True)` (uses `MONGO_URI_RW`, the `airline-collector-rw` write user); read-only exploration uses `from_env()` (uses `MONGO_URI`, the `airline-reader-ro` user).
 
 ### Cross-Collection Join: ADS-B ↔ OpenSky
 

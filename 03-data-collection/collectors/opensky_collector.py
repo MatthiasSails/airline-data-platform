@@ -19,8 +19,8 @@ Usage:
 Environment variables (via .env at project root):
     OPENSKY_CLIENT_ID      — OAuth2 client ID
     OPENSKY_CLIENT_SECRET  — OAuth2 client secret
-    MONGO_URI              — MongoDB Atlas SRV connection string  (required)
-    MONGO_DB               — database name                        (default: airline_landing)
+    MONGO_URI_RW           — MongoDB Atlas SRV connection string, collector (write access, required)
+    MONGO_DB               — database name                                   (default: airline_landing)
 """
 
 import argparse
@@ -102,7 +102,7 @@ def main() -> None:
         args.airport, args.hours, mode,
     )
 
-    with from_env() as db:
+    with from_env(write=True) as db:
         run_once(db, client, args.airport, args.hours)
 
     logger.info("Done — documents written to MongoDB collection '%s'", COLLECTION)

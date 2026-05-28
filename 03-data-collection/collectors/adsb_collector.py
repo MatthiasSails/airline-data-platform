@@ -11,8 +11,8 @@ Usage:
     python collectors/adsb_collector.py --interval 60
 
 Environment variables (via .env at project root):
-    MONGO_URI   — MongoDB Atlas SRV connection string  (required)
-    MONGO_DB    — database name                        (default: airline_landing)
+    MONGO_URI_RW — MongoDB Atlas SRV connection string, collector (write access, required)
+    MONGO_DB     — database name                                   (default: airline_landing)
 """
 
 import argparse
@@ -74,7 +74,7 @@ def run_loop(interval_seconds: int) -> None:
     logger.info(
         "Starting continuous collection — interval=%ds, query=%s", interval_seconds, QUERY
     )
-    with from_env() as db:
+    with from_env(write=True) as db:
         while True:
             try:
                 run_once(db)
@@ -87,7 +87,7 @@ def run_loop(interval_seconds: int) -> None:
 
 def run_single() -> None:
     logger.info("Single collection run — query=%s", QUERY)
-    with from_env() as db:
+    with from_env(write=True) as db:
         count = run_once(db)
     logger.info("Done — %d aircraft written to MongoDB collection '%s'", count, COLLECTION)
 

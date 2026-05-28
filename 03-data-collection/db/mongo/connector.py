@@ -62,11 +62,18 @@ class MongoConnector:
         return str(result.inserted_id)
 
 
-def from_env() -> MongoConnector:
-    """Create connector from .env / environment variables."""
+def from_env(write: bool = False) -> MongoConnector:
+    """Create connector from .env / environment variables.
+
+    write=False (default) uses MONGO_URI — the read-only reader.
+    write=True uses MONGO_URI_RW — the collector with write access.
+    Collectors (which insert documents) must pass write=True; exploration
+    code that only reads should use the default.
+    """
     load_dotenv(override=True)
-    uri = os.getenv("MONGO_URI")
+    var = "MONGO_URI_RW" if write else "MONGO_URI"
+    uri = os.getenv(var)
     if not uri:
-        raise RuntimeError("MONGO_URI not set — check .env at project root")
+        raise RuntimeError(f"{var} not set — check .env at project root")
     db_name = os.getenv("MONGO_DB", "airline_landing")
     return MongoConnector(uri=uri, db_name=db_name)

@@ -24,8 +24,8 @@ Usage:
     python collectors/flight_tracker.py --hex 3c5eee --flight EW7755 --interval 30
 
 Environment variables (via .env at project root):
-    MONGO_URI   — MongoDB Atlas SRV connection string  (required)
-    MONGO_DB    — database name                        (default: airline_landing)
+    MONGO_URI_RW — MongoDB Atlas SRV connection string, collector (write access, required)
+    MONGO_DB     — database name                                   (default: airline_landing)
 """
 
 import argparse
@@ -121,7 +121,7 @@ def run_loop(hex_id: str | None, callsign: str | None, flight_label: str, interv
     logger.info(
         "Starting continuous tracking — flight=%s interval=%ds", flight_label, interval_seconds
     )
-    with from_env() as db:
+    with from_env(write=True) as db:
         while True:
             try:
                 run_once(db, hex_id, callsign, flight_label)
@@ -134,7 +134,7 @@ def run_loop(hex_id: str | None, callsign: str | None, flight_label: str, interv
 
 def run_single(hex_id: str | None, callsign: str | None, flight_label: str) -> None:
     logger.info("Single tracking run — flight=%s", flight_label)
-    with from_env() as db:
+    with from_env(write=True) as db:
         count = run_once(db, hex_id, callsign, flight_label)
     logger.info("Done — %d position(s) written to MongoDB collection '%s'", count, COLLECTION)
 
