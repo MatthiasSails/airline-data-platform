@@ -1,6 +1,9 @@
 # Architecture
 
-Architecture evolves per project phase. Each phase diagram shows the complete system at that point in time.
+The platform follows a **medallion** structure: Bronze (raw landing zone, MongoDB Atlas) → Silver
+(curated star schema, PostgreSQL) → Gold (deferred). The phases below map onto the repo's folder
+layout: `01-data-collection` (Bronze) → `02-data-modeling` (Silver) → `03-data-consumption`
+(API + dashboard) → `04-deployment`.
 
 **Related:**
 - [data-flow.md](data-flow.md) — prose explanation of data flow
@@ -10,106 +13,119 @@ Architecture evolves per project phase. Each phase diagram shows the complete sy
 
 ---
 
-## Phase 1 — Data Collection ✅
-*Deadline: 20.05.2026 — current phase*
+## Phase 1 — Data Collection (Bronze) 🚧
+*Folder: `01-data-collection/`*
 
-Direct ingestion from two APIs into PostgreSQL. MongoDB deferred (see ADR 001).
+Ingest every source **raw, untransformed** into the MongoDB Atlas landing zone. *Ingestion ≠
+modeling* (ADR 004): Bronze keeps the original payloads; the Silver model promotes only what it needs.
+The central live feed is OpenSky **`/states/all`** state vectors; static reference feeds and adsb.lol
+land alongside it.
 
 ```mermaid
 graph LR
-    LH["Lufthansa API<br/>Mock mode<br/>(no token yet)"]
-    OS["OpenSky Network API<br/>OAuth2"]
+    OS["OpenSky States API<br/>/states/all<br/>OAuth2 — live"]
+    REF["Static reference feeds<br/>aircraftDatabase.csv<br/>airlines.dat (OpenFlights)<br/>airports.csv (OurAirports)"]
+    ADSB["adsb.lol API<br/>public REST<br/>(Bronze-only)"]
 
-    LH -->|airports, airlines| COL["Collectors<br/>airports_collector.py<br/>airlines_collector.py<br/>flights_collector.py"]
-    OS -->|flights| COL
+    OS -->|state vectors| COL["Collectors<br/>opensky_collector.py<br/>adsb_collector.py"]
+    REF -->|raw rows| COL
+    ADSB -->|raw snapshots| COL
 
-    COL -->|UPSERT| CON["PostgresConnector<br/>db/postgres/connector.py"]
-    CON -->|schema.sql| PG["PostgreSQL 16<br/>airports<br/>airlines<br/>flights"]
+    COL -->|insert| CON["MongoConnector<br/>01-data-collection/db/mongo/connector.py"]
+    CON --> MDB["MongoDB Atlas<br/>airline_landing<br/>(opensky_raw, adsb_raw, ...)<br/>mongo-mk1 (eu-central-1)"]
 
-    style LH fill:#4CAF50,color:#fff
     style OS fill:#4CAF50,color:#fff
+    style REF fill:#4CAF50,color:#fff
+    style ADSB fill:#4CAF50,color:#fff
     style COL fill:#0066CC,color:#fff
+    style CON fill:#0066CC,color:#fff
+    style MDB fill:#FF6B35,color:#fff
+```
+
+**What exists now:**
+- `01-data-collection/opensky_api/client.py` — OpenSky client (OAuth2)
+- `01-data-collection/collectors/opensky_collector.py` — OpenSky States collector ✅
+- `01-data-collection/collectors/adsb_collector.py` — adsb.lol collector (Bronze-only) ✅
+- `01-data-collection/db/mongo/connector.py` — MongoDB Atlas connector ✅
+- `airline_landing` collections live on Atlas ✅
+
+> **adsb.lol is Bronze-only** — collected raw for optionality and a later OpenSky-vs-adsb.lol
+> data-quality comparison, **not promoted** to Silver (see [ADR 009](../adr/009-states-api-silver-model.md)).
+> The retrospective OpenSky `/flights/*` model was dropped in favour of the live States feed.
+
+---
+
+## Phase 2 — Data Modeling (Silver) 🚧
+*Folder: `02-data-modeling/`*
+
+ETL from the Bronze landing zone into a curated PostgreSQL **star schema**. The central fact is
+`fact_states` (live "aircraft in the air" from `/states/all`); dimensions come from the static
+reference feeds. Only **OpenSky** (States + AircraftDB) is promoted; adsb.lol stays in Bronze.
+
+```mermaid
+graph LR
+    MDB["MongoDB Atlas<br/>(Bronze raw)"]
+
+    MDB -->|read raw| ETL["Python ETL<br/>Pandas<br/>normalize · validate · convert units<br/>02-data-modeling/etl/"]
+
+    ETL -->|UPSERT| CON["PostgresConnector<br/>02-data-modeling/warehouse/connector.py"]
+    CON -->|schema.sql| PG["PostgreSQL (Silver star schema)<br/>fact_states<br/>dim_aircraft<br/>dim_airlines<br/>dim_airports"]
+
+    style MDB fill:#FF6B35,color:#fff
+    style ETL fill:#FFA500,color:#fff,stroke-dasharray:5 5
     style CON fill:#0066CC,color:#fff
     style PG fill:#0066CC,color:#fff
 ```
 
-**What existed at Phase 1 close:**
-- `opensky_api/` — OpenSky client (OAuth2)
-- `db/postgres/` — connector + schema
-- Note: Lufthansa API integration was planned but never implemented (no key — see ADR 004)
-
----
-
-## Phase 2 — Two-Layer Storage 🚧
-*Deadline: within Step 2 — 10.06.2026 — in progress*
-
-MongoDB as raw landing zone active for ADS-B stream. ETL to PostgreSQL pending.
-
-```mermaid
-graph LR
-    ADSB["adsb.lol API<br/>public REST"]
-    OS["OpenSky Network API<br/>OAuth2"]
-
-    ADSB -->|raw JSON snapshots| COL["adsb_collector.py"]
-    OS -->|flights| PG
-
-    COL -->|insert_one| MDB["MongoDB Atlas<br/>airline_landing.adsb_raw<br/>mongo-mk1 (eu-central-1)"]
-
-    MDB -->|pending| ETL["Python ETL<br/>Pandas<br/>normalize + validate"]
-    ETL -->|UPSERT| PG["PostgreSQL<br/>airports<br/>airlines<br/>flights"]
-
-    MDB -->|direct read| DASH["Streamlit Dashboard<br/>adsb-dashboard"]
-
-    style ADSB fill:#4CAF50,color:#fff
-    style OS fill:#4CAF50,color:#fff
-    style COL fill:#0066CC,color:#fff
-    style MDB fill:#FF6B35,color:#fff
-    style ETL fill:#FFA500,color:#fff,stroke-dasharray:5 5
-    style PG fill:#0066CC,color:#fff
-    style DASH fill:#9933CC,color:#fff
-```
-
 **What exists now:**
-- `db/mongo/connector.py` — MongoDB connector ✅
-- `collectors/adsb_collector.py` — ADS-B collector ✅
-- `collectors/opensky_collector.py` — OpenSky collector (local only) ✅
-- `airline_landing.adsb_raw` / `opensky_raw` / `flight_tracker_raw` — live on Atlas ✅
-- `04-dashboard/adsb-dashboard/` — Streamlit dashboard ✅
+- `02-data-modeling/warehouse/connector.py` — PostgreSQL connector ✅
+- `02-data-modeling/warehouse/schema.sql` — star-schema DDL (in sync with [silver-layer-er.md](silver-layer-er.md)) ✅
 
 **What is pending:**
-- `etl/` — ETL pipeline: adsb_raw → PostgreSQL
+- `02-data-modeling/etl/` — ETL pipeline: Bronze (Mongo) → Silver `fact_states` + dims
+
+> **Silver tables** (see [silver-layer-er.md](silver-layer-er.md), [ADR 008](../adr/008-airline-attribution-star-schema.md), [ADR 009](../adr/009-states-api-silver-model.md)):
+> `fact_states` (OpenSky `/states/all`), `dim_aircraft` (OpenSky AircraftDB, join on `icao24`),
+> `dim_airlines` (OpenFlights, join on resolved `airline_icao`), `dim_airports` (OurAirports,
+> **standalone reference, unjoined**). No `fact_flights` / `fact_delays`: the live States feed has no
+> origin/destination and no scheduled-vs-actual times, so route from/to and delay analytics are out
+> of scope for Silver.
 
 ---
 
-## Phase 3 — API & Dashboard
-*Deadline: Step 2+3 — 10.06.2026 → 16.06.2026*
+## Phase 3 — Data Consumption (API & Dashboard)
+*Folder: `03-data-consumption/`*
 
-Expose data via FastAPI. Visualize via Streamlit or Dash.
+Expose the Silver star schema via FastAPI and visualize it. Endpoints and dashboard views are
+position/aircraft/airline-centric — there is no route or delay analytics in this model.
 
 ```mermaid
 graph LR
-    PG["PostgreSQL 16"]
-    MDB["MongoDB"]
+    PG["PostgreSQL (Silver star schema)"]
 
-    PG -->|SQL queries| API["FastAPI<br/>GET /api/airports<br/>GET /api/airlines<br/>GET /api/flights<br/>GET /api/stats"]
-    PG -->|analytics| DASH["Streamlit / Dash<br/>flight maps<br/>delay analytics<br/>airport KPIs"]
-    MDB -->|raw replay| ETL["ETL"]
+    PG -->|SQL queries| API["FastAPI<br/>GET /states<br/>GET /aircraft<br/>GET /airlines<br/>GET /airports<br/>03-data-consumption/api/"]
+    PG -->|analytics| DASH["Streamlit / Dash<br/>live position maps<br/>airline KPIs<br/>fleet breakdowns<br/>03-data-consumption/dashboard/"]
 
     style PG fill:#0066CC,color:#fff
-    style MDB fill:#FF6B35,color:#fff
-    style ETL fill:#FFA500,color:#fff
     style API fill:#9933CC,color:#fff
     style DASH fill:#9933CC,color:#fff
 ```
 
+**What exists now:**
+- `03-data-consumption/dashboard/` — Streamlit dashboard ✅
+
 **What will be added:**
-- `05-backend/` — FastAPI service
-- `06-dashboard/` — Streamlit or Dash app
+- `03-data-consumption/api/` — FastAPI service (`/states`, `/aircraft`, `/airlines`, `/airports`)
+
+> **Endpoint scope** (see [data-flow.md](data-flow.md)): `/states` (live positions, backed by
+> `fact_states`), `/aircraft` (`dim_aircraft`), `/airlines` (`dim_airlines`), `/airports`
+> (`dim_airports`, standalone). Route from/to and delay endpoints are out of scope — the live States
+> feed has no origin/destination or scheduled times.
 
 ---
 
 ## Phase 4 — Deployment & Automation
-*Deadline: Step 4 — 02.07.2026*
+*Folder: `04-deployment/`*
 
 Containerize everything. Automate ingestion. Add CI/CD.
 
@@ -125,12 +141,12 @@ graph TB
         C2["mongodb"]
         C3["fastapi"]
         C4["dashboard"]
-        C5["airflow"]
+        C5["scheduler"]
     end
 
-    subgraph SCHED["Airflow DAGs"]
-        D1["ingest_airports"]
-        D2["ingest_flights"]
+    subgraph SCHED["Scheduler — ingestion DAGs"]
+        D1["collect_states"]
+        D2["refresh_reference_feeds"]
         D3["etl_transform"]
     end
 
@@ -145,7 +161,7 @@ graph TB
 ```
 
 **What will be added:**
-- `07-devops/` — Dockerfiles, docker-compose.yml, GitHub Actions
+- `04-deployment/` — Dockerfiles, docker-compose.yml, GitHub Actions, scheduler
 
 ---
 
@@ -157,21 +173,23 @@ Moved to [silver-layer-er.md](silver-layer-er.md).
 
 ---
 
-### File Dependencies (Phase 2)
+### File Dependencies
 
 ```mermaid
 graph TD
     OS["opensky_api/client.py"]
     ADSB["adsb.lol API"]
 
-    OS --> COL["collectors/"]
+    OS --> COL["01-data-collection/collectors/"]
     ADSB --> COL
 
-    COL --> CONN["db/mongo/connector.py"]
-    CONN --> MDB["MongoDB Atlas"]
-    MDB --> ETL["ETL (Phase 3)"]
-    ETL --> PG["PostgreSQL"]
-    PG --> API["FastAPI (Phase 3)"]
+    COL --> CONN["01-data-collection/db/mongo/connector.py"]
+    CONN --> MDB["MongoDB Atlas (Bronze)"]
+    MDB --> ETL["02-data-modeling/etl/"]
+    ETL --> WCON["02-data-modeling/warehouse/connector.py"]
+    WCON --> PG["PostgreSQL (Silver)"]
+    PG --> API["03-data-consumption/api/ (FastAPI)"]
+    PG --> DASH["03-data-consumption/dashboard/"]
 
     style OS fill:#4CAF50,color:#fff
     style ADSB fill:#4CAF50,color:#fff
@@ -179,26 +197,31 @@ graph TD
     style CONN fill:#0066CC,color:#fff
     style MDB fill:#FF6B35,color:#fff
     style ETL fill:#FFA500,color:#fff
+    style WCON fill:#0066CC,color:#fff
     style PG fill:#0066CC,color:#fff
     style API fill:#9933CC,color:#fff
+    style DASH fill:#9933CC,color:#fff
 ```
 
 ---
 
-### MongoDB → PostgreSQL Transformation (Phase 2 reference)
+### Bronze → Silver Transformation (`fact_states`)
+
+The core ETL step: a raw OpenSky `/states/all` state vector (Bronze) becomes a `fact_states` row
+(Silver), with SI → aviation unit conversion and a resolved `airline_icao` (see [ADR 008](../adr/008-airline-attribution-star-schema.md)).
 
 ```mermaid
 graph LR
-    subgraph MONGO["MongoDB Document"]
-        M["AirportCode: TXL<br/>Names.Name[0].$: Berlin Tegel<br/>Position.Coordinate.Latitude: 52.562<br/>CityCode: BER<br/>CountryCode: DE"]
+    subgraph MONGO["MongoDB Document (Bronze, raw state vector)"]
+        M["icao24: 3c6750<br/>callsign: DLH123<br/>baro_altitude: 11277.6 (m)<br/>velocity: 231.5 (m/s)<br/>vertical_rate: 0.0 (m/s)<br/>on_ground: false"]
     end
 
     subgraph ETL["Python ETL"]
-        T["flatten + normalize"]
+        T["normalize · convert units<br/>resolve airline_icao"]
     end
 
-    subgraph PGSQL["PostgreSQL Row"]
-        P["code: TXL<br/>name: Berlin Tegel<br/>city_code: BER<br/>country_code: DE<br/>latitude: 52.562"]
+    subgraph PGSQL["PostgreSQL Row (Silver, fact_states)"]
+        P["icao24: 3c6750<br/>callsign: DLH123<br/>airline_icao: DLH (resolved)<br/>altitude_baro_ft: 37000<br/>ground_speed_kts: 450<br/>vertical_rate_fpm: 0<br/>on_ground: false"]
     end
 
     M --> T --> P
@@ -207,3 +230,6 @@ graph LR
     style ETL fill:#FFA500,color:#fff
     style PGSQL fill:#0066CC,color:#fff
 ```
+
+> Unit conversions: m → ft (×3.281), m/s → kt (×1.944), m/s → fpm (×196.85).
+> `airline_icao = COALESCE(dim_aircraft.operator_icao, callsign_prefix(callsign))`.
