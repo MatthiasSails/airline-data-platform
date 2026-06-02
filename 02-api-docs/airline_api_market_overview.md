@@ -1,8 +1,12 @@
 # Airline API Market Overview
 
-*Last updated: 2026-05-18*
+*Last updated: 2026-06-02*
 
 > **Lufthansa Public API: closed.** No token was provided to the project; see [ADR 004](../01-requirements/adr/004-mongo-as-multisource-hub.md). The project proceeds without it.
+>
+> **Silver-model pivot (ADR 009, 2026-06-02):** the Silver warehouse is now built on OpenSky's
+> **live `/states/all`** (not the retrospective `/flights/*`). **adsb.lol stays Bronze-only.** The
+> aircraft dimension is sourced from the **OpenSky AircraftDB** and airlines from **OpenFlights**.
 
 ---
 
@@ -10,8 +14,10 @@
 
 | API | Status | Landing collection |
 |---|---|---|
-| **OpenSky Network** | ✅ Active (local Mac, OAuth2) | `airline_landing.opensky_raw` |
-| **adsb.lol** | ✅ Active (Liora VM, no auth) | `airline_landing.adsb_raw` |
+| **OpenSky `/states/all`** | ✅ Silver fact source (OAuth2) — live state vectors | `fact_states` (via Bronze) |
+| **OpenSky AircraftDB** | ✅ `dim_aircraft` reference (free CSV) | one-shot loader |
+| **adsb.lol** | ✅ Active, **Bronze-only** (no auth) — not promoted to Silver | `airline_landing.adsb_raw` |
+| **OpenSky `/flights/*`** | ⏸ Dropped from Silver (retrospective, not live — ADR 009) | `airline_landing.opensky_raw` (Bronze) |
 | **AviationStack** | ❌ Rejected (100 req/month, HTTP-only free plan) | — |
 | **ADS-B Exchange (RapidAPI)** | ❌ Rejected (paid, non-commercial ToS) | — |
 
@@ -71,7 +77,7 @@ OpenSky uses ICAO airport codes, adsb.lol uses ICAO24 aircraft hex codes, downst
 |---|---|---|
 | AviationStack | 100 req/month free, HTTP-only | Too restrictive, no HTTPS on free tier |
 | ADS-B Exchange (RapidAPI) | $10/month | Non-commercial ToS incompatible with project |
-| Airlabs | 500 req/month free | Not evaluated |
+| Airlabs Schedules | 500 req/month free | ❌ Evaluated & rejected (2026-06-02): free tier paywalls the useful fields (ICAO codes, actual/estimated times, delay, status), caps results at 50/query, and looks only ~10 h ahead. Revisit only if a paid tier is justified. |
 | AeroDataBox | 100 req/month free | Not evaluated |
 | FlightAware | from ~$150/month | Out of budget |
 
@@ -81,6 +87,7 @@ OpenSky uses ICAO airport codes, adsb.lol uses ICAO24 aircraft hex codes, downst
 
 | Source | Cost | Content | Use |
 |---|---|---|---|
-| **OurAirports.com** | Free CSV | ~28k airports, IATA + ICAO + coordinates | Loaded into `airports_ref` (ADR 004) |
-| **OpenFlights.org** | Free CSV | Airlines, airports, routes | Fallback / supplementary |
+| **OurAirports.com** | Public-domain CSV (~12 MB, ~85k rows) | airports: IATA + ICAO + coords; most rows have **no** icao_code | `dim_airports` — load filtered to `icao_code IS NOT NULL` (ADR 004/009) |
+| **OpenSky AircraftDB** | Free CSV (`aircraftDatabase.csv`) | icao24 → registration, type, manufacturer, model, built, **operator** | `dim_aircraft` (ADR 008/009); terms: research/non-commercial |
+| **OpenFlights.org** | Free CSV (`airlines.dat`, ODbL) | airline ICAO/IATA/name/country | `dim_airlines` (ADR 009) — ⚠ **snapshot stale since 2017** |
 | **Kaggle (airline datasets)** | Free | Historical CSVs (e.g. BTS On-Time) | Backfill / testing |

@@ -69,10 +69,13 @@ Why PostgreSQL:
 - BI-friendly
 
 Typical tables:
-- fact_flights
+- fact_states   (live position/state events — central fact)
+- dim_aircraft
 - dim_airports
 - dim_airlines
-- fact_delays
+
+(Note: `fact_delays` / `fact_flights` dropped — the live States/adsb.lol streams carry no
+scheduled vs. actual times, so delay analytics is out of scope. See silver-layer-er.md gotchas.)
 
 ---
 

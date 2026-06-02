@@ -13,6 +13,8 @@ Each ADR documents one significant decision: the context, the choice, the altern
 | [005](005-opensky-mongo-migration.md) | OpenSky Pipeline Migration: PostgreSQL → MongoDB | Accepted | 2026-05-18 |
 | [006](006-mongo-atlas-migration.md) | MongoDB Migration: Self-hosted on VM → MongoDB Atlas | Accepted | 2026-05-27 |
 | [007](007-decouple-from-liora-vm.md) | Decouple from Liora VM; Dedicated Cloud Compute + Neon Postgres | Accepted | 2026-05-27 |
+| [008](008-airline-attribution-star-schema.md) | Airline Attribution: Star (resolved `airline_icao`) over Snowflake | Accepted | 2026-06-02 |
+| [009](009-states-api-silver-model.md) | Silver Model: OpenSky States as central fact; adsb.lol Bronze-only | Accepted | 2026-06-02 |
 
 ## Format
 
