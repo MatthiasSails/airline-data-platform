@@ -1,6 +1,6 @@
 # API Documentation
 
-Reference docs for the data sources used by the airline data platform. All raw responses land in MongoDB (`airline_landing.*`); see [ADR 004](../01-requirements/adr/004-mongo-as-multisource-hub.md).
+Reference docs for the data sources used by the airline data platform. All raw responses land in MongoDB (`airline_landing.*`); see [ADR 004](../adr/004-mongo-as-multisource-hub.md).
 
 | File | Source | Status |
 |---|---|---|
@@ -10,4 +10,4 @@ Reference docs for the data sources used by the airline data platform. All raw r
 
 ## Not documented here
 
-- **Lufthansa Public API** — closed, no token. Decision in [ADR 004](../01-requirements/adr/004-mongo-as-multisource-hub.md). The Swagger spec and LH-specific docs were removed on 2026-05-18.
+- **Lufthansa Public API** — closed, no token. Decision in [ADR 004](../adr/004-mongo-as-multisource-hub.md). The Swagger spec and LH-specific docs were removed on 2026-05-18.

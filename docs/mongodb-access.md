@@ -154,7 +154,7 @@ All collector scripts read `MONGO_URI` and `MONGO_DB` from the environment
 must be present.
 
 **Liora VM (ADS-B collector):** `.env` lives at
-`~/airline-data-platform/03-data-collection/.env`.
+`~/airline-data-platform/01-data-collection/.env`.
 
 **Local (OpenSky collector):** `.env` in the project root.
 

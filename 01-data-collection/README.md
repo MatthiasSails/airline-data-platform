@@ -1,4 +1,4 @@
-# 03 — Data Collection
+# 01 — Data Collection
 
 Ingestion layer of the Airline Data Platform. Python collectors and notebooks that write raw data from active sources into the MongoDB landing zone `airline_landing`.
 
@@ -10,7 +10,7 @@ OpenSky API (local Mac only)  ──►  MongoDB Atlas airline_landing.opensky_r
 OurAirports CSV (planned)     ──►  MongoDB Atlas airline_landing.airports_ref  ┘
 ```
 
-Background: [ADR 004](../01-requirements/adr/004-mongo-as-multisource-hub.md), [ADR 005](../01-requirements/adr/005-opensky-mongo-migration.md).
+Background: [ADR 004](../docs/adr/004-mongo-as-multisource-hub.md), [ADR 005](../docs/adr/005-opensky-mongo-migration.md).
 
 ## Index
 
@@ -26,7 +26,8 @@ Background: [ADR 004](../01-requirements/adr/004-mongo-as-multisource-hub.md), [
 | `explore_adsb_lol.ipynb` | adsb.lol | Ad-hoc API exploration | active |
 | `explore_mongo_atlas.ipynb` | MongoDB Atlas | Landing zone inspection of all 3 collections incl. cross-join | active |
 | `db/mongo/` | MongoDB | Connector + landing zone docs | active |
-| `db/postgres/` | PostgreSQL | Connector + Phase-1 schema (for Phase 3 ETL) | active |
+
+> The PostgreSQL connector + schema (Silver) moved to [`../02-data-modeling/warehouse/`](../02-data-modeling/warehouse/).
 
 Convention: `collect_*.ipynb` = production walkthrough with MongoDB writes; `explore_*.ipynb` = ad-hoc inspection without side effects.
 
@@ -35,7 +36,7 @@ Convention: `collect_*.ipynb` = production walkthrough with MongoDB writes; `exp
 ### OpenSky (local only)
 
 ```bash
-cd 03-data-collection
+cd 01-data-collection
 
 # Mock run — no credentials needed
 python collectors/opensky_collector.py --mock
@@ -49,7 +50,7 @@ OpenSky auth (`auth.opensky-network.org`) is blocked from external VMs — colle
 ### adsb.lol (local or cloud VM)
 
 ```bash
-cd 03-data-collection
+cd 01-data-collection
 python collectors/adsb_collector.py
 # or continuous:
 python collectors/adsb_collector.py --interval 60
@@ -58,7 +59,7 @@ python collectors/adsb_collector.py --interval 60
 ### Inspect the landing zone
 
 ```bash
-jupyter lab 03-data-collection/explore_mongo_atlas.ipynb
+jupyter lab 01-data-collection/explore_mongo_atlas.ipynb
 ```
 
 ## Environment
@@ -75,9 +76,9 @@ MONGO_DB=airline_landing
 
 ## API documentation
 
-See [`../02-api-docs/`](../02-api-docs/) — OpenSky, adsb.lol, and market overview.
+See [`../docs/data-sources/`](../docs/data-sources/) — OpenSky, adsb.lol, and market overview.
 
 ## Next steps
 
 1. `airports_ref` loader (OurAirports CSV → MongoDB)
-2. Phase 3 ETL: Mongo raw → PostgreSQL Star Schema (see `04-transform/` when created)
+2. ETL: Mongo raw → PostgreSQL Star Schema (see [`../02-data-modeling/etl/`](../02-data-modeling/etl/))

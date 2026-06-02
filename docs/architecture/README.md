@@ -6,7 +6,7 @@ Architecture evolves per project phase. Each phase diagram shows the complete sy
 - [data-flow.md](data-flow.md) — prose explanation of data flow
 - [silver-layer-er.md](silver-layer-er.md) — Silver-layer ER diagram (relational model)
 - [../adr/](../adr/) — Architecture Decision Records (why)
-- [../timeline.md](../timeline.md) — deadlines
+- [../requirements/timeline.md](../requirements/timeline.md) — deadlines
 
 ---
 

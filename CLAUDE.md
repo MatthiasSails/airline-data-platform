@@ -40,36 +40,38 @@ Project-level instructions for Claude Code when working in this repository.
 
 ```
 airline-data-platform/
-├── 01-requirements/          # Project context, architecture, timeline
-│   ├── a-source/            # Original PDF, mentor updates
-│   ├── b-requirements/       # Project description, timeline, scope
-│   └── c-architecture/       # Architecture diagrams, ADRs, data flows, ERD
-├── 02-api-docs/              # API documentation & market overview
-│   ├── opensky_api_doc.md              # OpenSky technical spec
-│   ├── adsb_lol_api_doc.md             # adsb.lol technical spec (Phase 2)
-│   └── airline_api_market_overview.md  # API comparison matrix
-├── 03-data-collection/       # Python tools for data ingestion (+ own README)
+├── docs/                     # KNOWLEDGE layer (project-wide, un-numbered)
+│   ├── requirements/         # scope.md, timeline.md, source/ (original PDF, mentor updates)
+│   ├── adr/                  # Architecture Decision Records (001–009)
+│   ├── architecture/         # data-flow.md, silver-layer-er.md, diagrams
+│   ├── data-sources/         # external API references (OpenSky, adsb.lol, market overview)
+│   ├── report/               # DataScientest final project report
+│   ├── setup.md              # local setup runbook
+│   └── mongodb-access.md     # Atlas access / DB users
+├── 01-data-collection/       # Collectors → BRONZE (MongoDB)  (+ own README)
 │   ├── opensky_api/          # OpenSky API client (OAuth2)
-│   ├── collectors/           # adsb_collector, opensky_collector
-│   ├── db/                   # postgres/, mongo/
-│   ├── collect_adsb.ipynb    # ADS-B collector walkthrough
-│   ├── collect_opensky.ipynb # OpenSky collector walkthrough
-│   └── explore_*.ipynb       # Exploration notebooks per source / Mongo landing zone
-├── 04-dashboard/             # Streamlit dashboard (code)
-├── docs/                     # Cross-cutting operational/engineering docs (see below)
+│   ├── collectors/           # adsb_collector, opensky_collector, flight_tracker
+│   ├── db/mongo/             # MongoDB connector + landing-zone docs
+│   ├── collect_*.ipynb       # collector walkthroughs
+│   └── explore_*.ipynb       # exploration notebooks per source / Mongo landing zone
+├── 02-data-modeling/         # BRONZE → SILVER
+│   ├── etl/                  # Bronze → Silver transforms (to be implemented)
+│   └── warehouse/            # PostgreSQL star schema: schema.sql, connector.py
+├── 03-data-consumption/      # api/ (FastAPI) + dashboard/ (Streamlit)
+├── 04-deployment/            # docker-compose, scheduler, orchestration
 ├── requirements.txt          # Pinned Python dependencies
 └── CLAUDE.md                 # This file
 ```
 
 ### Documentation layout
 
-Three homes for docs, by audience and lifespan — keep them separate:
+Two axes — keep them separate (this is the whole point of the layout):
 
-- **Numbered folders (`01-`, `02-`)** — bootcamp **phase deliverables**. Evaluators navigate these; do not reorganize them mid-project.
-- **`docs/`** — **cross-cutting operational/engineering docs** that belong to no single phase (setup, access runbooks, infra). Has its own index `docs/README.md`.
-- **Module `README.md`** — "how to run *this* module", co-located in each code dir (`03-data-collection/README.md`).
+- **`docs/` = knowledge layer** — everything *about the whole project*: requirements, ADRs, architecture, data-source references, the report. Project-wide, un-numbered. Has its own index `docs/README.md`. (Mirrors the global rule "Git = knowledge layer, Projects V2 = workflow layer".)
+- **Numbered folders (`01-`–`04-`) = pipeline phases (code)** — each number is one stage of the Bronze→Silver→consumption→deployment pipeline. The medallion is readable: `01` = Bronze ingest, `02` = Silver.
+- **Module `README.md`** — "how to run *this* module", co-located in each code dir (e.g. `01-data-collection/README.md`).
 
-Rule of thumb: phase-specific → numbered folder; operates the running system → `docs/`; describes one code module → that module's README. Learning artefacts (bootcamp theory, not project docs) do **not** belong in this repo — they go to `knowledgebase/methodology/`.
+Rule of thumb: about the whole project → `docs/`; a pipeline stage's code → its numbered folder; how to run one module → that module's README. **Project progress/tracking is GitHub Projects V2, not a repo file.** Learning artefacts (bootcamp theory, not project docs) do **not** belong in this repo — they go to `knowledgebase/methodology/`.
 
 ---
 
@@ -171,7 +173,7 @@ Onboarding details and all DB users: `docs/mongodb-access.md`.
 
 ### Exploration Notebooks
 
-Naming convention: `explore_<source>.ipynb` in `03-data-collection/`.
+Naming convention: `explore_<source>.ipynb` in `01-data-collection/`.
 
 | Notebook | Source |
 |---|---|
@@ -182,7 +184,7 @@ Naming convention: `explore_<source>.ipynb` in `03-data-collection/`.
 ### Active Collectors (Phase 2)
 
 ```bash
-cd 03-data-collection
+cd 01-data-collection
 
 # ADS-B — single run (or --interval 60 for continuous):
 python collectors/adsb_collector.py
@@ -196,7 +198,7 @@ python collectors/opensky_collector.py --hours 6
 # collect_adsb.ipynb, collect_opensky.ipynb
 ```
 
-Credentials (`OPENSKY_CLIENT_ID/SECRET`, `MONGO_URI`, `MONGO_URI_RW`) are read from `.env` **at the project root** (`airline-data-platform/.env`) — not from `03-data-collection/.env` as it was historically. `python-dotenv` finds the project-root file via parent-directory search. Collectors connect with `from_env(write=True)` (uses `MONGO_URI_RW`, the `airline-collector-rw` write user); read-only exploration uses `from_env()` (uses `MONGO_URI`, the `airline-reader-ro` user).
+Credentials (`OPENSKY_CLIENT_ID/SECRET`, `MONGO_URI`, `MONGO_URI_RW`) are read from `.env` **at the project root** (`airline-data-platform/.env`) — not from a per-module `.env` as it was historically. `python-dotenv` finds the project-root file via parent-directory search. Collectors connect with `from_env(write=True)` (uses `MONGO_URI_RW`, the `airline-collector-rw` write user); read-only exploration uses `from_env()` (uses `MONGO_URI`, the `airline-reader-ro` user).
 
 ### Cross-Collection Join: ADS-B ↔ OpenSky
 
@@ -213,23 +215,24 @@ Join-Key: `adsb_raw.ac[].hex` = `opensky_raw.flights[].icao24` (ICAO24 Transpond
 
 | File | Purpose |
 |---|---|
-| `01-requirements/scope.md` | Deliverables per phase, explicit non-goals |
-| `01-requirements/architecture/README.md` | Architecture diagrams, layer descriptions |
-| `02-api-docs/airline_api_market_overview.md` | API market comparison & integration status |
-| `02-api-docs/opensky_api_doc.md` | OpenSky API technical reference |
-| `02-api-docs/adsb_lol_api_doc.md` | adsb.lol API technical reference (Phase 2) |
-| `03-data-collection/opensky_api/client.py` | OpenSky API client (OAuth2, mock/real) |
-| `03-data-collection/collectors/adsb_collector.py` | ADS-B collector → MongoDB adsb_raw |
-| `03-data-collection/collectors/opensky_collector.py` | OpenSky collector → MongoDB opensky_raw (local only) |
-| `03-data-collection/collectors/flight_tracker.py` | Single-flight tracker → MongoDB flight_tracker_raw |
-| `03-data-collection/db/mongo/connector.py` | MongoDB connector (insert_raw, insert_adsb_snapshot) |
-| `03-data-collection/db/postgres/schema.sql` | PostgreSQL schema (airports, airlines, flights) |
+| `docs/requirements/scope.md` | Deliverables per phase, explicit non-goals |
+| `docs/architecture/README.md` | Architecture diagrams, layer descriptions |
+| `docs/architecture/silver-layer-er.md` | Silver star-schema ER model (source of truth) |
+| `docs/data-sources/airline_api_market_overview.md` | API market comparison & integration status |
+| `docs/data-sources/opensky_api_doc.md` | OpenSky API technical reference |
+| `docs/data-sources/adsb_lol_api_doc.md` | adsb.lol API technical reference (Phase 2) |
+| `01-data-collection/opensky_api/client.py` | OpenSky API client (OAuth2, mock/real) |
+| `01-data-collection/collectors/adsb_collector.py` | ADS-B collector → MongoDB adsb_raw |
+| `01-data-collection/collectors/opensky_collector.py` | OpenSky collector → MongoDB opensky_raw (local only) |
+| `01-data-collection/collectors/flight_tracker.py` | Single-flight tracker → MongoDB flight_tracker_raw |
+| `01-data-collection/db/mongo/connector.py` | MongoDB connector (insert_raw, insert_adsb_snapshot) |
+| `02-data-modeling/warehouse/schema.sql` | PostgreSQL schema (airports, airlines, flights) |
 
 ---
 
 ## Architectural Decisions (ADRs)
 
-ADRs are tracked in `01-requirements/adr/`:
+ADRs are tracked in `docs/adr/`:
 
 - **ADR 001** — PostgreSQL first, MongoDB deferred to Phase 2.
 - **ADR 002** — `psycopg2-binary` as PostgreSQL driver. Raw SQL over ORM for transparency.

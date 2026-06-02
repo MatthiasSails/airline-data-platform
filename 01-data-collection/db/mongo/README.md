@@ -3,9 +3,9 @@
 Multi-source raw landing zone of the Airline Data Platform. Database: **`airline_landing`**.
 
 See ADRs:
-- [`adr/001-postgres-first.md`](../../../01-requirements/adr/001-postgres-first.md) — original phase plan
-- [`adr/004-mongo-as-multisource-hub.md`](../../../01-requirements/adr/004-mongo-as-multisource-hub.md) — Mongo as multi-source hub
-- [`adr/005-opensky-mongo-migration.md`](../../../01-requirements/adr/005-opensky-mongo-migration.md) — OpenSky local → Mongo
+- [`adr/001-postgres-first.md`](../../../docs/adr/001-postgres-first.md) — original phase plan
+- [`adr/004-mongo-as-multisource-hub.md`](../../../docs/adr/004-mongo-as-multisource-hub.md) — Mongo as multi-source hub
+- [`adr/005-opensky-mongo-migration.md`](../../../docs/adr/005-opensky-mongo-migration.md) — OpenSky local → Mongo
 
 ## Collections
 

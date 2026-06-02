@@ -88,4 +88,4 @@ The multi-source landing zone is the demonstrable Data Engineering achievement o
 
 - [ADR 001](001-postgres-first.md) — postponed MongoDB to Phase 2 (this ADR activates it)
 - [ADR 003](003-dual-stream.md) — established OpenSky + adsb.lol parallel streams (this ADR generalizes to N sources)
-- [source/mentor_update_nicolas.md](../source/mentor_update_nicolas.md) — mentor's ML-can-be-skipped guidance
+- [source/mentor_update_nicolas.md](../requirements/source/mentor_update_nicolas.md) — mentor's ML-can-be-skipped guidance

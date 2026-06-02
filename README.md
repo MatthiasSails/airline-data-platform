@@ -2,7 +2,7 @@
 
 End-to-end data pipeline for live airline / flight data — built as the capstone project of the **DataScientest Data Engineer Bootcamp**.
 
-📋 **Project status:** Step 1 complete (2026-05-27), Step 2 in progress (deadline 10.06.2026) — see [01-requirements](01-requirements/README.md)
+📋 **Project status:** Step 1 complete (2026-05-27), Step 2 in progress (deadline 10.06.2026) — see [docs/requirements](docs/requirements/README.md)
 
 ---
 
@@ -43,7 +43,7 @@ graph LR
     style DASH fill:#9933CC,color:#fff
 ```
 
-**Why MongoDB as a multi-source hub?** See [ADR 004](01-requirements/adr/004-mongo-as-multisource-hub.md) — driven by real project constraints (VM blocks OpenSky, no premium API access), but also a strong Data Engineering pattern: decouple ingestion from transformation.
+**Why MongoDB as a multi-source hub?** See [ADR 004](docs/adr/004-mongo-as-multisource-hub.md) — driven by real project constraints (VM blocks OpenSky, no premium API access), but also a strong Data Engineering pattern: decouple ingestion from transformation.
 
 ---
 
@@ -76,25 +76,26 @@ graph LR
 
 ## Repository structure
 
+The **knowledge layer** lives in `docs/` (project-wide, un-numbered); the **numbered folders are the
+pipeline phases** (Bronze → Silver → consumption → deployment).
+
 | Path | What's inside |
 |---|---|
-| **[01-requirements/](01-requirements/README.md)** | Project specs, architecture, ADRs, timeline |
-| **[02-api-docs/](02-api-docs/)** | External API references (OpenSky, adsb.lol, market overview) |
-| **[03-data-collection/](03-data-collection/)** | Collectors, DB connectors, exploration notebooks |
-| **[04-dashboard/](04-dashboard/adsb-dashboard/)** | Streamlit dashboard |
-| **[docs/](docs/setup.md)** | Setup guide and additional documentation |
-
-Pending: `05-backend/` (FastAPI), `06-devops/` (Docker Compose, CI/CD), `07-final-defense/`.
+| **[docs/](docs/)** | Knowledge layer: [requirements](docs/requirements/), [ADRs](docs/adr/), [architecture](docs/architecture/), [data-sources](docs/data-sources/), [report](docs/report/), setup guides |
+| **[01-data-collection/](01-data-collection/)** | Collectors → **Bronze** (MongoDB): OpenSky States, adsb.lol, reference loaders + exploration notebooks |
+| **[02-data-modeling/](02-data-modeling/)** | **Bronze → Silver**: [`etl/`](02-data-modeling/etl/) + [`warehouse/`](02-data-modeling/warehouse/) (PostgreSQL star schema) |
+| **[03-data-consumption/](03-data-consumption/)** | [`api/`](03-data-consumption/api/) (FastAPI) + [`dashboard/`](03-data-consumption/dashboard/) (Streamlit) |
+| **[04-deployment/](04-deployment/)** | docker-compose, scheduler, orchestration |
 
 ---
 
 ## Documentation
 
-- **[Scope & deliverables](01-requirements/scope.md)** — what we build per phase, explicit non-goals
-- **[Architecture](01-requirements/architecture/README.md)** — phase diagrams, data flow, ERD
-- **[Architecture Decision Records](01-requirements/adr/)** — *why* the design looks like it does
+- **[Scope & deliverables](docs/requirements/scope.md)** — what we build per phase, explicit non-goals
+- **[Architecture](docs/architecture/README.md)** — phase diagrams, data flow, ERD
+- **[Architecture Decision Records](docs/adr/)** — *why* the design looks like it does
 - **[Local setup](docs/setup.md)** — venv, dependencies, `.env`, running notebooks
-- **[ADS-B collector walkthrough](03-data-collection/collect_adsb.ipynb)** — step-by-step Jupyter notebook explaining the collector
+- **[ADS-B collector walkthrough](01-data-collection/collect_adsb.ipynb)** — step-by-step Jupyter notebook explaining the collector
 
 ---
 

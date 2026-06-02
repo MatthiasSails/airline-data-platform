@@ -164,4 +164,4 @@ dimension completeness.
   `closed`) carry **no `icao_code`**. Since `icao_code` is the PK (NOT NULL), the loader filters
   `WHERE icao_code IS NOT NULL` (optionally also `type IN ('large_airport','medium_airport')`).
 
-DDL: [`03-data-collection/db/postgres/schema.sql`](../../03-data-collection/db/postgres/schema.sql) — in sync with this model.
+DDL: [`02-data-modeling/warehouse/schema.sql`](../../02-data-modeling/warehouse/schema.sql) — in sync with this model.

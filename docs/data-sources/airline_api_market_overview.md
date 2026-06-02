@@ -2,7 +2,7 @@
 
 *Last updated: 2026-06-02*
 
-> **Lufthansa Public API: closed.** No token was provided to the project; see [ADR 004](../01-requirements/adr/004-mongo-as-multisource-hub.md). The project proceeds without it.
+> **Lufthansa Public API: closed.** No token was provided to the project; see [ADR 004](../adr/004-mongo-as-multisource-hub.md). The project proceeds without it.
 >
 > **Silver-model pivot (ADR 009, 2026-06-02):** the Silver warehouse is now built on OpenSky's
 > **live `/states/all`** (not the retrospective `/flights/*`). **adsb.lol stays Bronze-only.** The
@@ -21,7 +21,7 @@
 | **AviationStack** | ❌ Rejected (100 req/month, HTTP-only free plan) | — |
 | **ADS-B Exchange (RapidAPI)** | ❌ Rejected (paid, non-commercial ToS) | — |
 
-See [ADR 003](../01-requirements/adr/003-dual-stream.md) for the dual-stream rationale and [ADR 005](../01-requirements/adr/005-opensky-mongo-migration.md) for the OpenSky → MongoDB migration.
+See [ADR 003](../adr/003-dual-stream.md) for the dual-stream rationale and [ADR 005](../adr/005-opensky-mongo-migration.md) for the OpenSky → MongoDB migration.
 
 ---
 
@@ -30,7 +30,7 @@ See [ADR 003](../01-requirements/adr/003-dual-stream.md) for the dual-stream rat
 - Docs: `opensky_api_doc.md`
 - Auth: OAuth2 Client Credentials (`OPENSKY_CLIENT_ID`, `OPENSKY_CLIENT_SECRET` in `.env`)
 - Code format: **ICAO** (4 chars — `EDDB`, `EDDM`)
-- Client: `03-data-collection/opensky_api/client.py`
+- Client: `01-data-collection/opensky_api/client.py`
 - Credits: 4,000/day (registered user)
 - Key endpoints: `/flights/departure`, `/flights/arrival`, `/flights/aircraft`
 
@@ -43,7 +43,7 @@ See [ADR 003](../01-requirements/adr/003-dual-stream.md) for the dual-stream rat
 - Docs: `adsb_lol_api_doc.md`
 - Auth: none (public)
 - Code format: **ICAO24 hex** (8 hex digits — aircraft identifier, not airport)
-- Client: see `03-data-collection/collectors/` and `explore_adsb_lol.ipynb`
+- Client: see `01-data-collection/collectors/` and `explore_adsb_lol.ipynb`
 - Rate limit: dynamic, generous; recommended 30–60 s polling interval
 - Runs on the Liora VM (no auth, no SG restrictions)
 
@@ -51,7 +51,7 @@ See [ADR 003](../01-requirements/adr/003-dual-stream.md) for the dual-stream rat
 
 ## IATA ↔ ICAO Mapping
 
-OpenSky uses ICAO airport codes, adsb.lol uses ICAO24 aircraft hex codes, downstream reporting often expects IATA. The mapping is solved by a one-shot import from **OurAirports.com** (`ourairports.com/data/airports.csv`) into `airline_landing.airports_ref` (MongoDB). No API calls, no rate limits. See [ADR 004](../01-requirements/adr/004-mongo-as-multisource-hub.md).
+OpenSky uses ICAO airport codes, adsb.lol uses ICAO24 aircraft hex codes, downstream reporting often expects IATA. The mapping is solved by a one-shot import from **OurAirports.com** (`ourairports.com/data/airports.csv`) into `airline_landing.airports_ref` (MongoDB). No API calls, no rate limits. See [ADR 004](../adr/004-mongo-as-multisource-hub.md).
 
 ---
 

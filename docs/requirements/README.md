@@ -42,7 +42,7 @@ A multi-source data platform that ingests airline / flight data into a MongoDB l
 **Constraints worth knowing as a reader:**
 - OpenSky API blocked on external VMs (outbound HTTPS) — local-only collector (see ADR 005)
 - ML is explicitly de-prioritized (mentor approved)
-- Strategic pivot: MongoDB positioned as multi-source hub, not single-feed buffer ([ADR 004](adr/004-mongo-as-multisource-hub.md))
+- Strategic pivot: MongoDB positioned as multi-source hub, not single-feed buffer ([ADR 004](../adr/004-mongo-as-multisource-hub.md))
 
 For the full original assignment see [source/](source/).
 
@@ -54,11 +54,11 @@ For the full original assignment see [source/](source/).
 |---|---|
 | **[scope.md](scope.md)** | What we deliver per phase, what's out of scope, non-goals |
 | **[timeline.md](timeline.md)** | Mermaid Gantt chart of milestones |
-| **[architecture/](architecture/)** | Phase diagrams, data flow, ERD |
-| **[adr/](adr/)** | Architecture Decision Records — *why* the design looks like it does |
+| **[architecture/](../architecture/)** | Phase diagrams, data flow, ERD |
+| **[adr/](../adr/)** | Architecture Decision Records — *why* the design looks like it does |
 | **[source/](source/)** | Original Liora assignment + mentor messages (immutable) |
 
-**New to the repo?** Read in this order: this file → [scope.md](scope.md) → [architecture/README.md](architecture/README.md) → [adr/](adr/).
+**New to the repo?** Read in this order: this file → [scope.md](scope.md) → [architecture/README.md](../architecture/README.md) → [adr/](../adr/).
 
 ---
 
@@ -66,10 +66,14 @@ For the full original assignment see [source/](source/).
 
 ```
 airline-data-platform/
-├── 01-requirements/        ← you are here
-├── 02-api-docs/            ← external API documentation (OpenSky, adsb.lol, market overview)
-├── 03-data-collection/     ← collectors, connectors, exploration notebooks
-└── 04-dashboard/           ← Streamlit dashboard (deployed to Liora VM)
+├── docs/                   ← knowledge layer (you are in docs/requirements/)
+│   ├── requirements/       ← scope, timeline, source assignment
+│   ├── adr/                ← Architecture Decision Records
+│   ├── architecture/       ← data flow, Silver ER model
+│   ├── data-sources/       ← external API references (OpenSky, adsb.lol, market overview)
+│   └── report/             ← final project report
+├── 01-data-collection/     ← collectors → Bronze (MongoDB), exploration notebooks
+├── 02-data-modeling/       ← Bronze → Silver: etl/ + warehouse/ (Postgres star schema)
+├── 03-data-consumption/    ← api/ (FastAPI) + dashboard/ (Streamlit)
+└── 04-deployment/          ← docker-compose, scheduler, orchestration
 ```
-
-Pending: `05-backend/` (FastAPI), `06-devops/` (Docker Compose + CI/CD), `07-final-defense/`.

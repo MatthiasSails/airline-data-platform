@@ -3,7 +3,7 @@
 Concrete deliverables per phase, with explicit non-goals.
 
 > Timeline and milestones: see [timeline.md](timeline.md).
-> Architecture and decisions: see [architecture/](architecture/) and [adr/](adr/).
+> Architecture and decisions: see [architecture/](../architecture/) and [adr/](../adr/).
 
 ---
 
@@ -21,8 +21,8 @@ Concrete deliverables per phase, with explicit non-goals.
 - Data source documentation
 
 **Out of scope:**
-- Lufthansa API integration (no key available — see [ADR 004](adr/004-mongo-as-multisource-hub.md))
-- OpenSky from Liora VM (outbound HTTPS blocked — local-only collector, see [ADR 005](adr/005-opensky-mongo-migration.md))
+- Lufthansa API integration (no key available — see [ADR 004](../adr/004-mongo-as-multisource-hub.md))
+- OpenSky from Liora VM (outbound HTTPS blocked — local-only collector, see [ADR 005](../adr/005-opensky-mongo-migration.md))
 
 ---
 
@@ -70,7 +70,7 @@ Concrete deliverables per phase, with explicit non-goals.
 **In scope:**
 - Architecture presentation (why MongoDB + PostgreSQL, ETL strategy, automation)
 - Live demo of dashboard + API
-- Defense of design decisions (see [adr/](adr/))
+- Defense of design decisions (see [adr/](../adr/))
 
 ---
 
@@ -81,7 +81,7 @@ These were considered and explicitly excluded:
 | Non-goal | Why | Reference |
 |---|---|---|
 | Machine learning as a core feature | Mentor: ML performance not evaluated | [source/mentor_update_nicolas.md](source/mentor_update_nicolas.md) |
-| Lufthansa API as data source | No API key available; Liora cannot provide | [ADR 004](adr/004-mongo-as-multisource-hub.md) |
+| Lufthansa API as data source | No API key available; Liora cannot provide | [ADR 004](../adr/004-mongo-as-multisource-hub.md) |
 | Kubernetes deployment | Docker Compose sufficient for MVP | — |
 | Real-time Kafka streaming | Only if MVP is stable and time permits | — |
 | Neo4j route graph | Out of scope; mentioned as future extension | — |
