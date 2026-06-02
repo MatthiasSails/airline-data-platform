@@ -267,6 +267,23 @@ Current focus: **Step 1** — data collection and architecture design.
 
 ---
 
+## Project Report
+
+The DataScientest final report lives in [`docs/report/`](docs/report/). Guidance:
+
+- **Follow the "Crypto-arc"** — the structure of the gold-standard DE reference report (13-chapter
+  narrative: Introduction → Architecture → Data Collection → Data Modeling → Data Consumption → API →
+  Containerisation → Orchestration → Results → Limitations → Conclusion), **not** the ML-centric
+  Google-Doc methodology template.
+- **No ML chapter** — this is a pure data-engineering pipeline (live OpenSky States → Bronze → Silver).
+  Replace the modelling chapter with deeper Silver-modeling coverage (mentor confirmed ML is
+  de-prioritised; see Mentor Context below).
+- **Reference exemplars** (read-only) are downloaded to
+  `Liora_Learn_Github/docs/project_templates/`: `dec25_bde_int_crypto_report.pdf` (gold, complete) and
+  `Airlines.pdf` (same domain, but WIP / earlier cohort).
+
+---
+
 ## When in Doubt
 
 Ask:
