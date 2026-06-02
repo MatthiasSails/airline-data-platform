@@ -15,6 +15,7 @@ Each ADR documents one significant decision: the context, the choice, the altern
 | [007](007-decouple-from-liora-vm.md) | Decouple from Liora VM; Dedicated Cloud Compute + Neon Postgres | Accepted | 2026-05-27 |
 | [008](008-airline-attribution-star-schema.md) | Airline Attribution: Star (resolved `airline_icao`) over Snowflake | Accepted | 2026-06-02 |
 | [009](009-states-api-silver-model.md) | Silver Model: OpenSky States as central fact; adsb.lol Bronze-only | Accepted | 2026-06-02 |
+| [010](010-repo-layout-knowledge-vs-pipeline.md) | Repo Layout: `docs/` knowledge layer + numbered pipeline phases | Accepted | 2026-06-02 |
 
 ## Format
 
