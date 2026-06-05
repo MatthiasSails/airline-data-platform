@@ -164,3 +164,43 @@ real IPv4 anchor, so SSH alone doesn't remove the IPv4 dependency.
 
 Documented in issue #1 comments. Background reference:
 `knowledgebase/tools/aws-networking-notes.md`.
+
+---
+
+## Addendum 2026-06-05 — Compute VM provisioned: AWS Lightsail (not EC2)
+
+Decision #2 above favoured AWS EC2 for SAA learning value. After evaluating
+actual costs, **AWS Lightsail** was chosen instead for the project VM.
+
+**Reasoning:**
+
+| Factor | EC2 t4g.micro | Lightsail $12 |
+|---|---|---|
+| Compute/Mo | $7.01 | included |
+| Public IPv4/Mo | $3.65 extra (since Feb 2024) | included |
+| Storage | $0.76+ extra (EBS) | 60 GB included |
+| Total/Mo | ~$11.40 | $12.00 |
+| First 90 days | — | free |
+
+EC2's public IPv4 surcharge (introduced Feb 2024, $0.005/h regardless of
+instance state) erodes the cost advantage. Lightsail $12 delivers more RAM
+(2 GB vs 1 GB), more disk, and bundled IPv4 for approximately the same
+monthly spend — and the first 90 days are free.
+
+SAA learning value is preserved by provisioning EC2 labs separately in the
+same study account when needed. The airline VM does not need to be an EC2
+instance to achieve the SAA goal.
+
+**Provisioned instance:**
+- Name: `aws-airline-1`
+- Provider: AWS Lightsail, eu-central-1a (Frankfurt)
+- Plan: $12/month — 2 GB RAM, 2 vCPU, 60 GB SSD, 3 TB transfer
+- OS: Ubuntu 24.04 LTS
+- Static IPv4: `63.185.229.117` (Lightsail Static IP `aws-airline-ip1`)
+- IPv6: `2a05:d014:1cd1:d300:d4ef:708d:7bdf:9e34` (dual-stack, persistent)
+- SSH: `ssh -i ~/.ssh/airline_vm ubuntu@63.185.229.117`
+- Account: Study "Consulting" (503726126644); expires 2026-11-28 →
+  migrate to a paid account before expiry.
+
+**Status at time of addendum:** VM running, firewall configured (22/80/443
+IPv4+IPv6), kernel upgraded, reboot complete. Docker installation pending.

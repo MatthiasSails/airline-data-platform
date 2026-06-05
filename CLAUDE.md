@@ -20,7 +20,7 @@ Project-level instructions for Claude Code when working in this repository.
 - **Transformation**: Python ETL + Pandas (Bronze → Silver)
 - **API Layer**: FastAPI (Step 2)
 - **Dashboards**: Streamlit / Dash
-- **Compute**: dedicated cloud VM with fixed IP — planned, AWS EC2 (Free Tier) or Hetzner Cloud (see ADR 007). **Liora VM is no longer part of this project.**
+- **Compute**: **AWS Lightsail `aws-airline-1`** (`63.185.229.117`, eu-central-1a) — provisioned 2026-06-05 (see ADR 007). **Liora VM is no longer part of this project.**
 - **Orchestration**: Airflow / Cron (optional, Step 3)
 - **Streaming**: open — vision is sub-minute updates, exact tooling TBD
 
@@ -141,7 +141,7 @@ As of 2026-05-27 this project is **no longer** tied to Liora VM (see ADR 007). P
 
 - **Bronze (Landing Zone):** MongoDB Atlas cluster `mongo-mk1` (Free Tier, eu-central-1) — `mongodb+srv://...mongo-mk1.ptb1k2b.mongodb.net/...`. Connection string in `.env` at project root.
 - **Silver (Warehouse):** managed serverless Postgres — Neon is the leading candidate, **Pavel evaluating**. Connection string goes into `.env` after decision.
-- **Compute (dedicated VM with fixed IP):** open — AWS EC2 Free Tier (preferred for AWS SAA learning goal) or Hetzner Cloud.
+- **Compute (dedicated VM with fixed IP):** **AWS Lightsail `aws-airline-1`** (provisioned 2026-06-05). Static IPv4: `63.185.229.117`. SSH: `ssh -i ~/.ssh/airline_vm ubuntu@63.185.229.117`. Plan: $12/Mon (2 GB RAM, 60 GB SSD), eu-central-1a. Account: Study "Consulting" (503726126644), expires 2026-11-28 → migrate to paid account before that. See [[reference_airline_vm]] for full details.
 - **Local development:** Mac with `.venv` + `MONGO_URI` from `.env` pointing to Atlas. Collectors run locally, write directly to Atlas.
 
 **Atlas Network Access:** every compute IP (Mac, new VM) must be whitelisted in the Atlas project. Symptom when missing: `pymongo.errors.ServerSelectionTimeoutError: SSL handshake failed: ... TLSV1_ALERT_INTERNAL_ERROR` (see `knowledgebase/troubleshooting.md`).
