@@ -1,6 +1,23 @@
 #!/bin/bash
 set -e
+
 REPO_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 source "${REPO_DIR}/.env"
-ssh Liora_VM "cd ~/airline-data-platform 2>/dev/null || git clone https://github.com/MatthiasSails/airline-data-platform.git ~/airline-data-platform && git -C ~/airline-data-platform fetch origin && git -C ~/airline-data-platform reset --hard origin/main && cd ~/airline-data-platform/04-dashboard/adsb-dashboard && MONGO_URI='${MONGO_URI}' docker compose up -d --build"
-echo "Done — http://liora-vm.matthiaskoehler.com:8502"
+
+SSH_HOST="ubuntu@63.185.229.117"
+SSH_KEY="$HOME/.ssh/airline_vm"
+REMOTE_DIR="~/airline-data-platform"
+
+ssh -i "$SSH_KEY" "$SSH_HOST" bash <<REMOTE
+  set -e
+  if [ ! -d "$REMOTE_DIR" ]; then
+    git clone https://github.com/MatthiasSails/airline-data-platform.git $REMOTE_DIR
+  fi
+  git -C $REMOTE_DIR fetch origin
+  git -C $REMOTE_DIR reset --hard origin/main
+  echo "MONGO_URI='${MONGO_URI}'" > $REMOTE_DIR/.env
+  cd $REMOTE_DIR/04-deployment
+  docker compose up -d --build
+REMOTE
+
+echo "Done — http://63.185.229.117:8501"
