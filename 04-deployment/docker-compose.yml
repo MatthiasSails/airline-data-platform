@@ -4,6 +4,6 @@ services:
     container_name: adsb_dashboard
     ports:
       - "8501:8501"
-    environment:
-      MONGO_URI: ${MONGO_URI}
+    env_file:
+      - ../.env
     restart: unless-stopped
