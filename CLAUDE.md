@@ -139,12 +139,12 @@ The Silver layer is a managed serverless Postgres (curated analytical warehouse,
 
 As of 2026-05-27 this project is **no longer** tied to Liora VM (see ADR 007). Planned infrastructure:
 
-- **Bronze (Landing Zone):** MongoDB Atlas cluster `mongo-mk1` (Free Tier, eu-central-1) — `mongodb+srv://...mongo-mk1.ptb1k2b.mongodb.net/...`. Connection string in `.env` at project root.
+- **Bronze (Landing Zone):** MongoDB Atlas cluster `mongo-mk1` (Free Tier, eu-central-1). Connection string in `.env` at project root.
 - **Silver (Warehouse):** managed serverless Postgres — Neon is the leading candidate, **Pavel evaluating**. Connection string goes into `.env` after decision.
-- **Compute (dedicated VM with fixed IP):** **AWS Lightsail `aws-airline-1`** (provisioned 2026-06-05). Static IPv4: `63.185.229.117`. DNS: `airline.matthiaskoehler.com`. SSH: `ssh -i ~/.ssh/airline_vm ubuntu@63.185.229.117`. Plan: $10/Mon (2 GB RAM, 2 vCPU, 60 GB SSD, x86_64), eu-central-1a. Account: Study "Consulting" (503726126644), expires 2026-11-28 → migrate to paid account before that. Docker 29.1 + Compose 2.40 installed. Dashboard live at http://airline.matthiaskoehler.com:8501 — entry point `04-deployment/docker-compose.yml`. See [[reference_airline_vm]] for full details.
+- **Compute (dedicated VM with fixed IP):** **AWS Lightsail `aws-airline-1`** (provisioned 2026-06-05). DNS: `airline.matthiaskoehler.com`. Plan: $10/Mon (2 GB RAM, 2 vCPU, 60 GB SSD, x86_64), eu-central-1a. Docker 29.1 + Compose 2.40 installed. Dashboard live at http://airline.matthiaskoehler.com:8501 — entry point `04-deployment/docker-compose.yml`. Connection details (IP, SSH key, account) in local notes.
 - **Local development:** Mac with `.venv` + `MONGO_URI` from `.env` pointing to Atlas. Collectors run locally, write directly to Atlas.
 
-**Atlas Network Access:** every compute IP (Mac, new VM) must be whitelisted in the Atlas project. Symptom when missing: `pymongo.errors.ServerSelectionTimeoutError: SSL handshake failed: ... TLSV1_ALERT_INTERNAL_ERROR` (see `knowledgebase/troubleshooting.md`).
+**Atlas Network Access:** every compute IP (Mac, new VM) must be whitelisted in the Atlas project. Symptom when missing: `pymongo.errors.ServerSelectionTimeoutError: SSL handshake failed: ... TLSV1_ALERT_INTERNAL_ERROR`.
 
 ---
 
@@ -278,9 +278,7 @@ The DataScientest final report lives in [`docs/report/`](docs/report/). Guidance
 - **No ML chapter** — this is a pure data-engineering pipeline (live OpenSky States → Bronze → Silver).
   Replace the modelling chapter with deeper Silver-modeling coverage (mentor confirmed ML is
   de-prioritised; see Mentor Context below).
-- **Reference exemplars** (read-only) are downloaded to
-  `Liora_Learn_Github/docs/project_templates/`: `dec25_bde_int_crypto_report.pdf` (gold, complete) and
-  `Airlines.pdf` (same domain, but WIP / earlier cohort).
+- **Reference exemplars** (read-only) are stored locally — a gold-standard DE report (13-chapter narrative) and an airlines-domain example (WIP / earlier cohort).
 
 ---
 
