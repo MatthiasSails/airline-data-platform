@@ -25,7 +25,8 @@ Two access levels are available. Pick whichever fits your task — you decide.
 The SRV URI contains the password in plain text — it is a secret and must
 **never be committed to Git**.
 
-All credentials (DB-user URIs, Atlas UI login) are stored in **Proton Pass** —
+All credentials (DB-user URIs, Atlas UI login) are stored in **Proton Pass**
+under the shared team account `SECRET@protonmail.com` —
 ask Matthias for access. See "Rotating a password" below if a credential needs
 to be changed.
 
@@ -48,7 +49,8 @@ MONGO_URI_RW=mongodb+srv://airline-collector-rw:<PASSWORD>@mongo-mk1.ptb1k2b.mon
 ```
 
 Both variables must be present. `from_env()` uses `MONGO_URI` (read-only) by default;
-`from_env(write=True)` uses `MONGO_URI_RW`. Get the passwords from Proton Pass.
+`from_env(write=True)` uses `MONGO_URI_RW`. Get the passwords from Proton Pass
+(`SECRET@protonmail.com`).
 
 Credentials are stored in **Proton Pass** — ask Matthias for access. Never share
 passwords via email, Slack, or unencrypted chat.
