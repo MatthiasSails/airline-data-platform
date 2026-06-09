@@ -151,7 +151,15 @@ As of 2026-05-27 this project is **no longer** tied to Liora VM (see ADR 007). P
     ```
   - **On aws-airline-1:** connect directly (VM has IPv6), no tunnel needed.
   - **PostgREST / supabase-py:** currently broken (PGRST002 after Supabase API-key migration). Use psycopg2 direct. If using supabase-py later, use legacy JWT key (`eyJ…`) not new `sb_secret_` format.
-- **Compute (dedicated VM with fixed IP):** **AWS Lightsail `aws-airline-1`** (provisioned 2026-06-05). DNS: `airline.matthiaskoehler.com`. Plan: $10/Mon (2 GB RAM, 2 vCPU, 60 GB SSD, x86_64), eu-central-1a. Docker 29.1 + Compose 2.40 installed. Dashboard live at http://airline.matthiaskoehler.com:8501 — entry point `04-deployment/docker-compose.yml`. Connection details (IP, SSH key, account) in local notes.
+- **Compute (dedicated VM with fixed IP):** **AWS Lightsail `aws-airline-1`** (provisioned 2026-06-05). Static IP `63.185.229.117`, eu-central-1a. Docker 29.1 + Compose 2.40. SSH: `ssh -i ~/.ssh/airline_vm ubuntu@63.185.229.117`. Entry point: `04-deployment/docker-compose.yml`.
+  - **Portainer CE 2.39.3** — deployed 2026-06-09. URL: https://airline-portainer.matthiaskoehler.com. Container: `portainer/portainer-ce:latest`, port `9443:9443`, volume `portainer_data`. Note: CE 2.39 serves HTTPS only on 9443, no HTTP on 9000.
+  - **Cloudflare Tunnel** — all services exposed via `cloudflared` container (`--network host`, `restart: always`), no ports need to be open in Lightsail firewall. Token in Keychain: `cloudflare_airline_tunnel_token`.
+  - **Service URLs** (via Cloudflare Tunnel, valid HTTPS):
+    - https://airline-portainer.matthiaskoehler.com — Portainer
+    - https://airline-jupyter.matthiaskoehler.com — JupyterLab
+    - https://airline-dashboard.matthiaskoehler.com — ADS-B Dashboard
+    - https://airline.matthiaskoehler.com — Landing Page (⚠️ noch kein Service auf Port 80)
+  - **⚠️ Landing Page offen:** Tunnel leitet `airline.matthiaskoehler.com` auf `localhost:80`, aber kein Container läuft dort.
 - **Local development:** Mac with `.venv` + `MONGO_URI` from `.env` pointing to Atlas. Collectors run locally, write directly to Atlas.
 
 **Atlas Network Access:** every compute IP (Mac, new VM) must be whitelisted in the Atlas project. Symptom when missing: `pymongo.errors.ServerSelectionTimeoutError: SSL handshake failed: ... TLSV1_ALERT_INTERNAL_ERROR`.
