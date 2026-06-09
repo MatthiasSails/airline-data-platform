@@ -146,20 +146,6 @@ SSM Parameter Store (Standard tier) is free and sufficient for this project.
 
 ---
 
-## Rotating a password
-
-If a credential may have leaked, rotate it immediately — this takes ~30 seconds
-and instantly invalidates the old password:
-
-1. Atlas → **Database Access** → pick the user → **Edit**
-2. **Edit Password** → **Autogenerate Secure Password** → **Copy**
-3. **Update User**
-4. Update the entry in Proton Pass and notify the team
-5. Everyone updates their local `.env`
-
-The old password stops working immediately.
-
----
 
 ## Troubleshooting
 
