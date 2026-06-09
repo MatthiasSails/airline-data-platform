@@ -7,3 +7,16 @@ services:
     env_file:
       - ../.env
     restart: unless-stopped
+
+  jupyter:
+    build: ./jupyter
+    container_name: jupyter
+    ports:
+      - "8888:8888"
+    volumes:
+      - ..:/workspace
+    env_file:
+      - ../.env
+    environment:
+      - JUPYTER_TOKEN=${JUPYTER_TOKEN}
+    restart: unless-stopped
