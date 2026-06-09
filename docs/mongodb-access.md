@@ -1,38 +1,66 @@
 # MongoDB Atlas Access — Team Onboarding
 
-**Cluster:** `mongo-mk1` (M0 Free Tier, eu-central-1 Frankfurt)
-**Database:** `airline_landing`
+## What is MongoDB Atlas?
 
-**How the connection works:**
-- **SRV string** (`mongodb+srv://`) — PyMongo resolves the cluster hosts automatically via DNS. No port or individual hostname needed; Atlas can replace nodes without changing your URI.
-- **TLS** — all traffic is encrypted in transit. Atlas enforces this; plain connections are rejected. PyMongo enables it automatically for `mongodb+srv://` URIs.
-- **SCRAM-SHA** — the authentication mechanism. Your password is never sent in plain text; Atlas and the client do a cryptographic challenge-response handshake. Visible as "SCRAM" in the Atlas UI under Database Access.
+**MongoDB** is the database engine — it stores documents (JSON-like records) in
+collections. **Atlas** is MongoDB's managed cloud service: MongoDB runs on Atlas
+infrastructure, Atlas handles backups, scaling, networking, and access control.
+You never touch a server directly.
 
-None of this requires any configuration — it is all handled automatically by PyMongo and Atlas when you set `MONGO_URI` in your `.env`.
+In this project Atlas hosts our raw landing zone (Bronze layer):
+
+- **Cluster:** `mongo-mk1` (M0 Free Tier, eu-central-1 Frankfurt)
+- **Database:** `airline_landing`
+- **Collections:** `adsb_raw`, `opensky_raw`, `flight_tracker_raw`
 
 ---
 
-## Roles Overview
+## User types and access
 
-Two access levels are available. Pick whichever fits your task — you decide.
+Atlas has two completely independent user layers — do not confuse them:
 
-| DB User | Atlas Role | What it gives you |
+### 1. Database Users (for code and tooling)
+
+These are MongoDB credentials embedded in a connection string (URI). They have
+no browser login — they exist solely to authenticate programmatic access to the
+data. All application code, collectors, notebooks, and external tools (e.g. VS
+Code MongoDB extension, Compass) connect via a database user.
+
+We have three database users:
+
+| DB User | Role | When to use |
 |---|---|---|
-| `airline-collector-rw` | `atlasAdmin` | **Full access** — read, write, delete, manage collections/indexes, plus user and cluster administration. Shared team account; also used by the collectors. |
-| `airline-reader-ro` | `read` (all databases) | **Read-only** across all databases. Use this when you only need to query data and want zero risk of changing anything. |
-| `matthiaskoehler_db_user` | `atlasAdmin` | Matthias' personal admin account. |
+| `airline-reader-ro` | `read` (all databases) | Notebooks, exploration, any read-only query |
+| `airline-collector-rw` | `atlasAdmin` | Collectors, ETL, anything that writes data |
+| `matthiaskoehler_db_user` | `atlasAdmin` | Matthias' personal admin account |
 
-The SRV URI contains the password in plain text — it is a secret and must
+The connection string (URI) contains the password in plain text and must
 **never be committed to Git**.
 
-All credentials (DB-user URIs, Atlas UI login) are stored in **Proton Pass**
-under the shared team account `SECRET@protonmail.com` —
-ask Matthias for access. See "Rotating a password" below if a credential needs
-to be changed.
+### 2. Atlas UI Members (for browser access to cloud.mongodb.com)
+
+These are accounts that log into the Atlas web console to manage the project —
+view metrics, configure database users, manage the IP allowlist. This is a
+browser login, not a database connection.
+
+We use a **shared team account** for this:
+
+- **Account:** `SECRET@protonmail.com`
+- **Role:** `Project Data Access Admin` — full visibility into the project,
+  clusters, metrics, and database user management. Cannot create or scale
+  clusters, cannot touch billing.
+- **2FA is mandatory:** authentication codes are delivered to the Protonmail
+  inbox — you need access to `SECRET@protonmail.com` to log in.
+
+### Where the secrets live
+
+All credentials (Protonmail login, Atlas UI login, database user URIs) are
+stored in **Proton Pass** under `SECRET@protonmail.com`. Ask Matthias
+for access. Never share passwords via email, Slack, or unencrypted chat.
 
 ---
 
-## Setting Up a Connection (all platforms)
+## Connecting from Python
 
 ### Step 1 — Create a `.env` file
 
@@ -44,70 +72,33 @@ MONGO_DB=airline_landing
 # Read-only — for notebooks and exploration:
 MONGO_URI=mongodb+srv://airline-reader-ro:<PASSWORD>@mongo-mk1.ptb1k2b.mongodb.net/?appName=mongo-mk1
 
-# Read-write — for collectors and ETL (write=True in connector):
+# Read-write — for collectors and ETL:
 MONGO_URI_RW=mongodb+srv://airline-collector-rw:<PASSWORD>@mongo-mk1.ptb1k2b.mongodb.net/?appName=mongo-mk1
 ```
 
-Both variables must be present. `from_env()` uses `MONGO_URI` (read-only) by default;
-`from_env(write=True)` uses `MONGO_URI_RW`. Get the passwords from Proton Pass
+Both variables must be present. Get the passwords from Proton Pass
 (`SECRET@protonmail.com`).
 
-Credentials are stored in **Proton Pass** — ask Matthias for access. Never share
-passwords via email, Slack, or unencrypted chat.
+### Step 2 — Use the connector
 
-### Step 2 — Test the connection
+The project provides `01-data-collection/db/mongo/connector.py`:
 
-```bash
-python - <<'EOF'
-# load_dotenv() reads the .env file and injects its keys into the process
-# environment. The secret (the connection URI with the password) therefore
-# never appears in this source code — only in .env, which is gitignored.
-# This is why the script itself is safe to commit, share, or paste.
-from dotenv import load_dotenv; load_dotenv()
-import os
-from pymongo import MongoClient
+```python
+from db.mongo.connector import from_env
 
-# os.getenv() reads the secret from the environment at runtime — never hardcoded.
-# Best practice (12-factor app config): configuration and credentials live in the
-# environment, the code stays free of secrets. Same pattern as db/mongo/connector.py.
-uri = os.getenv("MONGO_URI")
-if not uri:
-    raise RuntimeError("MONGO_URI not set — is .env present?")
+# Read-only (default) — notebooks, exploration:
+with from_env() as db:
+    docs = list(db.collection("adsb_raw").find({}, limit=5))
 
-c = MongoClient(uri, serverSelectionTimeoutMS=5000)
-print(c.admin.command("ping"))   # expected: {'ok': 1.0}
-c.close()
-EOF
+# Read-write — collectors, ETL:
+with from_env(write=True) as db:
+    db.insert_raw("adsb_raw", document)
 ```
 
-**Why secret management is done this way:**
-- A hardcoded password ends up in Git history forever — even if deleted later, it stays in old commits. Environment variables avoid this entirely.
-- `.env` is in `.gitignore`, so the secret lives only on each machine, never in the repo.
-- The code reads `MONGO_URI` the same way everywhere (local Mac, aws-airline-1, CI), so the *same* code runs in any environment — only the `.env` differs.
-- This mirrors the production-grade pattern: secrets injected at runtime (here via `.env`; in cloud setups via a secrets manager), never baked into the artifact.
+`from_env()` reads `MONGO_URI` / `MONGO_URI_RW` and `MONGO_DB` from `.env`
+automatically. No credentials appear in code.
 
-### Future: secret management on aws-airline-1
-
-The collectors and dashboard run on **AWS Lightsail `aws-airline-1`** (provisioned
-2026-06-05). Currently `.env` is deployed manually to the VM. A future improvement
-is to replace it with an AWS-native secret store:
-
-| Service | Use | Cost |
-|---|---|---|
-| **SSM Parameter Store** (`SecureString`) | Config + secrets, KMS-encrypted. No auto-rotation. | Standard tier free |
-| **AWS Secrets Manager** | Dedicated secret store with automatic rotation, RDS integration. | ~$0.40/secret/month |
-
-For this project, **Parameter Store is sufficient and free**. The Lightsail instance
-gets an **IAM role** (instance profile) that allows `ssm:GetParameter` — `MONGO_URI`
-is fetched from the AWS API at runtime, decrypted via KMS, and lives only in memory.
-No plain-text secret on disk and every access is audited via CloudTrail.
-
-```
-Lightsail instance (IAM role)  →  ssm:GetParameter / secretsmanager:GetSecretValue
-                               →  MONGO_URI in memory only, never written to disk
-```
-
-### Step 3 — List collections (airline-reader-ro)
+### Step 3 — Test the connection
 
 ```bash
 python - <<'EOF'
@@ -116,12 +107,68 @@ import os
 from pymongo import MongoClient
 
 c = MongoClient(os.getenv("MONGO_URI"), serverSelectionTimeoutMS=5000)
-db = c[os.getenv("MONGO_DB", "airline_landing")]
-for name in db.list_collection_names():
-    print(f"{name}: {db[name].count_documents({})} docs")
+print(c.admin.command("ping"))   # expected: {'ok': 1.0}
+for name in c["airline_landing"].list_collection_names():
+    print(f"  {name}: {c['airline_landing'][name].count_documents({})} docs")
 c.close()
 EOF
 ```
+
+### Connecting from other tools
+
+**VS Code MongoDB Extension:** connect via `Cmd+Shift+P` → `MongoDB: Connect`
+→ `Connect with Connection String`. Use the SRV URI from Proton Pass.
+
+**MongoDB Compass:** paste the SRV URI into the connection dialog.
+
+**Other languages / tools:** use the SRV URI directly — the format is the same
+regardless of driver or language.
+
+---
+
+## Secret management
+
+### Why we use environment variables
+
+- A hardcoded password ends up in Git history forever — even if deleted later.
+- `.env` is in `.gitignore`, so the secret lives only on each machine, never in
+  the repo.
+- The same code runs unchanged in every environment (local Mac, aws-airline-1,
+  CI) — only the `.env` differs.
+
+### Current setup
+
+| Environment | How secrets are provided |
+|---|---|
+| Local Mac | `.env` in project root, filled manually from Proton Pass |
+| aws-airline-1 (Lightsail) | `.env` deployed manually to project root |
+
+### Future: AWS SSM Parameter Store (aws-airline-1)
+
+Replacing the manually deployed `.env` on the VM with AWS-native secret
+management is planned. The Lightsail instance gets an IAM role that allows
+`ssm:GetParameter` — the URI is fetched at runtime, never written to disk:
+
+```
+Lightsail (IAM role)  →  ssm:GetParameter  →  MONGO_URI in memory only
+```
+
+SSM Parameter Store (Standard tier) is free and sufficient for this project.
+
+---
+
+## Rotating a password
+
+If a credential may have leaked, rotate it immediately — this takes ~30 seconds
+and instantly invalidates the old password:
+
+1. Atlas → **Database Access** → pick the user → **Edit**
+2. **Edit Password** → **Autogenerate Secure Password** → **Copy**
+3. **Update User**
+4. Update the entry in Proton Pass and notify the team
+5. Everyone updates their local `.env`
+
+The old password stops working immediately.
 
 ---
 
@@ -129,96 +176,27 @@ EOF
 
 | Error | Cause | Fix |
 |---|---|---|
-| `ServerSelectionTimeoutError` | IP not in Atlas allowlist | Contact Matthias with your IP: `curl -s ifconfig.me` |
-| `Authentication failed` | Wrong password in URI | Re-copy the URI from the channel it was shared on |
+| `ServerSelectionTimeoutError` | IP not in Atlas allowlist | Send your IP (`curl -s ifconfig.me`) to Matthias |
+| `Authentication failed` | Wrong password | Re-copy the URI from Proton Pass |
 | `SSL handshake failed` | VPN interrupting TLS | Split-tunnel or disable VPN for the Atlas domain |
-| `MONGO_URI not set` | `.env` missing or wrong working directory | Check `pwd` — must be the project root |
+| `MONGO_URI not set` | `.env` missing or wrong directory | Check `pwd` — must be the project root |
+
+**IP Allowlist:** Atlas is configured with `0.0.0.0/0` (all IPs allowed).
+Security relies on SCRAM authentication — without valid credentials, no access
+is possible. This is deliberate for the project duration to avoid friction from
+changing IPs (home, office, VM reboots). For production: switch to individual IP
+entries or an Atlas Private Endpoint.
 
 ---
 
-## IP Allowlist Note
-
-Atlas is configured with `0.0.0.0/0` (all IPs allowed). The actual security
-boundary is SCRAM authentication — without a valid credential, no access is
-possible. This setting is deliberate for the project duration (learning
-environment, M0 Free Tier) to avoid friction from changing IPs (home, office,
-café, Liora VM after reboot).
-
-For production use: switch to individual IP entries or an Atlas Private Endpoint.
-
----
-
-## Collector Deployments
-
-All collector scripts read `MONGO_URI`, `MONGO_URI_RW`, and `MONGO_DB` from the
-environment (`.env` in the working directory). No code changes needed — only the
-`.env` must be present.
-
-**aws-airline-1 (ADS-B collector, dashboard):** `.env` lives at the project root
-(`~/airline-data-platform/.env`). Deployed manually; SSM migration planned (see above).
-
-**Local Mac (OpenSky collector):** `.env` in the project root (`airline-data-platform/.env`).
-
----
-
-## Rotating a password
-
-If a credential may have leaked (sent over an insecure channel, committed by
-accident, shared too widely), rotate it — this takes ~30 seconds and instantly
-invalidates the old password:
-
-1. Atlas → **Database Access** → pick the user → **Edit**
-2. **Edit Password** → **Autogenerate Secure Password** → **Copy**
-3. **Update User**
-4. Store the new password in Proton Pass and notify the team
-5. Everyone updates `MONGO_URI` in their local `.env`
-
-The old password stops working immediately — anyone still holding it (e.g. in an
-old email) is locked out.
-
----
-
-## Atlas UI Access (cloud.mongodb.com)
-
-### How Atlas access actually works — two separate concepts
-
-Atlas has two completely independent user layers:
-
-**1. Atlas UI Members** — real people (or a shared account) who log into
-`cloud.mongodb.com` to manage the project, view metrics, and handle database
-user configuration. This is a browser login, not a database connection.
-
-**2. Database Users** — these are not humans. They are MongoDB credentials
-embedded in connection strings. They have no UI login. We have two of them set
-up for the project (`airline-reader-ro` and `airline-collector-rw`, see Roles
-Overview above).
-
-→ Use the database user credentials / URIs for all application connections,
-scripts, and tooling. **Do not** use the shared Atlas UI account for connecting
-to the database.
-
-### Shared team account
-
-A shared Atlas UI account was set up on 2026-06-09 to give the full team access
-to the Atlas console without sharing Matthias' personal account:
-
-- **Account:** `SECRET@protonmail.com`
-- **Access role:** `Project Data Access Admin` — full visibility into the
-  project, clusters, metrics, and database user management. Cannot create or
-  scale clusters, cannot touch billing.
-- **2FA is mandatory:** the account uses two-factor authentication via the
-  Protonmail inbox itself — you need access to `SECRET@protonmail.com`
-  to receive the 2FA code each time you log in.
-- **All credentials** (Protonmail login, Atlas login, database user URIs) are
-  stored in **Proton Pass** (`SECRET@protonmail.com`) — ask Matthias
-  for access.
-
-### Atlas console sections
+## Atlas console (browser)
 
 URL: https://cloud.mongodb.com → Project `airline` → Cluster `mongo-mk1`
 
+Log in with the shared team account (`SECRET@protonmail.com`). Key sections:
+
 - **Database Access** — manage DB users, rotate passwords
 - **Network Access** — IP allowlist
-- **Browse Collections** — inspect data directly
+- **Browse Collections** — inspect data directly in the browser
 - **Metrics** — connections, storage, operations
-- **Access Manager** — manage UI members (project-level invite/role changes)
+- **Access Manager** — manage UI members and their roles
