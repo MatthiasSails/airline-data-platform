@@ -180,21 +180,38 @@ old email) is locked out.
 
 ## Atlas UI Access (cloud.mongodb.com)
 
-Atlas has two completely independent access layers — do not confuse them:
+### How Atlas access actually works — two separate concepts
 
-| Layer | What it is | Who uses it |
-|---|---|---|
-| **Atlas UI Members** | Real accounts that log into cloud.mongodb.com to manage the project | Matthias + shared team account (see below) |
-| **Database Users** | MongoDB credentials embedded in a connection string — no UI login | All application code, collectors, notebooks |
+Atlas has two completely independent user layers:
+
+**1. Atlas UI Members** — real people (or a shared account) who log into
+`cloud.mongodb.com` to manage the project, view metrics, and handle database
+user configuration. This is a browser login, not a database connection.
+
+**2. Database Users** — these are not humans. They are MongoDB credentials
+embedded in connection strings. They have no UI login. We have two of them set
+up for the project (`airline-reader-ro` and `airline-collector-rw`, see Roles
+Overview above).
+
+→ Use the database user credentials / URIs for all application connections,
+scripts, and tooling. **Do not** use the shared Atlas UI account for connecting
+to the database.
 
 ### Shared team account
 
-A shared Atlas UI account was set up on 2026-06-09 to give the full team access to the Atlas console without sharing Matthias' personal account:
+A shared Atlas UI account was set up on 2026-06-09 to give the full team access
+to the Atlas console without sharing Matthias' personal account:
 
-- **Email:** `SECRET@protonmail.com`
-- **Role:** `Project Data Access Admin` — can view clusters, metrics, manage DB users and IP allowlist; **cannot** create/scale/delete clusters; **cannot** see billing
-- **2FA:** delivered to the Protonmail inbox — you need access to `SECRET@protonmail.com` to log in
-- **All credentials** (Protonmail login, Atlas login, DB-user URIs) are stored in **Proton Pass** — ask Matthias for access
+- **Account:** `SECRET@protonmail.com`
+- **Access role:** `Project Data Access Admin` — full visibility into the
+  project, clusters, metrics, and database user management. Cannot create or
+  scale clusters, cannot touch billing.
+- **2FA is mandatory:** the account uses two-factor authentication via the
+  Protonmail inbox itself — you need access to `SECRET@protonmail.com`
+  to receive the 2FA code each time you log in.
+- **All credentials** (Protonmail login, Atlas login, database user URIs) are
+  stored in **Proton Pass** (`SECRET@protonmail.com`) — ask Matthias
+  for access.
 
 ### Atlas console sections
 
