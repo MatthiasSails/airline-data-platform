@@ -34,9 +34,6 @@ We have three database users:
 | `airline-collector-rw` | `atlasAdmin` | Collectors, ETL, anything that writes data |
 | `matthiaskoehler_db_user` | `atlasAdmin` | Matthias' personal admin account |
 
-The connection string (URI) contains the password in plain text and must
-**never be committed to Git**.
-
 ### 2. Atlas UI Members (for browser access to cloud.mongodb.com)
 
 These are accounts that log into the Atlas web console to manage the project —
@@ -55,8 +52,8 @@ We use a **shared team account** for this:
 ### Where the secrets live
 
 All credentials (Protonmail login, Atlas UI login, database user URIs) are
-stored in **Proton Pass** under `SECRET@protonmail.com`. Ask Matthias
-for access. Never share passwords via email, Slack, or unencrypted chat.
+stored in **Proton Pass** under `SECRET@protonmail.com`. Ask Pavel or
+Matthias for access.
 
 ---
 
@@ -127,14 +124,6 @@ regardless of driver or language.
 ---
 
 ## Secret management
-
-### Why we use environment variables
-
-- A hardcoded password ends up in Git history forever — even if deleted later.
-- `.env` is in `.gitignore`, so the secret lives only on each machine, never in
-  the repo.
-- The same code runs unchanged in every environment (local Mac, aws-airline-1,
-  CI) — only the `.env` differs.
 
 ### Current setup
 
