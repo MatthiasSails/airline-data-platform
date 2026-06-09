@@ -199,14 +199,31 @@ cd 01-data-collection
 # ADS-B — single run (or --interval 60 for continuous):
 python collectors/adsb_collector.py
 
-# OpenSky — local Mac only; last 24h by default:
-python collectors/opensky_collector.py
-python collectors/opensky_collector.py --mock   # no credentials needed
-python collectors/opensky_collector.py --hours 6
+# OpenSky /states/all — active Silver-layer source (local Mac only, see ADR 009):
+python collectors/opensky_states_collector.py
+python collectors/opensky_states_collector.py --interval 60  # continuous polling
+
+# OpenSky /flights/* collector — LEGACY; retired per ADR 009. Use opensky_states_collector instead.
+# python collectors/opensky_collector.py
 
 # Educational step-by-step notebooks:
 # collect_adsb.ipynb, collect_opensky.ipynb
 ```
+
+### Bronze → Silver ETL
+
+```bash
+# Requires SSH tunnel (Mac → aws-airline-1 → Supabase, see below).
+# On aws-airline-1: connect directly (VM has IPv6), no tunnel needed.
+
+# Start tunnel (Mac dev):
+ssh -i ~/.ssh/airline_vm -f -N -L 5432:db.civmkvcgbklejootrkks.supabase.co:5432 ubuntu@63.185.229.117
+
+# Run ETL:
+python 02-data-modeling/etl/opensky_to_supabase.py
+```
+
+> **PostgREST / supabase-py:** still returning `PGRST002` (Supabase API-key migration, June 2026). Use psycopg2 direct. Do not rely on PostgREST until resolved upstream.
 
 Credentials (`OPENSKY_CLIENT_ID/SECRET`, `MONGO_URI`, `MONGO_URI_RW`) are read from `.env` **at the project root** (`airline-data-platform/.env`) — not from a per-module `.env` as it was historically. `python-dotenv` finds the project-root file via parent-directory search. Collectors connect with `from_env(write=True)` (uses `MONGO_URI_RW`, the `airline-collector-rw` write user); read-only exploration uses `from_env()` (uses `MONGO_URI`, the `airline-reader-ro` user).
 
@@ -233,9 +250,11 @@ Join-Key: `adsb_raw.ac[].hex` = `opensky_raw.flights[].icao24` (ICAO24 Transpond
 | `docs/data-sources/adsb_lol_api_doc.md` | adsb.lol API technical reference (Phase 2) |
 | `01-data-collection/opensky_api/client.py` | OpenSky API client (OAuth2, mock/real) |
 | `01-data-collection/collectors/adsb_collector.py` | ADS-B collector → MongoDB adsb_raw |
-| `01-data-collection/collectors/opensky_collector.py` | OpenSky collector → MongoDB opensky_raw (local only) |
+| `01-data-collection/collectors/opensky_states_collector.py` | OpenSky /states/all collector → MongoDB opensky_raw (active, local Mac only) |
+| `01-data-collection/collectors/opensky_collector.py` | OpenSky /flights/* collector → MongoDB opensky_raw (legacy; /flights/* retired per ADR 009) |
 | `01-data-collection/collectors/flight_tracker.py` | Single-flight tracker → MongoDB flight_tracker_raw |
 | `01-data-collection/db/mongo/connector.py` | MongoDB connector (insert_raw, insert_adsb_snapshot) |
+| `02-data-modeling/etl/opensky_to_supabase.py` | Bronze → Silver ETL: Atlas adsb_raw + opensky_raw → Supabase map1 |
 | `02-data-modeling/warehouse/schema.sql` | PostgreSQL schema (airports, airlines, flights) |
 
 ---
@@ -249,6 +268,11 @@ ADRs are tracked in `docs/adr/`:
 - **ADR 003** — Dual-stream ADS-B: adsb.lol (free, ODbL) + OpenSky into MongoDB landing zone.
 - **ADR 004** — MongoDB as multi-source landing zone hub. OpenSky runs locally only (VM blocked); adsb.lol is the only VM-side live source.
 - **ADR 005** — OpenSky pipeline migration: Phase-1 PostgreSQL schema-at-ingest → Phase-2 raw JSON per API call into MongoDB opensky_raw.
+- **ADR 006** — MongoDB Atlas Free Tier as Bronze landing zone (migrated from self-hosted VM 2026-05-27).
+- **ADR 007** — Decouple from Liora VM; dedicated cloud VM (AWS Lightsail `aws-airline-1`). Includes addenda: dual-stack networking (2026-05-28), Lightsail over EC2 (2026-06-05), Supabase as Silver provider (2026-06-09).
+- **ADR 008** — Airline attribution star schema (Silver analytics layer).
+- **ADR 009** — States API (`/states/all`) as Silver source; `/flights/*` retired.
+- **ADR 010** — Repo layout: `docs/` (knowledge) vs. numbered pipeline folders (code).
 
 ---
 
