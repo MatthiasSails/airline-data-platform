@@ -150,6 +150,8 @@ As of 2026-05-27 this project is **no longer** tied to Liora VM (see ADR 007). P
     # psycopg2 → postgresql://postgres:[PW]@localhost:5432/postgres
     ```
   - **On aws-airline-1:** connect directly (VM has IPv6), no tunnel needed.
+  - **Docker containers on aws-airline-1 do NOT inherit IPv6 automatically.** Docker bridge networks are created without IPv6 even when the host is dual-stack. Any container that needs to reach Supabase Direct Connection (IPv6-only) must use `network_mode: host` so it shares the VM's full network stack. The `adsb_dashboard` container already uses this. Do not add `ports:` when using host networking (it is silently ignored).
+  - **Supabase Free Tier: connection pooler removed.** The Supavisor pooler (which had an IPv4 endpoint) is no longer available on the Free/NANO plan. Direct Connection is the only option — and it is IPv6-only. The `network_mode: host` workaround above is therefore mandatory for any Docker service connecting to Supabase on this tier.
   - **PostgREST / supabase-py:** currently broken (PGRST002 after Supabase API-key migration). Use psycopg2 direct. If using supabase-py later, use legacy JWT key (`eyJ…`) not new `sb_secret_` format.
 - **Compute (dedicated VM with fixed IP):** **AWS Lightsail `aws-airline-1`** (provisioned 2026-06-05). Static IP `63.185.229.117`, eu-central-1a. Docker 29.1 + Compose 2.40. SSH: `ssh -i ~/.ssh/airline_vm ubuntu@63.185.229.117`. Entry point: `04-deployment/docker-compose.yml`.
   - **Portainer CE 2.39.3** — deployed 2026-06-09. URL: https://airline-portainer.matthiaskoehler.com. Container: `portainer/portainer-ce:latest`, port `9443:9443`, volume `portainer_data`. Note: CE 2.39 serves HTTPS only on 9443, no HTTP on 9000.
@@ -210,6 +212,8 @@ cd 01-data-collection
 python collectors/adsb_collector.py
 
 # OpenSky /states/all — active Silver-layer source (local Mac only, see ADR 009):
+# Bounding box: Frankfurt ~150x150 km (centre 50.11°N 8.68°E). Agreed scope for MVP
+# with Pavel/Chaithra. BBOX constants in collectors/opensky_states_collector.py line ~48.
 python collectors/opensky_states_collector.py
 python collectors/opensky_states_collector.py --interval 60  # continuous polling
 
@@ -234,6 +238,11 @@ python 02-data-modeling/etl/opensky_to_supabase.py
 ```
 
 > **PostgREST / supabase-py:** still returning `PGRST002` (Supabase API-key migration, June 2026). Use psycopg2 direct. Do not rely on PostgREST until resolved upstream.
+
+**ETL known limitations:**
+
+- **No deduplication key in `map1`:** The table uses a Supabase auto-generated `id` as PK, so `ON CONFLICT DO NOTHING` is a no-op — it never fires. Running the ETL twice produces duplicate rows. Current workaround: `TRUNCATE map1` before each ETL run. Long-term fix: add `UNIQUE (icao24, time_position)` constraint when migrating to `fact_states` (Step 3).
+- **ETL reads all historical Bronze documents:** `opensky_to_supabase.py` reads every document from `opensky_raw` and `adsb_raw` without a date filter. If `map1` is truncated but old Bronze documents remain, they re-populate `map1` with stale data on the next ETL run. When resetting Silver, also clean Bronze: delete `opensky_raw` docs whose `query_params` don't match the current BBOX, and clear `adsb_raw` if stale.
 
 Credentials (`OPENSKY_CLIENT_ID/SECRET`, `MONGO_URI`, `MONGO_URI_RW`) are read from `.env` **at the project root** (`airline-data-platform/.env`) — not from a per-module `.env` as it was historically. `python-dotenv` finds the project-root file via parent-directory search. Collectors connect with `from_env(write=True)` (uses `MONGO_URI_RW`, the `airline-collector-rw` write user); read-only exploration uses `from_env()` (uses `MONGO_URI`, the `airline-reader-ro` user).
 
