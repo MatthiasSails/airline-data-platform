@@ -2,7 +2,6 @@ services:
   landing-page:
     build:
       context: ./landing-page
-    image: airline-landing-page:latest
     container_name: landing_page
     ports:
       - "80:80"
