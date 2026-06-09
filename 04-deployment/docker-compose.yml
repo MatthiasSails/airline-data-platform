@@ -2,8 +2,7 @@ services:
   adsb-dashboard:
     build: ../03-data-consumption/dashboard
     container_name: adsb_dashboard
-    ports:
-      - "8501:8501"
+    network_mode: host
     environment:
       - MONGO_URI=${MONGO_URI}
       - SUPABASE_DB_HOST=${SUPABASE_DB_HOST}
