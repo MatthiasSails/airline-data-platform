@@ -177,12 +177,30 @@ old email) is locked out.
 
 ---
 
-## Atlas Console (Matthias / Project Admin only)
+## Atlas UI Access (cloud.mongodb.com)
 
-URL: https://cloud.mongodb.com → Project `airline-data-platform` → Cluster `mongo-mk1`
+Atlas has two completely independent access layers — do not confuse them:
 
-Key sections:
+| Layer | What it is | Who uses it |
+|---|---|---|
+| **Atlas UI Members** | Real accounts that log into cloud.mongodb.com to manage the project | Matthias + shared team account (see below) |
+| **Database Users** | MongoDB credentials embedded in a connection string — no UI login | All application code, collectors, notebooks |
+
+### Shared team account
+
+A shared Atlas UI account was set up on 2026-06-09 to give the full team access to the Atlas console without sharing Matthias' personal account:
+
+- **Email:** `SECRET@protonmail.com`
+- **Role:** `Project Data Access Admin` — can view clusters, metrics, manage DB users and IP allowlist; **cannot** create/scale/delete clusters; **cannot** see billing
+- **2FA:** delivered to the Protonmail inbox — you need access to `SECRET@protonmail.com` to log in
+- **All credentials** (Protonmail login, Atlas login, DB-user URIs) are stored in **Proton Pass** — ask Matthias for access
+
+### Atlas console sections
+
+URL: https://cloud.mongodb.com → Project `airline` → Cluster `mongo-mk1`
+
 - **Database Access** — manage DB users, rotate passwords
 - **Network Access** — IP allowlist
 - **Browse Collections** — inspect data directly
 - **Metrics** — connections, storage, operations
+- **Access Manager** — manage UI members (project-level invite/role changes)
