@@ -204,3 +204,57 @@ instance to achieve the SAA goal.
 
 **Status at time of addendum:** VM running, firewall configured (22/80/443
 IPv4+IPv6), kernel upgraded, reboot complete. Docker installation pending.
+
+---
+
+## Addendum 2026-06-09 — Silver Provider decided: Supabase (not Neon)
+
+Decision #4 above deferred the Silver provider to Pavel's evaluation. Pavel set up
+a Supabase project ("leanMVP") directly rather than evaluating Neon formally.
+The team accepted this as the de-facto decision on 2026-06-09.
+
+**Chosen provider:** Supabase Postgres
+- Project: `leanMVP` (ID `civmkvcgbklejootrkks`)
+- Region: eu-central-1 (Frankfurt) — same region as MongoDB Atlas
+- Plan: Free / NANO compute (t4g.nano)
+- Existing table: `map1` — Pavel's flat prototype for live-map display
+
+**Why Supabase over Neon (revised reasoning):**
+The ADR-007 rejection ("heavier than needed") was written before Pavel set it up.
+In practice the overhead is invisible at project scale; the database layer is
+identical to Neon (managed Postgres). Having a working instance beats a theoretical
+preference.
+
+**IPv4 limitation on Free Tier:**
+- Direct Connection (`db.civmkvcgbklejootrkks.supabase.co:5432`) is **IPv6-only**.
+- Session Pooler (IPv4-compatible) requires a paid add-on.
+- **Workaround for local dev** (Mac, no global IPv6):
+  ```bash
+  ssh -i ~/.ssh/airline_vm -f -N \
+      -L 5432:db.civmkvcgbklejootrkks.supabase.co:5432 \
+      ubuntu@63.185.229.117
+  # then psycopg2 → postgresql://postgres:[PW]@localhost:5432/postgres
+  ```
+- **Production path** (aws-airline-1 has IPv6): connect directly, no tunnel.
+
+**PostgREST / REST API gotcha:**
+Supabase's PostgREST layer returned `PGRST002` (schema-cache failure) after
+Supabase's June 2026 API-key migration. The new `sb_secret_` key format is not
+reliably supported by `postgrest-py` / `supabase-py`. Use the **Legacy JWT
+service_role key** (`eyJ…`) from Settings → API → "Legacy anon, service_role API
+keys". Direct psycopg2 is unaffected.
+
+**Connection approach (confirmed working):**
+psycopg2 direct → `SUPABASE_DB_PASSWORD` in `.env`. Do not rely on PostgREST/REST
+until the PGRST002 issue resolves upstream.
+
+**Pipeline as of this addendum:**
+```
+adsb.lol   → opensky_states_collector / adsb_collector
+                    ↓
+         MongoDB Atlas opensky_raw / adsb_raw  (Bronze)
+                    ↓
+         02-data-modeling/etl/opensky_to_supabase.py
+                    ↓
+         Supabase map1  (Silver MVP table)
+```

@@ -16,7 +16,7 @@ Project-level instructions for Claude Code when working in this repository.
   - adsb.lol (no auth, ICAO24 hex) — ✅ Active (see ADR 003)
 - **Ingestion**: Python collectors (currently run locally; future: dedicated cloud VM, see ADR 007)
 - **Bronze / Raw Landing Zone**: **MongoDB Atlas** `airline_landing` (see ADR 006). May be replaced later by a different bronze store.
-- **Silver / Analytics Warehouse**: managed serverless Postgres — **Neon is the leading candidate, Pavel evaluating** (see ADR 007). Decision not yet final.
+- **Silver / Analytics Warehouse**: **Supabase Postgres** — project `leanMVP` (`civmkvcgbklejootrkks`), eu-central-1, Free/NANO. Decided 2026-06-09 (see ADR 007 addendum). MVP table: `map1` (flat, live-map). Star schema (`fact_states` + dims) planned for Step 3.
 - **Transformation**: Python ETL + Pandas (Bronze → Silver)
 - **API Layer**: FastAPI (Step 2)
 - **Dashboards**: Streamlit / Dash
@@ -81,12 +81,12 @@ Rule of thumb: about the whole project → `docs/`; a pipeline stage's code → 
 Phase 2 — Ingestion (current, see ADR 004 + ADR 006):
 
   adsb.lol (live ADS-B)           →  MongoDB Atlas airline_landing.adsb_raw      ┐
-  OpenSky API (local Mac only)    →  MongoDB Atlas airline_landing.opensky_raw   ├→ ETL → Neon Postgres (Star Schema)
+  OpenSky /states/all (Mac only)  →  MongoDB Atlas airline_landing.opensky_raw   ├→ ETL → Supabase map1 (Silver MVP)
   Kaggle / reference data         →  MongoDB Atlas airline_landing.kaggle_* / airports_ref ┘
 
-Phase 3 — Transformation (planned, see ADR 007):
+Phase 3 — Transformation (planned, see ADR 007 + ADR 008/009):
   ETL reads from MongoDB Atlas → normalises → loads Silver Postgres Star Schema
-  (Silver provider TBD — Neon leading candidate, Pavel evaluating)
+  (Supabase confirmed; Star Schema fact_states + dims planned alongside map1)
 
 Phase 4 — Serving (planned):
   FastAPI endpoints + Streamlit/Dash dashboards read from Silver Postgres
@@ -96,7 +96,8 @@ Phase 5 — Orchestration (planned):
 ```
 
 **Key Principle:** MongoDB Atlas is the raw landing zone (schema-on-read, one document per API call).
-The Silver layer is a managed serverless Postgres (curated analytical warehouse, schema-on-write, Star Schema) — provider not yet committed.
+The Silver layer is **Supabase Postgres** (managed serverless, eu-central-1). MVP table: `map1`.
+Star schema (`fact_states` + dims per ADR 008/009) will be added alongside `map1` in Step 3.
 
 ---
 
@@ -140,7 +141,16 @@ The Silver layer is a managed serverless Postgres (curated analytical warehouse,
 As of 2026-05-27 this project is **no longer** tied to Liora VM (see ADR 007). Planned infrastructure:
 
 - **Bronze (Landing Zone):** MongoDB Atlas cluster `mongo-mk1` (Free Tier, eu-central-1). Connection string in `.env` at project root.
-- **Silver (Warehouse):** managed serverless Postgres — Neon is the leading candidate, **Pavel evaluating**. Connection string goes into `.env` after decision.
+- **Silver (Warehouse):** **Supabase Postgres** — project `leanMVP` (`civmkvcgbklejootrkks`), eu-central-1, Free/NANO. Credentials in Proton Pass (`bde.airline.0426@protonmail.com`). `SUPABASE_DB_PASSWORD` in `.env`.
+  - **Local dev connection** (Mac has no global IPv6 — Direct Connection is IPv6-only on Free Tier):
+    ```bash
+    ssh -i ~/.ssh/airline_vm -f -N \
+        -L 5432:db.civmkvcgbklejootrkks.supabase.co:5432 \
+        ubuntu@63.185.229.117
+    # psycopg2 → postgresql://postgres:[PW]@localhost:5432/postgres
+    ```
+  - **On aws-airline-1:** connect directly (VM has IPv6), no tunnel needed.
+  - **PostgREST / supabase-py:** currently broken (PGRST002 after Supabase API-key migration). Use psycopg2 direct. If using supabase-py later, use legacy JWT key (`eyJ…`) not new `sb_secret_` format.
 - **Compute (dedicated VM with fixed IP):** **AWS Lightsail `aws-airline-1`** (provisioned 2026-06-05). DNS: `airline.matthiaskoehler.com`. Plan: $10/Mon (2 GB RAM, 2 vCPU, 60 GB SSD, x86_64), eu-central-1a. Docker 29.1 + Compose 2.40 installed. Dashboard live at http://airline.matthiaskoehler.com:8501 — entry point `04-deployment/docker-compose.yml`. Connection details (IP, SSH key, account) in local notes.
 - **Local development:** Mac with `.venv` + `MONGO_URI` from `.env` pointing to Atlas. Collectors run locally, write directly to Atlas.
 
