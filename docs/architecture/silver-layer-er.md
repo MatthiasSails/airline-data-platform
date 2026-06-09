@@ -1,18 +1,67 @@
 # Silver-Layer ER Diagram — Relational Model
 
-PostgreSQL warehouse — **Silver layer** (curated / relational). **Star schema:** one central
-event/fact table (`fact_states`) with two dimensions joined directly by FK
-(`dim_aircraft` via `icao24`, `dim_airlines` via the resolved `airline_icao`).
-`dim_airports` is kept as a **standalone reference table** with **no fact relationship** — see notes.
+PostgreSQL warehouse — **Silver layer** (curated / relational).
+
+Two stages:
+
+| Stage | Table(s) | Status |
+|---|---|---|
+| **MVP** | `map1` | ✅ deployed (Supabase, 2026-06-09) |
+| **Step 3 — Star Schema** | `fact_states`, `dim_aircraft`, `dim_airlines`, `dim_airports` | planned |
 
 > **Bronze vs. Silver:** the raw landing zone (MongoDB Atlas, Bronze) keeps *all* sources —
 > including **adsb.lol** — collected for optionality and a later OpenSky-vs-adsb.lol data-quality
 > comparison. This Silver model promotes **only OpenSky** (States + AircraftDB). adsb.lol is
 > intentionally *not* in this diagram. Ingestion ≠ modeling (ADR 004).
 
+---
+
+## Stage 1 — MVP: `map1` (deployed)
+
+Flat table. One row per aircraft observation. No joins, no unit conversion, no deduplication key —
+Supabase auto-generates `id`. ETL appends on every run (`ON CONFLICT DO NOTHING` is a no-op since
+the only unique constraint is `id`).
+
+**Source of every field is shown inline.**
+
+```mermaid
+erDiagram
+    map1 {
+        bigint      id              PK  "Supabase auto-generated"
+        timestamptz created_at          "Supabase auto-generated"
+        varchar     icao24              "OpenSky States · icao24 (ICAO24 transponder hex)"
+        integer     time_position       "OpenSky States · time_position (unix seconds, raw)"
+        varchar     callsign            "OpenSky States · callsign"
+        real        longitude           "OpenSky States · longitude (degrees)"
+        real        latitude            "OpenSky States · latitude (degrees)"
+        boolean     on_ground           "OpenSky States · on_ground"
+        double      true_track          "OpenSky States · true_track (degrees)"
+        double      vertical_rate       "OpenSky States · vertical_rate (m/s raw — SI, not converted)"
+        timestamptz updated_at          "ETL run timestamp"
+    }
+```
+
+**Known gaps vs. Step 3 target** (fields available in OpenSky States but not yet stored):
+
+| Missing field | OpenSky States index | Target column in `fact_states` |
+|---|---|---|
+| Barometric altitude | `s[7]` (m) | `altitude_baro_ft` (converted m→ft) |
+| Geometric altitude | `s[13]` (m) | `altitude_geom_ft` (converted m→ft) |
+| Ground speed | `s[9]` (m/s) | `ground_speed_kts` (converted m/s→kt) |
+| Squawk | `s[14]` | `squawk` |
+| Category | `s[16]` | `category` |
+| Position source | `s[15]` | `position_source` |
+| SPI | `s[17]` | `spi` |
+
+Unit note: `vertical_rate` is stored as raw m/s (OpenSky SI). Step 3 converts to fpm (×196.85).
+
+---
+
+## Stage 2 — Star Schema: `fact_states` + dims (Step 3, planned)
+
 **The source of every field is shown inline** in each attribute's comment. See legend.
 
-## Modeling terminology & naming
+**Modeling terminology & naming:**
 
 | Layer | Tables | Classification | Why |
 |---|---|---|---|
@@ -25,7 +74,7 @@ event/fact table (`fact_states`) with two dimensions joined directly by FK
 > time-partitioning. A "latest position per aircraft" optimization would be a separate
 > materialized view (e.g. `aircraft_current_state`), not part of this core model.
 
-## Data sources (legend)
+**Data sources:**
 
 | Tag in diagram | Source | Type | Notes |
 |---|---|---|---|
@@ -94,6 +143,8 @@ erDiagram
     }
 ```
 
+---
+
 ## Diagram legend (ER notation)
 
 How to read the diagram — key markers and crow's-foot cardinality:
@@ -131,7 +182,9 @@ is *not* part of the original Chen ER standard:
 > **Type notation:** Mermaid types may not contain spaces or parentheses, so `varchar_8` means
 > `VARCHAR(8)`, `varchar_3` means `VARCHAR(3)`, etc. The real SQL types live in `schema.sql`.
 
-## Relationship notes
+---
+
+## Relationship notes (Star Schema)
 
 All dimension joins are **LEFT/outer** — a `fact_states` observation must survive even when a
 dimension lookup misses (unknown aircraft, unresolved airline). Fact integrity does not depend on
@@ -153,7 +206,7 @@ dimension completeness.
 
 ## Field gotchas
 
-- **Units** — OpenSky States reports SI (m, m/s); stored as aviation units (ft, kt, fpm), converted in ETL.
+- **Units** — OpenSky States reports SI (m, m/s); `map1` stores raw SI. `fact_states` converts to aviation units (ft, kt, fpm) in ETL.
 - **No departure/arrival airports (from/to unknown)** — the States API model dropped OpenSky's
   retrospective `/flights/*` endpoints (not live; see ADR 003). Only live position/state is captured,
   so `dim_airports` stays unjoined; real origin/destination is deferred to the Bronze layer.
@@ -164,4 +217,4 @@ dimension completeness.
   `closed`) carry **no `icao_code`**. Since `icao_code` is the PK (NOT NULL), the loader filters
   `WHERE icao_code IS NOT NULL` (optionally also `type IN ('large_airport','medium_airport')`).
 
-DDL: [`02-data-modeling/warehouse/schema.sql`](../../02-data-modeling/warehouse/schema.sql) — in sync with this model.
+DDL: [`02-data-modeling/warehouse/schema.sql`](../../02-data-modeling/warehouse/schema.sql) — in sync with this model (Star Schema target; `map1` was created via Supabase UI).

@@ -1,40 +1,58 @@
 import os
+
 import pandas as pd
+import psycopg2
 import streamlit as st
-from pymongo import MongoClient
 
-MONGO_URI = os.environ["MONGO_URI"]
-
-st.set_page_config(page_title="ADS-B Berlin", layout="wide")
-st.title("ADS-B Landing Zone — Berlin")
+st.set_page_config(page_title="Airline Live Map", layout="wide")
+st.title("Live Flight Map")
 
 
-@st.cache_resource
-def get_collection():
-    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-    return client["airline_landing"]["adsb_raw"]
+def _conn():
+    return psycopg2.connect(
+        host=os.environ.get("SUPABASE_DB_HOST", "localhost"),
+        port=5432,
+        dbname="postgres",
+        user="postgres",
+        password=os.environ["SUPABASE_DB_PASSWORD"],
+        connect_timeout=10,
+    )
 
 
-col = get_collection()
+@st.cache_data(ttl=300)
+def load_snapshot() -> pd.DataFrame:
+    conn = _conn()
+    df = pd.read_sql(
+        """
+        SELECT icao24, callsign, latitude, longitude,
+               on_ground, true_track, updated_at
+        FROM map1
+        WHERE updated_at = (SELECT MAX(updated_at) FROM map1)
+        """,
+        conn,
+    )
+    conn.close()
+    return df
 
-total_snapshots = col.count_documents({})
-latest = col.find_one(sort=[("collected_at", -1)])
 
-st.metric("Snapshots in DB", total_snapshots)
+df = load_snapshot()
 
-if not latest:
-    st.warning("No snapshots found.")
+if df.empty:
+    st.warning("No data in map1 — run the ETL first.")
     st.stop()
 
-st.caption(f"Latest snapshot: {latest['collected_at']}  —  {latest['total']} aircraft")
+snapshot_time = df["updated_at"].iloc[0]
+c1, c2, c3 = st.columns(3)
+c1.metric("Aircraft", len(df))
+c2.metric("In flight", int((~df["on_ground"]).sum()))
+c3.metric("Snapshot", snapshot_time.strftime("%Y-%m-%d %H:%M UTC"))
 
-aircraft = latest.get("ac", [])
-df = pd.DataFrame(aircraft)
+st.subheader("Map")
+st.map(df[["latitude", "longitude"]].dropna())
 
-if not df.empty and {"lat", "lon"}.issubset(df.columns):
-    st.subheader("Map")
-    st.map(df[["lat", "lon"]].dropna())
-
-st.subheader("Aircraft in latest snapshot")
-show_cols = [c for c in ["flight", "hex", "lat", "lon", "alt_baro", "gs"] if c in df.columns]
-st.dataframe(df[show_cols] if show_cols else df, use_container_width=True)
+st.subheader("Aircraft")
+st.dataframe(
+    df[["icao24", "callsign", "latitude", "longitude", "on_ground", "true_track"]]
+    .sort_values("callsign"),
+    use_container_width=True,
+)

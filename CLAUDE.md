@@ -153,13 +153,15 @@ As of 2026-05-27 this project is **no longer** tied to Liora VM (see ADR 007). P
   - **PostgREST / supabase-py:** currently broken (PGRST002 after Supabase API-key migration). Use psycopg2 direct. If using supabase-py later, use legacy JWT key (`eyJ…`) not new `sb_secret_` format.
 - **Compute (dedicated VM with fixed IP):** **AWS Lightsail `aws-airline-1`** (provisioned 2026-06-05). Static IP `63.185.229.117`, eu-central-1a. Docker 29.1 + Compose 2.40. SSH: `ssh -i ~/.ssh/airline_vm ubuntu@63.185.229.117`. Entry point: `04-deployment/docker-compose.yml`.
   - **Portainer CE 2.39.3** — deployed 2026-06-09. URL: https://airline-portainer.matthiaskoehler.com. Container: `portainer/portainer-ce:latest`, port `9443:9443`, volume `portainer_data`. Note: CE 2.39 serves HTTPS only on 9443, no HTTP on 9000.
+    - **Stack `airline-platform` (ID 6):** GitOps → `04-deployment/docker-compose.landing.yml`. Manages container `landing_page` (port 80, `nginx:1.27-alpine`, static HTML from `04-deployment/landing-page/index.html`). Auto-pull every 5 min.
+    - **Stack `airline-services` (ID 8):** GitOps → `04-deployment/docker-compose.yml`. Manages `adsb_dashboard` (port 8501, Streamlit) and `jupyter` (port 8888, JupyterLab). Env vars `MONGO_URI` and `JUPYTER_TOKEN` are set directly in Portainer (not via `.env` file — see Deployment Pattern below).
+  - **Deployment Pattern — `environment: - VAR=${VAR}` (since commit 4e44817):** `docker-compose.yml` uses `environment: - VAR=${VAR}` instead of `env_file:`. Portainer GitOps pulls the Compose file from git but injects secrets via its own environment store, so there is no `.env` on the VM. This is the required pattern for any service whose secrets are managed in Portainer.
   - **Cloudflare Tunnel** — all services exposed via `cloudflared` container (`--network host`, `restart: always`), no ports need to be open in Lightsail firewall. Token in Keychain: `cloudflare_airline_tunnel_token`.
   - **Service URLs** (via Cloudflare Tunnel, valid HTTPS):
     - https://airline-portainer.matthiaskoehler.com — Portainer
     - https://airline-jupyter.matthiaskoehler.com — JupyterLab
     - https://airline-dashboard.matthiaskoehler.com — ADS-B Dashboard
-    - https://airline.matthiaskoehler.com — Landing Page (⚠️ noch kein Service auf Port 80)
-  - **⚠️ Landing Page offen:** Tunnel leitet `airline.matthiaskoehler.com` auf `localhost:80`, aber kein Container läuft dort.
+    - https://airline.matthiaskoehler.com — Landing Page (nginx:1.27-alpine, static HTML)
 - **Local development:** Mac with `.venv` + `MONGO_URI` from `.env` pointing to Atlas. Collectors run locally, write directly to Atlas.
 
 **Atlas Network Access:** every compute IP (Mac, new VM) must be whitelisted in the Atlas project. Symptom when missing: `pymongo.errors.ServerSelectionTimeoutError: SSL handshake failed: ... TLSV1_ALERT_INTERNAL_ERROR`.
