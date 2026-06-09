@@ -44,8 +44,8 @@ logger = logging.getLogger(__name__)
 COLLECTION = "opensky_raw"
 STATES_URL = "https://opensky-network.org/api/states/all"
 
-# Bounding box: Europe
-BBOX = {"lamin": 36.0, "lomin": -10.0, "lamax": 72.0, "lomax": 40.0}
+# Bounding box: Frankfurt ~150x150 km (centre 50.11°N 8.68°E, ±75 km)
+BBOX = {"lamin": 49.43, "lomin": 7.63, "lamax": 50.79, "lomax": 9.73}
 
 
 def _auth() -> HTTPBasicAuth | None:

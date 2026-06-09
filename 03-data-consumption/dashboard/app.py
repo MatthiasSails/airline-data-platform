@@ -53,6 +53,14 @@ st.map(df[["latitude", "longitude"]].dropna())
 st.subheader("Aircraft")
 st.dataframe(
     df[["icao24", "callsign", "latitude", "longitude", "on_ground", "true_track"]]
-    .sort_values("callsign"),
+    .sort_values("callsign")
+    .rename(columns={
+        "icao24":      "ICAO24",
+        "callsign":    "Callsign",
+        "latitude":    "Latitude",
+        "longitude":   "Longitude",
+        "on_ground":   "On Ground",
+        "true_track":  "Track (°)",
+    }),
     use_container_width=True,
 )
