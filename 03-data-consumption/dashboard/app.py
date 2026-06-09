@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timezone
 
 import pandas as pd
 import psycopg2
@@ -24,14 +25,15 @@ def load_snapshot() -> pd.DataFrame:
     conn = _conn()
     df = pd.read_sql(
         """
-        SELECT icao24, callsign, latitude, longitude,
-               on_ground, true_track, updated_at
+        SELECT icao24, callsign, latitude, longitude, on_ground,
+               true_track, vertical_rate, time_position, updated_at
         FROM map1
         WHERE updated_at = (SELECT MAX(updated_at) FROM map1)
         """,
         conn,
     )
     conn.close()
+    df["time_position"] = pd.to_datetime(df["time_position"], unit="s", utc=True)
     return df
 
 
@@ -52,15 +54,18 @@ st.map(df[["latitude", "longitude"]].dropna())
 
 st.subheader("Aircraft")
 st.dataframe(
-    df[["icao24", "callsign", "latitude", "longitude", "on_ground", "true_track"]]
+    df[["icao24", "callsign", "latitude", "longitude", "on_ground",
+        "true_track", "vertical_rate", "time_position"]]
     .sort_values("callsign")
     .rename(columns={
-        "icao24":      "ICAO24",
-        "callsign":    "Callsign",
-        "latitude":    "Latitude",
-        "longitude":   "Longitude",
-        "on_ground":   "On Ground",
-        "true_track":  "Track (°)",
+        "icao24":        "ICAO24",
+        "callsign":      "Callsign",
+        "latitude":      "Latitude",
+        "longitude":     "Longitude",
+        "on_ground":     "On Ground",
+        "true_track":    "Track (°)",
+        "vertical_rate": "Vertical Rate (m/s)",
+        "time_position": "Time Position (UTC)",
     }),
     use_container_width=True,
 )
