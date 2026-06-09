@@ -1,4 +1,13 @@
 services:
+  landing-page:
+    build:
+      context: ./landing-page
+    image: airline-landing-page:latest
+    container_name: landing_page
+    ports:
+      - "80:80"
+    restart: unless-stopped
+
   adsb-dashboard:
     build: ../03-data-consumption/dashboard
     container_name: adsb_dashboard

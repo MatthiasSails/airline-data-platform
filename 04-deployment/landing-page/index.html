@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Airline Data Platform</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 3rem 1.5rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .logo {
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: #f8fafc;
+    }
+
+    .subtitle {
+      margin-top: 0.6rem;
+      color: #94a3b8;
+      font-size: 1.05rem;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 0.2rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      background: #1e3a5f;
+      color: #60a5fa;
+      border: 1px solid #2563eb44;
+    }
+
+    .pipeline {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 3rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .layer {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      font-size: 0.82rem;
+      color: #cbd5e1;
+    }
+
+    .layer strong { display: block; color: #f1f5f9; font-size: 0.88rem; }
+    .layer.bronze strong { color: #f59e0b; }
+    .layer.silver strong { color: #94a3b8; }
+    .layer.gold strong { color: #fbbf24; }
+
+    .arrow { color: #475569; font-size: 1.1rem; }
+
+    .services {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.25rem;
+      width: 100%;
+      max-width: 860px;
+      margin-bottom: 3rem;
+    }
+
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.15s, transform 0.15s;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .card:hover {
+      border-color: #3b82f6;
+      transform: translateY(-2px);
+    }
+
+    .card-icon { font-size: 1.8rem; }
+    .card-title { font-size: 1rem; font-weight: 600; color: #f1f5f9; }
+    .card-desc { font-size: 0.85rem; color: #94a3b8; line-height: 1.5; }
+    .card-url { font-size: 0.75rem; color: #3b82f6; margin-top: auto; padding-top: 0.5rem; }
+
+    .stack {
+      width: 100%;
+      max-width: 860px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .stack h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 1rem;
+    }
+
+    .stack-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .stack-item { font-size: 0.85rem; color: #cbd5e1; }
+    .stack-item span { color: #64748b; display: block; font-size: 0.75rem; }
+
+    footer {
+      color: #475569;
+      font-size: 0.8rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">✈️</div>
+    <h1>Airline Data Platform</h1>
+    <p class="subtitle">Real-time flight data pipeline — ADS-B · OpenSky · Supabase</p>
+    <span class="badge">DataScientest DE Bootcamp · 2026</span>
+  </header>
+
+  <div class="pipeline">
+    <div class="layer bronze"><strong>Bronze</strong>MongoDB Atlas<br>Raw Landing Zone</div>
+    <div class="arrow">→</div>
+    <div class="layer silver"><strong>Silver</strong>Supabase Postgres<br>Normalized / map1</div>
+    <div class="arrow">→</div>
+    <div class="layer gold"><strong>Gold</strong>FastAPI + Streamlit<br>Analytics &amp; Dashboards</div>
+  </div>
+
+  <div class="services">
+    <a class="card" href="https://airline-dashboard.matthiaskoehler.com" target="_blank">
+      <span class="card-icon">🗺️</span>
+      <span class="card-title">ADS-B Live Dashboard</span>
+      <span class="card-desc">Real-time flight positions from adsb.lol — interactive Streamlit map with aircraft positions and metadata.</span>
+      <span class="card-url">airline-dashboard.matthiaskoehler.com</span>
+    </a>
+
+    <a class="card" href="https://airline-jupyter.matthiaskoehler.com" target="_blank">
+      <span class="card-icon">📓</span>
+      <span class="card-title">JupyterLab</span>
+      <span class="card-desc">Interactive notebooks for data exploration — Bronze/Silver queries, ETL development, and pipeline prototyping.</span>
+      <span class="card-url">airline-jupyter.matthiaskoehler.com</span>
+    </a>
+
+    <a class="card" href="https://airline-portainer.matthiaskoehler.com" target="_blank">
+      <span class="card-icon">🐳</span>
+      <span class="card-title">Portainer</span>
+      <span class="card-desc">Container management for aws-airline-1 (AWS Lightsail). GitOps-managed Docker stacks via GitHub.</span>
+      <span class="card-url">airline-portainer.matthiaskoehler.com</span>
+    </a>
+  </div>
+
+  <div class="stack">
+    <h2>Infrastructure</h2>
+    <div class="stack-grid">
+      <div class="stack-item">AWS Lightsail<span>aws-airline-1 · eu-central-1a · $12/mo</span></div>
+      <div class="stack-item">Cloudflare Tunnel<span>Zero-trust ingress · no open ports</span></div>
+      <div class="stack-item">MongoDB Atlas<span>Free M0 · eu-central-1 · adsb_raw + opensky_raw</span></div>
+      <div class="stack-item">Supabase Postgres<span>Free/NANO · eu-central-1 · 12 000+ rows</span></div>
+      <div class="stack-item">Docker 29.1<span>Compose stacks · Portainer CE 2.39</span></div>
+      <div class="stack-item">Python 3.12<span>pymongo · psycopg2 · FastAPI · Streamlit</span></div>
+    </div>
+  </div>
+
+  <footer>
+    Airline Data Platform ·
+    <a href="https://github.com/MatthiasSails/airline-data-platform" style="color:#3b82f6;" target="_blank">GitHub</a>
+    · aws-airline-1 (63.185.229.117) · DataScientest 2026
+  </footer>
+
+</body>
+</html>
