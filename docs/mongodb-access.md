@@ -25,12 +25,9 @@ Two access levels are available. Pick whichever fits your task — you decide.
 The SRV URI contains the password in plain text — it is a secret and must
 **never be committed to Git**.
 
-The initial team passwords were distributed by email (onboarding, 2026-05-28).
-Email is *not* a secure channel — it sits in plain text on mail servers, can be
-forwarded, and persists in backups. These credentials should therefore be
-**rotated**, and future passwords shared via an encrypted channel (e.g. Signal),
-or — once on the AWS VM — via an AWS secret store (see below). See "Rotating a
-password" below.
+All credentials (DB-user URIs, Atlas UI login) are stored in **Proton Pass** —
+ask Matthias for access. See "Rotating a password" below if a credential needs
+to be changed.
 
 ---
 
@@ -41,18 +38,20 @@ password" below.
 In the project root `airline-data-platform/` (already gitignored):
 
 ```bash
-# Full access (read + write + admin):
-MONGO_URI=mongodb+srv://airline-collector-rw:<PASSWORD>@mongo-mk1.ptb1k2b.mongodb.net/?appName=mongo-mk1
 MONGO_DB=airline_landing
 
-# Read-only:
+# Read-only — for notebooks and exploration:
 MONGO_URI=mongodb+srv://airline-reader-ro:<PASSWORD>@mongo-mk1.ptb1k2b.mongodb.net/?appName=mongo-mk1
-MONGO_DB=airline_landing
+
+# Read-write — for collectors and ETL (write=True in connector):
+MONGO_URI_RW=mongodb+srv://airline-collector-rw:<PASSWORD>@mongo-mk1.ptb1k2b.mongodb.net/?appName=mongo-mk1
 ```
 
-The initial passwords were sent by Matthias via email (2026-05-28). Going forward,
-passwords are distributed via an encrypted channel (e.g. Signal) — not via email,
-Slack, or chat (see the secret note above).
+Both variables must be present. `from_env()` uses `MONGO_URI` (read-only) by default;
+`from_env(write=True)` uses `MONGO_URI_RW`. Get the passwords from Proton Pass.
+
+Credentials are stored in **Proton Pass** — ask Matthias for access. Never share
+passwords via email, Slack, or unencrypted chat.
 
 ### Step 2 — Test the connection
 
@@ -82,28 +81,28 @@ EOF
 **Why secret management is done this way:**
 - A hardcoded password ends up in Git history forever — even if deleted later, it stays in old commits. Environment variables avoid this entirely.
 - `.env` is in `.gitignore`, so the secret lives only on each machine, never in the repo.
-- The code reads `MONGO_URI` the same way everywhere (local Mac, VM, CI), so the *same* code runs against local Mongo, the Liora VM, or Atlas — only the `.env` differs.
+- The code reads `MONGO_URI` the same way everywhere (local Mac, aws-airline-1, CI), so the *same* code runs in any environment — only the `.env` differs.
 - This mirrors the production-grade pattern: secrets injected at runtime (here via `.env`; in cloud setups via a secrets manager), never baked into the artifact.
 
-### Future: secret management on the AWS VM
+### Future: secret management on aws-airline-1
 
-Once the collectors and dashboard move to a dedicated AWS EC2 instance, the `.env`
-file should be replaced by an AWS-native secret store. Two options:
+The collectors and dashboard run on **AWS Lightsail `aws-airline-1`** (provisioned
+2026-06-05). Currently `.env` is deployed manually to the VM. A future improvement
+is to replace it with an AWS-native secret store:
 
 | Service | Use | Cost |
 |---|---|---|
 | **SSM Parameter Store** (`SecureString`) | Config + secrets, KMS-encrypted. No auto-rotation. | Standard tier free |
 | **AWS Secrets Manager** | Dedicated secret store with automatic rotation, RDS integration. | ~$0.40/secret/month |
 
-For this project, **Parameter Store is sufficient and free**. The key gain over `.env`:
-the EC2 instance gets an **IAM role** (instance profile) that allows
-`ssm:GetParameter` — `MONGO_URI` is fetched from the AWS API at runtime, decrypted
-via KMS, and lives only in memory. No plain-text secret on disk, no email handoff,
-and every access is audited via CloudTrail.
+For this project, **Parameter Store is sufficient and free**. The Lightsail instance
+gets an **IAM role** (instance profile) that allows `ssm:GetParameter` — `MONGO_URI`
+is fetched from the AWS API at runtime, decrypted via KMS, and lives only in memory.
+No plain-text secret on disk and every access is audited via CloudTrail.
 
 ```
-EC2 instance (IAM role)  →  ssm:GetParameter / secretsmanager:GetSecretValue
-                         →  MONGO_URI in memory only, never written to disk
+Lightsail instance (IAM role)  →  ssm:GetParameter / secretsmanager:GetSecretValue
+                               →  MONGO_URI in memory only, never written to disk
 ```
 
 ### Step 3 — List collections (airline-reader-ro)
@@ -149,14 +148,14 @@ For production use: switch to individual IP entries or an Atlas Private Endpoint
 
 ## Collector Deployments
 
-All collector scripts read `MONGO_URI` and `MONGO_DB` from the environment
-(`.env` in the working directory). No code changes needed — only the `.env`
-must be present.
+All collector scripts read `MONGO_URI`, `MONGO_URI_RW`, and `MONGO_DB` from the
+environment (`.env` in the working directory). No code changes needed — only the
+`.env` must be present.
 
-**Liora VM (ADS-B collector):** `.env` lives at
-`~/airline-data-platform/01-data-collection/.env`.
+**aws-airline-1 (ADS-B collector, dashboard):** `.env` lives at the project root
+(`~/airline-data-platform/.env`). Deployed manually; SSM migration planned (see above).
 
-**Local (OpenSky collector):** `.env` in the project root.
+**Local Mac (OpenSky collector):** `.env` in the project root (`airline-data-platform/.env`).
 
 ---
 
@@ -169,7 +168,7 @@ invalidates the old password:
 1. Atlas → **Database Access** → pick the user → **Edit**
 2. **Edit Password** → **Autogenerate Secure Password** → **Copy**
 3. **Update User**
-4. Distribute the new password via an encrypted channel (e.g. Signal)
+4. Store the new password in Proton Pass and notify the team
 5. Everyone updates `MONGO_URI` in their local `.env`
 
 The old password stops working immediately — anyone still holding it (e.g. in an
