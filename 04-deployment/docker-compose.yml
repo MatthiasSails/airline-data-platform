@@ -17,6 +17,4 @@ services:
       - ..:/workspace
     env_file:
       - ../.env
-    environment:
-      - JUPYTER_TOKEN=${JUPYTER_TOKEN}
     restart: unless-stopped
