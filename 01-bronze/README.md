@@ -19,7 +19,6 @@ Background: [ADR 003](../docs/adr/003-dual-stream-adsb.md), [ADR 004](../docs/ad
 |---|---|---|---|
 | `collectors/opensky_states_collector.py` | OpenSky | `/states/all` → `opensky_raw` (local Mac only; OAuth2/basic-auth inline) | **active** |
 | `collectors/adsb_collector.py` | adsb.lol | `/v2` → `adsb_raw` (local or cloud VM) | active |
-| `collectors/flight_tracker.py` | OpenSky | single-flight `/flights/aircraft` → `flight_tracker_raw` | active |
 
 > **Moved (ADR 011):** the Mongo connector now lives in [`../data_connectors/mongo.py`](../data_connectors/mongo.py);
 > the `collect_*` / `explore_*` notebooks now live in [`../notebooks/`](../notebooks/).

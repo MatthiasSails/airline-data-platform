@@ -127,7 +127,7 @@ ML is **out of scope** for the current DE track and is recorded here only to res
 ```
 airline-data-platform/
 ├── 01-bronze/
-│   ├── collectors/        # opensky_states_collector.py, adsb_collector.py, flight_tracker.py (→ Mongo; auth inline)
+│   ├── collectors/        # opensky_states_collector.py, adsb_collector.py (→ Mongo; auth inline)
 │   └── reference/         # raw fetch of OpenFlights / OurAirports / OpenSky AircraftDB → Mongo
 ├── 02-silver/
 │   ├── etl/               # extract.py · transform.py · load.py · dimensions.py

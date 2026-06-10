@@ -49,7 +49,7 @@ airline-data-platform/
 │   ├── setup.md              # local setup runbook
 │   └── mongodb-access.md     # Atlas access / DB users
 ├── 01-bronze/                # Collectors → BRONZE (MongoDB)  (+ own README)
-│   └── collectors/           # adsb_collector, opensky_states_collector, flight_tracker
+│   └── collectors/           # adsb_collector, opensky_states_collector
 ├── 02-silver/                # BRONZE → SILVER
 │   ├── etl/                  # Bronze → Silver transform (opensky_to_supabase.py)
 │   └── warehouse/            # star-schema DDL: schema.sql
@@ -154,7 +154,7 @@ As of 2026-05-27 this project is **no longer** tied to Liora VM (see ADR 007). P
 - **Compute (dedicated VM with fixed IP):** **AWS Lightsail `aws-airline-1`** (provisioned 2026-06-05). Static IP `63.185.229.117`, eu-central-1a. Docker 29.1 + Compose 2.40. SSH: `ssh -i ~/.ssh/airline_vm ubuntu@63.185.229.117`. Entry point: `deployment/docker-compose.yml`.
   - **Portainer CE 2.42.0 (STS)** — deployed 2026-06-09, upgraded from 2.39.3 the same day. URL: https://airline-portainer.matthiaskoehler.com. Container pinned to `portainer/portainer-ce:2.42.0`, port `9443:9443`, volume `portainer_data`. CE serves HTTPS only on 9443, no HTTP on 9000. **Do not pin the `latest` tag** — it tracks the LTS line, not STS; the 2.42 GitOps Sources/Workflows views require an explicit STS version. Pre-upgrade DB backup on the VM: `/home/ubuntu/portainer_data_backup_2.39.3_20260609.tar.gz` (plus Portainer's own `/data/backups/portainer.db.bak`).
     - **Stack `airline-platform` (ID 6):** GitOps → `deployment/docker-compose.landing.yml`. Manages container `landing_page` (port 80, `nginx:1.27-alpine`, static HTML from `deployment/landing-page/index.html`). Auto-pull every 5 min.
-    - **Stack `airline-services` (ID 8):** GitOps → `deployment/docker-compose.yml`. Manages `adsb_dashboard` (port 8501, Streamlit — single-page Supabase live map; the MongoDB Flight Tracker page was removed in commit f32a2a5) and `jupyter` (port 8888, JupyterLab). Env vars set directly in Portainer stack env store: `MONGO_URI`, `JUPYTER_TOKEN`, **`SUPABASE_DB_HOST`**, **`SUPABASE_DB_PASSWORD`** (added 2026-06-10 after password reset).
+    - **Stack `airline-services` (ID 8):** GitOps → `deployment/docker-compose.yml`. Manages `adsb_dashboard` (port 8501, Streamlit — single-page Supabase live map) and `jupyter` (port 8888, JupyterLab). Env vars set directly in Portainer stack env store: `MONGO_URI`, `JUPYTER_TOKEN`, **`SUPABASE_DB_HOST`**, **`SUPABASE_DB_PASSWORD`** (added 2026-06-10 after password reset).
   - ⚠️ **Compose paths changed by ADR 011 (`04-deployment/` → `deployment/`).** Both stacks' stored GitOps "Compose path" still points at `04-deployment/...` on the server. **Before/with pushing the restructure commit, repoint both stacks in Portainer** to `deployment/docker-compose.landing.yml` (ID 6) and `deployment/docker-compose.yml` (ID 8) — otherwise the next auto-pull 404s and the stacks fail. This cannot be changed from git.
   - **Deployment Pattern — `environment: - VAR=${VAR}` (since commit 4e44817):** `docker-compose.yml` uses `environment: - VAR=${VAR}` instead of `env_file:`. Portainer GitOps pulls the Compose file from git but injects secrets via its own environment store, so there is no `.env` on the VM. This is the required pattern for any service whose secrets are managed in Portainer.
   - **GitOps build rule — a `build:` service must NOT carry an `image:` tag (since commit 53f314d):** Portainer runs `compose pull` before every deploy. A service that has both `build:` and an explicit `image: <name>` makes Portainer try to pull `<name>` from a registry; for a locally-built image this fails the whole stack with `pull access denied`. Use `build:` **without** `image:` — Portainer then builds locally on every git push (rebuild verified 2026-06-09) and Compose auto-names the image `<stack>-<service>` (e.g. `airline-platform-landing-page`). The landing stack carried this bug until 53f314d.
@@ -200,7 +200,7 @@ Naming convention: `explore_<source>.ipynb` in `notebooks/`.
 | Notebook | Source |
 |---|---|
 | `explore_adsb_lol.ipynb` | adsb.lol API |
-| `explore_mongo_atlas.ipynb` | MongoDB Atlas landing zone — all 3 collections (`adsb_raw`, `opensky_raw`, `flight_tracker_raw`) incl. cross-collection join (sec. 9–11) + flight_tracker exploration (sec. 12–14) |
+| `explore_mongo_atlas.ipynb` | MongoDB Atlas landing zone — `adsb_raw` + `opensky_raw`, incl. cross-collection join (sec. 9–11) |
 
 ### Active Collectors (Phase 2)
 
@@ -268,7 +268,6 @@ Join-Key: `adsb_raw.ac[].hex` = `opensky_raw.flights[].icao24` (ICAO24 Transpond
 | `docs/data-sources/adsb_lol_api_doc.md` | adsb.lol API technical reference (Phase 2) |
 | `01-bronze/collectors/adsb_collector.py` | ADS-B collector → MongoDB adsb_raw |
 | `01-bronze/collectors/opensky_states_collector.py` | OpenSky /states/all collector → MongoDB opensky_raw (active, local Mac only; OAuth2/basic-auth inline) |
-| `01-bronze/collectors/flight_tracker.py` | Single-flight tracker → MongoDB flight_tracker_raw |
 | `data_connectors/mongo.py` | MongoDB connector (insert_raw, insert_adsb_snapshot) |
 | `02-silver/etl/opensky_to_supabase.py` | Bronze → Silver ETL: Atlas adsb_raw + opensky_raw → Supabase map1 |
 | `02-silver/warehouse/schema.sql` | PostgreSQL schema (airports, airlines, flights) |

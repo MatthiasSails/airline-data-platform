@@ -11,7 +11,7 @@ In this project Atlas hosts our raw landing zone (Bronze layer):
 
 - **Cluster:** `mongo-mk1` (M0 Free Tier, eu-central-1 Frankfurt)
 - **Database:** `airline_landing`
-- **Collections:** `adsb_raw`, `opensky_raw`, `flight_tracker_raw`
+- **Collections:** `adsb_raw`, `opensky_raw`
 
 ---
 
