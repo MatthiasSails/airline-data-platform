@@ -143,13 +143,13 @@ As of 2026-05-27 this project is **no longer** tied to Liora VM (see ADR 007). P
   - **Local dev connection** (Mac has no global IPv6 — Direct Connection is IPv6-only on Free Tier):
     ```bash
     ssh -i ~/.ssh/airline_vm -f -N \
-        -L 6543:db.civmkvcgbklejootrkks.supabase.co:6543 \
+        -L 5432:db.civmkvcgbklejootrkks.supabase.co:5432 \
         ubuntu@63.185.229.117
-    # psycopg2 → host=localhost port=6543 user=postgres dbname=postgres
+    # psycopg2 → host=localhost port=5432 user=postgres dbname=postgres
     ```
-  - **On aws-airline-1:** port **6543** (pgBouncer on the DB host) — confirmed working 2026-06-10. Port 5432 (Direct Connection) is **closed/refused** on the Free/NANO plan even from the VM. Always use port 6543.
+  - **On aws-airline-1:** use port **5432** (Direct Connection on `db.<ref>.supabase.co`, IPv6) — verified working from the VM 2026-06-11 (387 rows in `map1`). `app.py` defaults to 5432.
   - **Docker containers on aws-airline-1 do NOT inherit IPv6 automatically.** Docker bridge networks are created without IPv6 even when the host is dual-stack. Any container that needs to reach Supabase must use `network_mode: host`. Do not add `ports:` when using host networking (silently ignored).
-  - **Supabase Free Tier — use port 6543 (pgBouncer), not 5432.** The Supavisor pooler (separate IPv4 endpoint) was removed. Port 5432 (Direct Connection) is IPv6-only AND closed on the VM as of 2026-06-10. Port 6543 on `db.civmkvcgbklejootrkks.supabase.co` (legacy pgBouncer) is open and works. `app.py` defaults to 6543 via `SUPABASE_DB_PORT` env var.
+  - **Supabase port history (2026-06-11):** port **6543** on the direct host (legacy pgBouncer) now **refuses connections** — Supabase removed it. The Supavisor pooler (`aws-0-eu-central-1.pooler.supabase.com`) returns *tenant/user not found* for this project. **Use direct port 5432** with `user=postgres`, `dbname=postgres`. Mac has no global IPv6, so local dev needs the SSH tunnel above; the VM has IPv6 and connects directly.
   - **PostgREST / supabase-py:** currently broken (PGRST002 after Supabase API-key migration). Use psycopg2 direct. If using supabase-py later, use legacy JWT key (`eyJ…`) not new `sb_secret_` format.
 - **Compute (dedicated VM with fixed IP):** **AWS Lightsail `aws-airline-1`** (provisioned 2026-06-05). Static IP `63.185.229.117`, eu-central-1a. Docker 29.1 + Compose 2.40. SSH: `ssh -i ~/.ssh/airline_vm ubuntu@63.185.229.117`. Entry point: `deployment/docker-compose.yml`.
   - **Portainer CE 2.42.0 (STS)** — deployed 2026-06-09, upgraded from 2.39.3 the same day. URL: https://airline-portainer.matthiaskoehler.com. Container pinned to `portainer/portainer-ce:2.42.0`, port `9443:9443`, volume `portainer_data`. CE serves HTTPS only on 9443, no HTTP on 9000. **Do not pin the `latest` tag** — it tracks the LTS line, not STS; the 2.42 GitOps Sources/Workflows views require an explicit STS version. Pre-upgrade DB backup on the VM: `/home/ubuntu/portainer_data_backup_2.39.3_20260609.tar.gz` (plus Portainer's own `/data/backups/portainer.db.bak`).

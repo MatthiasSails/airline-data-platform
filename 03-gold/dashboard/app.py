@@ -12,7 +12,7 @@ st.title("Live Flight Map")
 def _conn():
     return psycopg2.connect(
         host=os.environ["SUPABASE_DB_HOST"],
-        port=int(os.environ.get("SUPABASE_DB_PORT", "6543")),
+        port=int(os.environ.get("SUPABASE_DB_PORT", "5432")),
         dbname="postgres",
         user="postgres",
         password=os.environ["SUPABASE_DB_PASSWORD"],
