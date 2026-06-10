@@ -2,8 +2,8 @@
 
 The platform follows a **medallion** structure: Bronze (raw landing zone, MongoDB Atlas) → Silver
 (curated star schema, PostgreSQL) → Gold (deferred). The phases below map onto the repo's folder
-layout: `01-data-collection` (Bronze) → `02-data-modeling` (Silver) → `03-data-consumption`
-(API + dashboard) → `04-deployment`.
+layout: `01-bronze` (Bronze) → `02-silver` (Silver) → `03-gold`
+(API + dashboard) → `deployment`.
 
 **Related:**
 - [data-flow.md](data-flow.md) — prose explanation of data flow
@@ -14,7 +14,7 @@ layout: `01-data-collection` (Bronze) → `02-data-modeling` (Silver) → `03-da
 ---
 
 ## Phase 1 — Data Collection (Bronze) 🚧
-*Folder: `01-data-collection/`*
+*Folder: `01-bronze/`*
 
 Ingest every source **raw, untransformed** into the MongoDB Atlas landing zone. *Ingestion ≠
 modeling* (ADR 004): Bronze keeps the original payloads; the Silver model promotes only what it needs.
@@ -31,7 +31,7 @@ graph LR
     REF -->|raw rows| COL
     ADSB -->|raw snapshots| COL
 
-    COL -->|insert| CON["MongoConnector<br/>01-data-collection/db/mongo/connector.py"]
+    COL -->|insert| CON["MongoConnector<br/>data-connectors/mongo.py"]
     CON --> MDB["MongoDB Atlas<br/>airline_landing<br/>(opensky_raw, adsb_raw, ...)<br/>mongo-mk1 (eu-central-1)"]
 
     style OS fill:#4CAF50,color:#fff
@@ -43,10 +43,10 @@ graph LR
 ```
 
 **What exists now:**
-- `01-data-collection/opensky_api/client.py` — OpenSky client (OAuth2)
-- `01-data-collection/collectors/opensky_collector.py` — OpenSky States collector ✅
-- `01-data-collection/collectors/adsb_collector.py` — adsb.lol collector (Bronze-only) ✅
-- `01-data-collection/db/mongo/connector.py` — MongoDB Atlas connector ✅
+- `01-bronze/opensky_api/client.py` — OpenSky client (OAuth2)
+- `01-bronze/collectors/opensky_collector.py` — OpenSky States collector ✅
+- `01-bronze/collectors/adsb_collector.py` — adsb.lol collector (Bronze-only) ✅
+- `data-connectors/mongo.py` — MongoDB Atlas connector ✅
 - `airline_landing` collections live on Atlas ✅
 
 > **adsb.lol is Bronze-only** — collected raw for optionality and a later OpenSky-vs-adsb.lol
@@ -56,7 +56,7 @@ graph LR
 ---
 
 ## Phase 2 — Data Modeling (Silver) 🚧
-*Folder: `02-data-modeling/`*
+*Folder: `02-silver/`*
 
 ETL from the Bronze landing zone into a curated PostgreSQL **star schema**. The central fact is
 `fact_states` (live "aircraft in the air" from `/states/all`); dimensions come from the static
@@ -66,9 +66,9 @@ reference feeds. Only **OpenSky** (States + AircraftDB) is promoted; adsb.lol st
 graph LR
     MDB["MongoDB Atlas<br/>(Bronze raw)"]
 
-    MDB -->|read raw| ETL["Python ETL<br/>Pandas<br/>normalize · validate · convert units<br/>02-data-modeling/etl/"]
+    MDB -->|read raw| ETL["Python ETL<br/>Pandas<br/>normalize · validate · convert units<br/>02-silver/etl/"]
 
-    ETL -->|UPSERT| CON["PostgresConnector<br/>02-data-modeling/warehouse/connector.py"]
+    ETL -->|UPSERT| CON["PostgresConnector<br/>data-connectors/supabase.py"]
     CON -->|schema.sql| PG["PostgreSQL (Silver star schema)<br/>fact_states<br/>dim_aircraft<br/>dim_airlines<br/>dim_airports"]
 
     style MDB fill:#FF6B35,color:#fff
@@ -78,11 +78,11 @@ graph LR
 ```
 
 **What exists now:**
-- `02-data-modeling/warehouse/connector.py` — PostgreSQL connector ✅
-- `02-data-modeling/warehouse/schema.sql` — star-schema DDL (in sync with [silver-layer-er.md](silver-layer-er.md)) ✅
+- `data-connectors/supabase.py` — PostgreSQL connector ✅
+- `02-silver/warehouse/schema.sql` — star-schema DDL (in sync with [silver-layer-er.md](silver-layer-er.md)) ✅
 
 **What is pending:**
-- `02-data-modeling/etl/` — ETL pipeline: Bronze (Mongo) → Silver `fact_states` + dims
+- `02-silver/etl/` — ETL pipeline: Bronze (Mongo) → Silver `fact_states` + dims
 
 > **Silver tables** (see [silver-layer-er.md](silver-layer-er.md), [ADR 008](../adr/008-airline-attribution-star-schema.md), [ADR 009](../adr/009-states-api-silver-model.md)):
 > `fact_states` (OpenSky `/states/all`), `dim_aircraft` (OpenSky AircraftDB, join on `icao24`),
@@ -94,7 +94,7 @@ graph LR
 ---
 
 ## Phase 3 — Data Consumption (API & Dashboard)
-*Folder: `03-data-consumption/`*
+*Folder: `03-gold/`*
 
 Expose the Silver star schema via FastAPI and visualize it. Endpoints and dashboard views are
 position/aircraft/airline-centric — there is no route or delay analytics in this model.
@@ -103,8 +103,8 @@ position/aircraft/airline-centric — there is no route or delay analytics in th
 graph LR
     PG["PostgreSQL (Silver star schema)"]
 
-    PG -->|SQL queries| API["FastAPI<br/>GET /states<br/>GET /aircraft<br/>GET /airlines<br/>GET /airports<br/>03-data-consumption/api/"]
-    PG -->|analytics| DASH["Streamlit / Dash<br/>live position maps<br/>airline KPIs<br/>fleet breakdowns<br/>03-data-consumption/dashboard/"]
+    PG -->|SQL queries| API["FastAPI<br/>GET /states<br/>GET /aircraft<br/>GET /airlines<br/>GET /airports<br/>03-gold/api/"]
+    PG -->|analytics| DASH["Streamlit / Dash<br/>live position maps<br/>airline KPIs<br/>fleet breakdowns<br/>03-gold/dashboard/"]
 
     style PG fill:#0066CC,color:#fff
     style API fill:#9933CC,color:#fff
@@ -112,10 +112,10 @@ graph LR
 ```
 
 **What exists now:**
-- `03-data-consumption/dashboard/` — Streamlit dashboard ✅
+- `03-gold/dashboard/` — Streamlit dashboard ✅
 
 **What will be added:**
-- `03-data-consumption/api/` — FastAPI service (`/states`, `/aircraft`, `/airlines`, `/airports`)
+- `03-gold/api/` — FastAPI service (`/states`, `/aircraft`, `/airlines`, `/airports`)
 
 > **Endpoint scope** (see [data-flow.md](data-flow.md)): `/states` (live positions, backed by
 > `fact_states`), `/aircraft` (`dim_aircraft`), `/airlines` (`dim_airlines`), `/airports`
@@ -125,7 +125,7 @@ graph LR
 ---
 
 ## Phase 4 — Deployment & Automation
-*Folder: `04-deployment/`*
+*Folder: `deployment/`*
 
 Containerize everything. Automate ingestion. Add CI/CD.
 
@@ -161,7 +161,7 @@ graph TB
 ```
 
 **What will be added:**
-- `04-deployment/` — Dockerfiles, docker-compose.yml, GitHub Actions, scheduler
+- `deployment/` — Dockerfiles, docker-compose.yml, GitHub Actions, scheduler
 
 ---
 
@@ -180,16 +180,16 @@ graph TD
     OS["opensky_api/client.py"]
     ADSB["adsb.lol API"]
 
-    OS --> COL["01-data-collection/collectors/"]
+    OS --> COL["01-bronze/collectors/"]
     ADSB --> COL
 
-    COL --> CONN["01-data-collection/db/mongo/connector.py"]
+    COL --> CONN["data-connectors/mongo.py"]
     CONN --> MDB["MongoDB Atlas (Bronze)"]
-    MDB --> ETL["02-data-modeling/etl/"]
-    ETL --> WCON["02-data-modeling/warehouse/connector.py"]
+    MDB --> ETL["02-silver/etl/"]
+    ETL --> WCON["data-connectors/supabase.py"]
     WCON --> PG["PostgreSQL (Silver)"]
-    PG --> API["03-data-consumption/api/ (FastAPI)"]
-    PG --> DASH["03-data-consumption/dashboard/"]
+    PG --> API["03-gold/api/ (FastAPI)"]
+    PG --> DASH["03-gold/dashboard/"]
 
     style OS fill:#4CAF50,color:#fff
     style ADSB fill:#4CAF50,color:#fff

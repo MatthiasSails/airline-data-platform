@@ -217,4 +217,4 @@ dimension completeness.
   `closed`) carry **no `icao_code`**. Since `icao_code` is the PK (NOT NULL), the loader filters
   `WHERE icao_code IS NOT NULL` (optionally also `type IN ('large_airport','medium_airport')`).
 
-DDL: [`02-data-modeling/warehouse/schema.sql`](../../02-data-modeling/warehouse/schema.sql) — in sync with this model (Star Schema target; `map1` was created via Supabase UI).
+DDL: [`02-silver/warehouse/schema.sql`](../../02-silver/warehouse/schema.sql) — in sync with this model (Star Schema target; `map1` was created via Supabase UI).

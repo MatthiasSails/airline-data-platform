@@ -30,7 +30,7 @@ See [ADR 003](../adr/003-dual-stream.md) for the dual-stream rationale and [ADR 
 - Docs: `opensky_api_doc.md`
 - Auth: OAuth2 Client Credentials (`OPENSKY_CLIENT_ID`, `OPENSKY_CLIENT_SECRET` in `.env`)
 - Code format: **ICAO** (4 chars — `EDDB`, `EDDM`)
-- Client: `01-data-collection/opensky_api/client.py`
+- Client: `01-bronze/opensky_api/client.py`
 - Credits: 4,000/day (registered user)
 - Key endpoints: `/flights/departure`, `/flights/arrival`, `/flights/aircraft`
 
@@ -43,7 +43,7 @@ See [ADR 003](../adr/003-dual-stream.md) for the dual-stream rationale and [ADR 
 - Docs: `adsb_lol_api_doc.md`
 - Auth: none (public)
 - Code format: **ICAO24 hex** (8 hex digits — aircraft identifier, not airport)
-- Client: see `01-data-collection/collectors/` and `explore_adsb_lol.ipynb`
+- Client: see `01-bronze/collectors/` and `explore_adsb_lol.ipynb`
 - Rate limit: dynamic, generous; recommended 30–60 s polling interval
 - Runs on the Liora VM (no auth, no SG restrictions)
 

@@ -78,7 +78,7 @@ Both variables must be present. Get the passwords from Proton Pass
 
 ### Step 2 — Use the connector
 
-The project provides `01-data-collection/db/mongo/connector.py`:
+The project provides `data-connectors/mongo.py`:
 
 ```python
 from db.mongo.connector import from_env

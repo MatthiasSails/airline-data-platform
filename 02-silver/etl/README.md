@@ -8,4 +8,4 @@ loads the curated **Silver** star schema in PostgreSQL (Neon).
 - **DDL:** [`../warehouse/schema.sql`](../warehouse/schema.sql).
 
 _Status: to be implemented (no transformation code yet — exploration lives in
-[`01-data-collection`](../../01-data-collection) notebooks)._
+[`01-bronze`](../../01-bronze) notebooks)._

@@ -72,8 +72,10 @@ airline-data-platform/
 │   ├── architecture/       ← data flow, Silver ER model
 │   ├── data-sources/       ← external API references (OpenSky, adsb.lol, market overview)
 │   └── report/             ← final project report
-├── 01-data-collection/     ← collectors → Bronze (MongoDB), exploration notebooks
-├── 02-data-modeling/       ← Bronze → Silver: etl/ + warehouse/ (Postgres star schema)
-├── 03-data-consumption/    ← api/ (FastAPI) + dashboard/ (Streamlit)
-└── 04-deployment/          ← docker-compose, scheduler, orchestration
+├── 01-bronze/              ← collectors → Bronze (MongoDB)
+├── 02-silver/              ← Bronze → Silver: etl/ + warehouse/ (Postgres star schema)
+├── 03-gold/               ← consumption: api/ (FastAPI) + dashboard/ (Streamlit)
+├── deployment/            ← docker-compose, scheduler, orchestration (un-numbered)
+├── data-connectors/        ← provider-abstracted DB access (mongo.py, supabase.py)
+└── notebooks/              ← exploration + collector walkthroughs
 ```

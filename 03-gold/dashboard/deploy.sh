@@ -16,7 +16,7 @@ ssh -i "$SSH_KEY" "$SSH_HOST" bash <<REMOTE
   git -C $REMOTE_DIR fetch origin
   git -C $REMOTE_DIR reset --hard origin/main
   echo "MONGO_URI='${MONGO_URI}'" > $REMOTE_DIR/.env
-  cd $REMOTE_DIR/04-deployment
+  cd $REMOTE_DIR/deployment
   docker compose up -d --build
 REMOTE
 

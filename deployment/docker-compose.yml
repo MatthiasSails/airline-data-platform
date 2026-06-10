@@ -1,6 +1,6 @@
 services:
   adsb-dashboard:
-    build: ../03-data-consumption/dashboard
+    build: ../03-gold/dashboard
     container_name: adsb_dashboard
     network_mode: host
     environment:

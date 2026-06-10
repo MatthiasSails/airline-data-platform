@@ -82,10 +82,12 @@ pipeline phases** (Bronze → Silver → consumption → deployment).
 | Path | What's inside |
 |---|---|
 | **[docs/](docs/)** | Knowledge layer: [requirements](docs/requirements/), [ADRs](docs/adr/), [architecture](docs/architecture/), [data-sources](docs/data-sources/), [report](docs/report/), setup guides |
-| **[01-data-collection/](01-data-collection/)** | Collectors → **Bronze** (MongoDB): OpenSky States, adsb.lol, reference loaders + exploration notebooks |
-| **[02-data-modeling/](02-data-modeling/)** | **Bronze → Silver**: [`etl/`](02-data-modeling/etl/) + [`warehouse/`](02-data-modeling/warehouse/) (PostgreSQL star schema) |
-| **[03-data-consumption/](03-data-consumption/)** | [`api/`](03-data-consumption/api/) (FastAPI) + [`dashboard/`](03-data-consumption/dashboard/) (Streamlit) |
-| **[04-deployment/](04-deployment/)** | docker-compose, scheduler, orchestration |
+| **[01-bronze/](01-bronze/)** | Collectors → **Bronze** (MongoDB): OpenSky States, adsb.lol, reference loaders |
+| **[02-silver/](02-silver/)** | **Bronze → Silver**: [`etl/`](02-silver/etl/) + [`warehouse/`](02-silver/warehouse/) (PostgreSQL star schema) |
+| **[03-gold/](03-gold/)** | Consumption layer: [`api/`](03-gold/api/) (FastAPI) + [`dashboard/`](03-gold/dashboard/) (Streamlit). `warehouse/` (Gold aggregates) planned — [ADR 011](docs/adr/011-layer-named-folders-connector-abstraction-ml.md) |
+| **[deployment/](deployment/)** | docker-compose, scheduler, orchestration (un-numbered, cross-cutting) |
+| **[data-connectors/](data-connectors/)** | Provider-abstracted DB access: `mongo.py` (Bronze), `supabase.py` (Silver) — [ADR 011](docs/adr/011-layer-named-folders-connector-abstraction-ml.md) |
+| **[notebooks/](notebooks/)** | Exploration + collector walkthroughs (`explore_*`, `collect_*`) |
 
 ---
 
@@ -95,7 +97,7 @@ pipeline phases** (Bronze → Silver → consumption → deployment).
 - **[Architecture](docs/architecture/README.md)** — phase diagrams, data flow, ERD
 - **[Architecture Decision Records](docs/adr/)** — *why* the design looks like it does
 - **[Local setup](docs/setup.md)** — venv, dependencies, `.env`, running notebooks
-- **[ADS-B collector walkthrough](01-data-collection/collect_adsb.ipynb)** — step-by-step Jupyter notebook explaining the collector
+- **[ADS-B collector walkthrough](notebooks/collect_adsb.ipynb)** — step-by-step Jupyter notebook explaining the collector
 
 ---
 

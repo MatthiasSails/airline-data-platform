@@ -42,23 +42,22 @@ Project-level instructions for Claude Code when working in this repository.
 airline-data-platform/
 ├── docs/                     # KNOWLEDGE layer (project-wide, un-numbered)
 │   ├── requirements/         # scope.md, timeline.md, source/ (original PDF, mentor updates)
-│   ├── adr/                  # Architecture Decision Records (001–009)
+│   ├── adr/                  # Architecture Decision Records (001–011)
 │   ├── architecture/         # data-flow.md, silver-layer-er.md, diagrams
 │   ├── data-sources/         # external API references (OpenSky, adsb.lol, market overview)
 │   ├── report/               # DataScientest final project report
 │   ├── setup.md              # local setup runbook
 │   └── mongodb-access.md     # Atlas access / DB users
-├── 01-data-collection/       # Collectors → BRONZE (MongoDB)  (+ own README)
+├── 01-bronze/                # Collectors → BRONZE (MongoDB)  (+ own README)
 │   ├── opensky_api/          # OpenSky API client (OAuth2)
-│   ├── collectors/           # adsb_collector, opensky_collector, flight_tracker
-│   ├── db/mongo/             # MongoDB connector + landing-zone docs
-│   ├── collect_*.ipynb       # collector walkthroughs
-│   └── explore_*.ipynb       # exploration notebooks per source / Mongo landing zone
-├── 02-data-modeling/         # BRONZE → SILVER
-│   ├── etl/                  # Bronze → Silver transforms (to be implemented)
-│   └── warehouse/            # PostgreSQL star schema: schema.sql, connector.py
-├── 03-data-consumption/      # api/ (FastAPI) + dashboard/ (Streamlit)
-├── 04-deployment/            # docker-compose, scheduler, orchestration
+│   └── collectors/           # adsb_collector, opensky_collector, flight_tracker
+├── 02-silver/                # BRONZE → SILVER
+│   ├── etl/                  # Bronze → Silver transform (opensky_to_supabase.py)
+│   └── warehouse/            # star-schema DDL: schema.sql
+├── 03-gold/                  # consumption: api/ (FastAPI) + dashboard/ (Streamlit); warehouse/ (Gold aggregates) planned
+├── deployment/               # docker-compose, scheduler, orchestration (un-numbered, cross-cutting)
+├── data-connectors/          # provider-abstracted DB access: mongo.py, supabase.py (ADR 011)
+├── notebooks/                # exploration + collector walkthroughs (explore_*, collect_*)
 ├── requirements.txt          # Pinned Python dependencies
 └── CLAUDE.md                 # This file
 ```
@@ -68,8 +67,8 @@ airline-data-platform/
 Two axes — keep them separate (this is the whole point of the layout):
 
 - **`docs/` = knowledge layer** — everything *about the whole project*: requirements, ADRs, architecture, data-source references, the report. Project-wide, un-numbered. Has its own index `docs/README.md`. (Mirrors the global rule "Git = knowledge layer, Projects V2 = workflow layer".)
-- **Numbered folders (`01-`–`04-`) = pipeline phases (code)** — each number is one stage of the Bronze→Silver→consumption→deployment pipeline. The medallion is readable: `01` = Bronze ingest, `02` = Silver.
-- **Module `README.md`** — "how to run *this* module", co-located in each code dir (e.g. `01-data-collection/README.md`).
+- **Numbered folders (`01-`–`03-`) = data-pipeline layers (code)** — `01-bronze` → `02-silver` → `03-gold`. The medallion is readable from the tree (ADR 011). Cross-cutting code is **un-numbered**: `data-connectors/`, `deployment/`, `notebooks/`.
+- **Module `README.md`** — "how to run *this* module", co-located in each code dir (e.g. `01-bronze/README.md`).
 
 Rule of thumb: about the whole project → `docs/`; a pipeline stage's code → its numbered folder; how to run one module → that module's README. **Project progress/tracking is GitHub Projects V2, not a repo file.** Learning artefacts (bootcamp theory, not project docs) do **not** belong in this repo — they go to `knowledgebase/methodology/`.
 
@@ -153,10 +152,11 @@ As of 2026-05-27 this project is **no longer** tied to Liora VM (see ADR 007). P
   - **Docker containers on aws-airline-1 do NOT inherit IPv6 automatically.** Docker bridge networks are created without IPv6 even when the host is dual-stack. Any container that needs to reach Supabase must use `network_mode: host`. Do not add `ports:` when using host networking (silently ignored).
   - **Supabase Free Tier — use port 6543 (pgBouncer), not 5432.** The Supavisor pooler (separate IPv4 endpoint) was removed. Port 5432 (Direct Connection) is IPv6-only AND closed on the VM as of 2026-06-10. Port 6543 on `db.civmkvcgbklejootrkks.supabase.co` (legacy pgBouncer) is open and works. `app.py` defaults to 6543 via `SUPABASE_DB_PORT` env var.
   - **PostgREST / supabase-py:** currently broken (PGRST002 after Supabase API-key migration). Use psycopg2 direct. If using supabase-py later, use legacy JWT key (`eyJ…`) not new `sb_secret_` format.
-- **Compute (dedicated VM with fixed IP):** **AWS Lightsail `aws-airline-1`** (provisioned 2026-06-05). Static IP `63.185.229.117`, eu-central-1a. Docker 29.1 + Compose 2.40. SSH: `ssh -i ~/.ssh/airline_vm ubuntu@63.185.229.117`. Entry point: `04-deployment/docker-compose.yml`.
+- **Compute (dedicated VM with fixed IP):** **AWS Lightsail `aws-airline-1`** (provisioned 2026-06-05). Static IP `63.185.229.117`, eu-central-1a. Docker 29.1 + Compose 2.40. SSH: `ssh -i ~/.ssh/airline_vm ubuntu@63.185.229.117`. Entry point: `deployment/docker-compose.yml`.
   - **Portainer CE 2.42.0 (STS)** — deployed 2026-06-09, upgraded from 2.39.3 the same day. URL: https://airline-portainer.matthiaskoehler.com. Container pinned to `portainer/portainer-ce:2.42.0`, port `9443:9443`, volume `portainer_data`. CE serves HTTPS only on 9443, no HTTP on 9000. **Do not pin the `latest` tag** — it tracks the LTS line, not STS; the 2.42 GitOps Sources/Workflows views require an explicit STS version. Pre-upgrade DB backup on the VM: `/home/ubuntu/portainer_data_backup_2.39.3_20260609.tar.gz` (plus Portainer's own `/data/backups/portainer.db.bak`).
-    - **Stack `airline-platform` (ID 6):** GitOps → `04-deployment/docker-compose.landing.yml`. Manages container `landing_page` (port 80, `nginx:1.27-alpine`, static HTML from `04-deployment/landing-page/index.html`). Auto-pull every 5 min.
-    - **Stack `airline-services` (ID 8):** GitOps → `04-deployment/docker-compose.yml`. Manages `adsb_dashboard` (port 8501, Streamlit — single-page Supabase live map; the MongoDB Flight Tracker page was removed in commit f32a2a5) and `jupyter` (port 8888, JupyterLab). Env vars set directly in Portainer stack env store: `MONGO_URI`, `JUPYTER_TOKEN`, **`SUPABASE_DB_HOST`**, **`SUPABASE_DB_PASSWORD`** (added 2026-06-10 after password reset).
+    - **Stack `airline-platform` (ID 6):** GitOps → `deployment/docker-compose.landing.yml`. Manages container `landing_page` (port 80, `nginx:1.27-alpine`, static HTML from `deployment/landing-page/index.html`). Auto-pull every 5 min.
+    - **Stack `airline-services` (ID 8):** GitOps → `deployment/docker-compose.yml`. Manages `adsb_dashboard` (port 8501, Streamlit — single-page Supabase live map; the MongoDB Flight Tracker page was removed in commit f32a2a5) and `jupyter` (port 8888, JupyterLab). Env vars set directly in Portainer stack env store: `MONGO_URI`, `JUPYTER_TOKEN`, **`SUPABASE_DB_HOST`**, **`SUPABASE_DB_PASSWORD`** (added 2026-06-10 after password reset).
+  - ⚠️ **Compose paths changed by ADR 011 (`04-deployment/` → `deployment/`).** Both stacks' stored GitOps "Compose path" still points at `04-deployment/...` on the server. **Before/with pushing the restructure commit, repoint both stacks in Portainer** to `deployment/docker-compose.landing.yml` (ID 6) and `deployment/docker-compose.yml` (ID 8) — otherwise the next auto-pull 404s and the stacks fail. This cannot be changed from git.
   - **Deployment Pattern — `environment: - VAR=${VAR}` (since commit 4e44817):** `docker-compose.yml` uses `environment: - VAR=${VAR}` instead of `env_file:`. Portainer GitOps pulls the Compose file from git but injects secrets via its own environment store, so there is no `.env` on the VM. This is the required pattern for any service whose secrets are managed in Portainer.
   - **GitOps build rule — a `build:` service must NOT carry an `image:` tag (since commit 53f314d):** Portainer runs `compose pull` before every deploy. A service that has both `build:` and an explicit `image: <name>` makes Portainer try to pull `<name>` from a registry; for a locally-built image this fails the whole stack with `pull access denied`. Use `build:` **without** `image:` — Portainer then builds locally on every git push (rebuild verified 2026-06-09) and Compose auto-names the image `<stack>-<service>` (e.g. `airline-platform-landing-page`). The landing stack carried this bug until 53f314d.
   - **Cloudflare Tunnel** — all services exposed via `cloudflared` container (`--network host`, `restart: always`), no ports need to be open in Lightsail firewall. Token in Keychain: `cloudflare_airline_tunnel_token`.
@@ -196,7 +196,7 @@ Onboarding details and all DB users: `docs/mongodb-access.md`.
 
 ### Exploration Notebooks
 
-Naming convention: `explore_<source>.ipynb` in `01-data-collection/`.
+Naming convention: `explore_<source>.ipynb` in `notebooks/`.
 
 | Notebook | Source |
 |---|---|
@@ -207,7 +207,7 @@ Naming convention: `explore_<source>.ipynb` in `01-data-collection/`.
 ### Active Collectors (Phase 2)
 
 ```bash
-cd 01-data-collection
+cd 01-bronze
 
 # ADS-B — single run (or --interval 60 for continuous):
 python collectors/adsb_collector.py
@@ -235,7 +235,7 @@ python collectors/opensky_states_collector.py --interval 60  # continuous pollin
 ssh -i ~/.ssh/airline_vm -f -N -L 5432:db.civmkvcgbklejootrkks.supabase.co:5432 ubuntu@63.185.229.117
 
 # Run ETL:
-python 02-data-modeling/etl/opensky_to_supabase.py
+python 02-silver/etl/opensky_to_supabase.py
 ```
 
 > **PostgREST / supabase-py:** still returning `PGRST002` (Supabase API-key migration, June 2026). Use psycopg2 direct. Do not rely on PostgREST until resolved upstream.
@@ -268,14 +268,14 @@ Join-Key: `adsb_raw.ac[].hex` = `opensky_raw.flights[].icao24` (ICAO24 Transpond
 | `docs/data-sources/airline_api_market_overview.md` | API market comparison & integration status |
 | `docs/data-sources/opensky_api_doc.md` | OpenSky API technical reference |
 | `docs/data-sources/adsb_lol_api_doc.md` | adsb.lol API technical reference (Phase 2) |
-| `01-data-collection/opensky_api/client.py` | OpenSky API client (OAuth2, mock/real) |
-| `01-data-collection/collectors/adsb_collector.py` | ADS-B collector → MongoDB adsb_raw |
-| `01-data-collection/collectors/opensky_states_collector.py` | OpenSky /states/all collector → MongoDB opensky_raw (active, local Mac only) |
-| `01-data-collection/collectors/opensky_collector.py` | OpenSky /flights/* collector → MongoDB opensky_raw (legacy; /flights/* retired per ADR 009) |
-| `01-data-collection/collectors/flight_tracker.py` | Single-flight tracker → MongoDB flight_tracker_raw |
-| `01-data-collection/db/mongo/connector.py` | MongoDB connector (insert_raw, insert_adsb_snapshot) |
-| `02-data-modeling/etl/opensky_to_supabase.py` | Bronze → Silver ETL: Atlas adsb_raw + opensky_raw → Supabase map1 |
-| `02-data-modeling/warehouse/schema.sql` | PostgreSQL schema (airports, airlines, flights) |
+| `01-bronze/opensky_api/client.py` | OpenSky API client (OAuth2, mock/real) |
+| `01-bronze/collectors/adsb_collector.py` | ADS-B collector → MongoDB adsb_raw |
+| `01-bronze/collectors/opensky_states_collector.py` | OpenSky /states/all collector → MongoDB opensky_raw (active, local Mac only) |
+| `01-bronze/collectors/opensky_collector.py` | OpenSky /flights/* collector → MongoDB opensky_raw (legacy; /flights/* retired per ADR 009) |
+| `01-bronze/collectors/flight_tracker.py` | Single-flight tracker → MongoDB flight_tracker_raw |
+| `data-connectors/mongo.py` | MongoDB connector (insert_raw, insert_adsb_snapshot) |
+| `02-silver/etl/opensky_to_supabase.py` | Bronze → Silver ETL: Atlas adsb_raw + opensky_raw → Supabase map1 |
+| `02-silver/warehouse/schema.sql` | PostgreSQL schema (airports, airlines, flights) |
 
 ---
 

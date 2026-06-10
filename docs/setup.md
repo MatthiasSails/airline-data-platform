@@ -61,11 +61,11 @@ Add it via the Atlas web console → Network Access → Add IP Address.
 Open VS Code, select the `.venv` kernel in Jupyter, then open any notebook:
 
 ```
-01-data-collection/collect_adsb.ipynb         ← ADS-B collector walkthrough
-01-data-collection/collect_opensky.ipynb       ← OpenSky collector walkthrough
-01-data-collection/explore_mongo_atlas.ipynb   ← MongoDB landing zone exploration (all 3 collections)
-01-data-collection/explore_adsb_lol.ipynb      ← adsb.lol API exploration
-01-data-collection/explore_opensky_api.ipynb   ← OpenSky API exploration
+notebooks/collect_adsb.ipynb         ← ADS-B collector walkthrough
+notebooks/collect_opensky.ipynb       ← OpenSky collector walkthrough
+notebooks/explore_mongo_atlas.ipynb   ← MongoDB landing zone exploration (all 3 collections)
+notebooks/explore_adsb_lol.ipynb      ← adsb.lol API exploration
+notebooks/explore_opensky_api.ipynb   ← OpenSky API exploration
 ```
 
 ---

@@ -10,7 +10,7 @@ OpenSky /states/all (local only)   ──►  MongoDB Atlas airline_landing.open
 OurAirports CSV (planned)          ──►  MongoDB Atlas airline_landing.airports_ref ┘
 ```
 
-ETL lives in [`../02-data-modeling/etl/opensky_to_supabase.py`](../02-data-modeling/etl/opensky_to_supabase.py).
+ETL lives in [`../02-silver/etl/opensky_to_supabase.py`](../02-silver/etl/opensky_to_supabase.py).
 Background: [ADR 003](../docs/adr/003-dual-stream-adsb.md), [ADR 004](../docs/adr/004-mongo-as-multisource-hub.md), [ADR 009](../docs/adr/009-states-api-silver-model.md).
 
 ## Index
@@ -21,15 +21,12 @@ Background: [ADR 003](../docs/adr/003-dual-stream-adsb.md), [ADR 004](../docs/ad
 | `opensky_api/mock_data.py` | OpenSky | Mock responses for `--mock` runs | active |
 | `collectors/opensky_states_collector.py` | OpenSky | `/states/all` → `opensky_raw` (local Mac only) | **active** |
 | `collectors/opensky_collector.py` | OpenSky | `/flights/*` → `opensky_raw` (local only) | legacy — retired per ADR 009 |
-| `collect_opensky.ipynb` | OpenSky | Step-by-step collector walkthrough | active |
-| `explore_opensky_api.ipynb` | OpenSky | Ad-hoc API exploration | active |
 | `collectors/adsb_collector.py` | adsb.lol | `/v2` → `adsb_raw` (local or cloud VM) | active |
-| `collect_adsb.ipynb` | adsb.lol | Step-by-step collector walkthrough | active |
-| `explore_adsb_lol.ipynb` | adsb.lol | Ad-hoc API exploration | active |
-| `explore_mongo_atlas.ipynb` | MongoDB Atlas | Landing zone inspection, all collections + cross-join | active |
-| `db/mongo/` | MongoDB | Connector + landing zone docs | active |
 
-> The PostgreSQL connector + schema (Silver) are in [`../02-data-modeling/warehouse/`](../02-data-modeling/warehouse/).
+> **Moved (ADR 011):** the Mongo connector now lives in [`../data-connectors/mongo.py`](../data-connectors/mongo.py);
+> the `collect_*` / `explore_*` notebooks now live in [`../notebooks/`](../notebooks/).
+> The Silver schema is in [`../02-silver/warehouse/`](../02-silver/warehouse/); the PostgreSQL
+> connector in [`../data-connectors/supabase.py`](../data-connectors/supabase.py).
 
 Convention: `collect_*.ipynb` = production walkthrough with MongoDB writes; `explore_*.ipynb` = ad-hoc inspection without side effects.
 
@@ -38,7 +35,7 @@ Convention: `collect_*.ipynb` = production walkthrough with MongoDB writes; `exp
 ### OpenSky (local Mac only)
 
 ```bash
-cd 01-data-collection
+cd 01-bronze
 
 # Active collector — /states/all (live flight positions, Europe bounding box):
 python collectors/opensky_states_collector.py
@@ -50,7 +47,7 @@ python collectors/opensky_states_collector.py --interval 60  # continuous
 ### adsb.lol (local or cloud VM)
 
 ```bash
-cd 01-data-collection
+cd 01-bronze
 python collectors/adsb_collector.py
 python collectors/adsb_collector.py --interval 60  # continuous
 ```
@@ -59,7 +56,7 @@ python collectors/adsb_collector.py --interval 60  # continuous
 
 ```bash
 # Via local JupyterLab:
-jupyter lab 01-data-collection/explore_mongo_atlas.ipynb
+jupyter lab notebooks/explore_mongo_atlas.ipynb
 
 # Via the JupyterLab container on aws-airline-1:
 # http://airline.matthiaskoehler.com:8888  (token in .env → JUPYTER_TOKEN)
