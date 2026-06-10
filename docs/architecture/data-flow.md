@@ -21,7 +21,7 @@ keeps every source raw; the curated model promotes only what it needs.
 | Layer | Store | Role | Contents |
 |---|---|---|---|
 | **Bronze** | MongoDB Atlas | raw landing zone — all sources, untransformed | OpenSky States, OpenSky AircraftDB, OpenFlights, OurAirports, **adsb.lol** |
-| **Silver** | PostgreSQL (Neon) | curated relational star schema | `fact_states` + `dim_aircraft`, `dim_airlines`, `dim_airports` |
+| **Silver** | Supabase Postgres | curated relational store — **currently the flat `map1` MVP**; star schema is the target | now: `map1`; target: `fact_states` + `dim_aircraft`, `dim_airlines`, `dim_airports` |
 | **Gold?** | (deferred) | aggregates / marts / materialized views | e.g. `aircraft_current_state` — not built yet |
 
 - **adsb.lol lives only in Bronze** — collected for optionality and a later OpenSky-vs-adsb.lol
@@ -43,7 +43,7 @@ Bronze — Raw JSON Storage (MongoDB Atlas)
         ↓
 ETL / Transformation
         ↓
-Silver — Curated Star Schema (PostgreSQL / Neon)
+Silver — Supabase Postgres (now: flat `map1` MVP; target: curated star schema)
         ↓
 FastAPI
         ↓

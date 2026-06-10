@@ -102,4 +102,4 @@ pip install -r requirements.txt
 | Service | Host | Note |
 |---|---|---|
 | MongoDB Atlas | `mongo-mk1.ptb1k2b.mongodb.net` (SRV) | Bronze landing zone — Atlas Free Tier, eu-central-1 |
-| PostgreSQL | TBD — Neon (leading candidate, Pavel evaluating) | Silver warehouse, see ADR 007 |
+| PostgreSQL | Supabase `leanMVP` (`civmkvcgbklejootrkks`), eu-central-1, port 6543 | Silver store — decided 2026-06-09 (ADR 007 addendum); current table `map1` |

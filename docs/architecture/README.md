@@ -1,9 +1,10 @@
 # Architecture
 
 The platform follows a **medallion** structure: Bronze (raw landing zone, MongoDB Atlas) → Silver
-(curated star schema, PostgreSQL) → Gold (deferred). The phases below map onto the repo's folder
-layout: `01-bronze` (Bronze) → `02-silver` (Silver) → `03-gold`
-(API + dashboard) → `deployment`.
+(Supabase Postgres — currently the flat `map1` MVP table; curated star schema is the target) → Gold
+(consumption layer: API + dashboard; dedicated Gold aggregates deferred). The phases below map onto
+the repo's folder layout: `01-bronze` (Bronze) → `02-silver` (Silver) → `03-gold` (API + dashboard);
+cross-cutting code (`data-connectors/`, `deployment/`, `notebooks/`) is un-numbered (see ADR 011).
 
 **Related:**
 - [data-flow.md](data-flow.md) — prose explanation of data flow
@@ -58,31 +59,38 @@ graph LR
 ## Phase 2 — Data Modeling (Silver) 🚧
 *Folder: `02-silver/`*
 
-ETL from the Bronze landing zone into a curated PostgreSQL **star schema**. The central fact is
-`fact_states` (live "aircraft in the air" from `/states/all`); dimensions come from the static
-reference feeds. Only **OpenSky** (States + AircraftDB) is promoted; adsb.lol stays in Bronze.
+ETL from the Bronze landing zone into the **Silver** layer on Supabase Postgres. **Current state is a
+lean MVP:** [`opensky_to_supabase.py`](../../02-silver/etl/opensky_to_supabase.py) flattens
+`adsb_raw` + `opensky_raw` into a single table **`map1`** (raw values, no dimensions) that backs the
+live-map dashboard. The curated **star schema** (`fact_states` + dims) is the *target* model
+([silver-layer-er.md](silver-layer-er.md), [`schema.sql`](../../02-silver/warehouse/schema.sql)), not
+yet built. Only **OpenSky** (States + AircraftDB) is promoted; adsb.lol stays in Bronze.
 
 ```mermaid
 graph LR
     MDB["MongoDB Atlas<br/>(Bronze raw)"]
 
-    MDB -->|read raw| ETL["Python ETL<br/>Pandas<br/>normalize · validate · convert units<br/>02-silver/etl/"]
+    MDB -->|read raw| ETL["Python ETL<br/>02-silver/etl/<br/>opensky_to_supabase.py"]
 
-    ETL -->|UPSERT| CON["PostgresConnector<br/>data-connectors/supabase.py"]
-    CON -->|schema.sql| PG["PostgreSQL (Silver star schema)<br/>fact_states<br/>dim_aircraft<br/>dim_airlines<br/>dim_airports"]
+    ETL -->|UPSERT| CON["supabase.py<br/>(psycopg2 direct)"]
+    CON --> PG["Supabase Postgres (Silver)<br/>map1 — flat live-map table ✅"]
+    PG -.->|planned| STAR["Star schema (target)<br/>fact_states + dim_aircraft<br/>dim_airlines · dim_airports"]
 
     style MDB fill:#FF6B35,color:#fff
-    style ETL fill:#FFA500,color:#fff,stroke-dasharray:5 5
+    style ETL fill:#FFA500,color:#fff
     style CON fill:#0066CC,color:#fff
     style PG fill:#0066CC,color:#fff
+    style STAR fill:#0066CC,color:#fff,stroke-dasharray:5 5
 ```
 
 **What exists now:**
-- `data-connectors/supabase.py` — PostgreSQL connector ✅
-- `02-silver/warehouse/schema.sql` — star-schema DDL (in sync with [silver-layer-er.md](silver-layer-er.md)) ✅
+- `02-silver/etl/opensky_to_supabase.py` — ETL: Atlas `adsb_raw` + `opensky_raw` → Supabase `map1` ✅
+- `data-connectors/supabase.py` — Postgres connector ✅
+- `02-silver/warehouse/schema.sql` — star-schema DDL (target model; `map1` itself was created via the Supabase UI and is *not* in this DDL) ✅
 
-**What is pending:**
-- `02-silver/etl/` — ETL pipeline: Bronze (Mongo) → Silver `fact_states` + dims
+**What is pending — promote the `map1` MVP to the star schema:**
+- unit conversion (m→ft, m/s→kt, m/s→fpm), `airline_icao` resolution, dimension loaders
+  (`01-bronze/reference/` → `dim_*`), and `fact_states` instead of `map1`
 
 > **Silver tables** (see [silver-layer-er.md](silver-layer-er.md), [ADR 008](../adr/008-airline-attribution-star-schema.md), [ADR 009](../adr/009-states-api-silver-model.md)):
 > `fact_states` (OpenSky `/states/all`), `dim_aircraft` (OpenSky AircraftDB, join on `icao24`),
@@ -205,9 +213,10 @@ graph TD
 
 ---
 
-### Bronze → Silver Transformation (`fact_states`)
+### Bronze → Silver Transformation (`fact_states`) — *target*
 
-The core ETL step: a raw OpenSky `/states/all` state vector (Bronze) becomes a `fact_states` row
+The core ETL step **of the target star schema** (not the current `map1` MVP, which stores raw values
+without conversion): a raw OpenSky `/states/all` state vector (Bronze) becomes a `fact_states` row
 (Silver), with SI → aviation unit conversion and a resolved `airline_icao` (see [ADR 008](../adr/008-airline-attribution-star-schema.md)).
 
 ```mermaid
