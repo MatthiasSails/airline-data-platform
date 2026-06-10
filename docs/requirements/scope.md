@@ -13,7 +13,7 @@ Concrete deliverables per phase, with explicit non-goals.
 **In scope:**
 - Live ADS-B data collection from adsb.lol (Berlin, 60 nm radius)
 - MongoDB landing zone (`airline_landing.adsb_raw`) on Liora VM
-- OpenSky Network collection via local CLI (`collectors/opensky_collector.py`) → `airline_landing.opensky_raw`
+- OpenSky Network collection via local CLI (`collectors/opensky_states_collector.py`) → `airline_landing.opensky_raw`
 - Cross-collection join exploration: ADS-B ↔ OpenSky via ICAO24 transponder address
 - PostgreSQL warehouse schema (airports, airlines, flights)
 - Streamlit dashboard visualizing the landing zone (live on VM)

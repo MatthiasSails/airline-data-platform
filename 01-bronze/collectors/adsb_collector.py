@@ -24,9 +24,9 @@ from pathlib import Path
 
 import requests
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))  # repo root (for data_connectors)
 
-from db.mongo.connector import from_env
+from data_connectors.mongo import from_env
 
 logging.basicConfig(
     level=logging.INFO,

@@ -49,14 +49,13 @@ airline-data-platform/
 │   ├── setup.md              # local setup runbook
 │   └── mongodb-access.md     # Atlas access / DB users
 ├── 01-bronze/                # Collectors → BRONZE (MongoDB)  (+ own README)
-│   ├── opensky_api/          # OpenSky API client (OAuth2)
-│   └── collectors/           # adsb_collector, opensky_collector, flight_tracker
+│   └── collectors/           # adsb_collector, opensky_states_collector, flight_tracker
 ├── 02-silver/                # BRONZE → SILVER
 │   ├── etl/                  # Bronze → Silver transform (opensky_to_supabase.py)
 │   └── warehouse/            # star-schema DDL: schema.sql
 ├── 03-gold/                  # consumption: api/ (FastAPI) + dashboard/ (Streamlit); warehouse/ (Gold aggregates) planned
 ├── deployment/               # docker-compose, scheduler, orchestration (un-numbered, cross-cutting)
-├── data-connectors/          # provider-abstracted DB access: mongo.py, supabase.py (ADR 011)
+├── data_connectors/          # provider-abstracted DB access: mongo.py, supabase.py (ADR 011)
 ├── notebooks/                # exploration + collector walkthroughs (explore_*, collect_*)
 ├── requirements.txt          # Pinned Python dependencies
 └── CLAUDE.md                 # This file
@@ -67,7 +66,7 @@ airline-data-platform/
 Two axes — keep them separate (this is the whole point of the layout):
 
 - **`docs/` = knowledge layer** — everything *about the whole project*: requirements, ADRs, architecture, data-source references, the report. Project-wide, un-numbered. Has its own index `docs/README.md`. (Mirrors the global rule "Git = knowledge layer, Projects V2 = workflow layer".)
-- **Numbered folders (`01-`–`03-`) = data-pipeline layers (code)** — `01-bronze` → `02-silver` → `03-gold`. The medallion is readable from the tree (ADR 011). Cross-cutting code is **un-numbered**: `data-connectors/`, `deployment/`, `notebooks/`.
+- **Numbered folders (`01-`–`03-`) = data-pipeline layers (code)** — `01-bronze` → `02-silver` → `03-gold`. The medallion is readable from the tree (ADR 011). Cross-cutting code is **un-numbered**: `data_connectors/`, `deployment/`, `notebooks/`.
 - **Module `README.md`** — "how to run *this* module", co-located in each code dir (e.g. `01-bronze/README.md`).
 
 Rule of thumb: about the whole project → `docs/`; a pipeline stage's code → its numbered folder; how to run one module → that module's README. **Project progress/tracking is GitHub Projects V2, not a repo file.** Learning artefacts (bootcamp theory, not project docs) do **not** belong in this repo — they go to `knowledgebase/methodology/`.
@@ -200,7 +199,6 @@ Naming convention: `explore_<source>.ipynb` in `notebooks/`.
 
 | Notebook | Source |
 |---|---|
-| `explore_opensky_api.ipynb` | OpenSky Network |
 | `explore_adsb_lol.ipynb` | adsb.lol API |
 | `explore_mongo_atlas.ipynb` | MongoDB Atlas landing zone — all 3 collections (`adsb_raw`, `opensky_raw`, `flight_tracker_raw`) incl. cross-collection join (sec. 9–11) + flight_tracker exploration (sec. 12–14) |
 
@@ -218,12 +216,12 @@ python collectors/adsb_collector.py
 python collectors/opensky_states_collector.py
 python collectors/opensky_states_collector.py --interval 60  # continuous polling
 
-# OpenSky /flights/* collector — LEGACY; retired per ADR 009. Use opensky_states_collector instead.
-# python collectors/opensky_collector.py
-
-# Educational step-by-step notebooks:
-# collect_adsb.ipynb, collect_opensky.ipynb
+# Educational step-by-step notebook:
+# collect_adsb.ipynb
 ```
+
+> The legacy OpenSky `/flights/*` client (`opensky_api/`, `opensky_collector.py`) was **removed**
+> 2026-06-10 — retired per ADR 009; the live source is `/states/all`.
 
 ### Bronze → Silver ETL
 
@@ -268,12 +266,10 @@ Join-Key: `adsb_raw.ac[].hex` = `opensky_raw.flights[].icao24` (ICAO24 Transpond
 | `docs/data-sources/airline_api_market_overview.md` | API market comparison & integration status |
 | `docs/data-sources/opensky_api_doc.md` | OpenSky API technical reference |
 | `docs/data-sources/adsb_lol_api_doc.md` | adsb.lol API technical reference (Phase 2) |
-| `01-bronze/opensky_api/client.py` | OpenSky API client (OAuth2, mock/real) |
 | `01-bronze/collectors/adsb_collector.py` | ADS-B collector → MongoDB adsb_raw |
-| `01-bronze/collectors/opensky_states_collector.py` | OpenSky /states/all collector → MongoDB opensky_raw (active, local Mac only) |
-| `01-bronze/collectors/opensky_collector.py` | OpenSky /flights/* collector → MongoDB opensky_raw (legacy; /flights/* retired per ADR 009) |
+| `01-bronze/collectors/opensky_states_collector.py` | OpenSky /states/all collector → MongoDB opensky_raw (active, local Mac only; OAuth2/basic-auth inline) |
 | `01-bronze/collectors/flight_tracker.py` | Single-flight tracker → MongoDB flight_tracker_raw |
-| `data-connectors/mongo.py` | MongoDB connector (insert_raw, insert_adsb_snapshot) |
+| `data_connectors/mongo.py` | MongoDB connector (insert_raw, insert_adsb_snapshot) |
 | `02-silver/etl/opensky_to_supabase.py` | Bronze → Silver ETL: Atlas adsb_raw + opensky_raw → Supabase map1 |
 | `02-silver/warehouse/schema.sql` | PostgreSQL schema (airports, airlines, flights) |
 

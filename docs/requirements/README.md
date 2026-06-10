@@ -76,6 +76,6 @@ airline-data-platform/
 ├── 02-silver/              ← Bronze → Silver: etl/ + warehouse/ (Postgres star schema)
 ├── 03-gold/               ← consumption: api/ (FastAPI) + dashboard/ (Streamlit)
 ├── deployment/            ← docker-compose, scheduler, orchestration (un-numbered)
-├── data-connectors/        ← provider-abstracted DB access (mongo.py, supabase.py)
+├── data_connectors/        ← provider-abstracted DB access (mongo.py, supabase.py)
 └── notebooks/              ← exploration + collector walkthroughs
 ```

@@ -73,7 +73,7 @@ Returns all flights for a specific aircraft (max 30 days).
 Both `/flights/departure` and `/flights/arrival` return **HTTP 404** when no flights exist
 for the requested airport + time window. This is not an error — treat it as an empty list.
 
-Fix in `opensky_api/client.py`: catch `status_code == 404` before `raise_for_status()` and return `[]`.
+The retrospective `/flights/*` client was retired (ADR 009); it returned 404 for empty airport/time windows, handled as an empty list. The live `/states/all` collector has no such per-window 404.
 
 ### Arrivals data has a processing lag
 

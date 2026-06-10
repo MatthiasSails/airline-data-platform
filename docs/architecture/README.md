@@ -4,7 +4,7 @@ The platform follows a **medallion** structure: Bronze (raw landing zone, MongoD
 (Supabase Postgres — currently the flat `map1` MVP table; curated star schema is the target) → Gold
 (consumption layer: API + dashboard; dedicated Gold aggregates deferred). The phases below map onto
 the repo's folder layout: `01-bronze` (Bronze) → `02-silver` (Silver) → `03-gold` (API + dashboard);
-cross-cutting code (`data-connectors/`, `deployment/`, `notebooks/`) is un-numbered (see ADR 011).
+cross-cutting code (`data_connectors/`, `deployment/`, `notebooks/`) is un-numbered (see ADR 011).
 
 **Related:**
 - [data-flow.md](data-flow.md) — prose explanation of data flow
@@ -28,11 +28,11 @@ graph LR
     REF["Static reference feeds<br/>aircraftDatabase.csv<br/>airlines.dat (OpenFlights)<br/>airports.csv (OurAirports)"]
     ADSB["adsb.lol API<br/>public REST<br/>(Bronze-only)"]
 
-    OS -->|state vectors| COL["Collectors<br/>opensky_collector.py<br/>adsb_collector.py"]
+    OS -->|state vectors| COL["Collectors<br/>opensky_states_collector.py<br/>adsb_collector.py"]
     REF -->|raw rows| COL
     ADSB -->|raw snapshots| COL
 
-    COL -->|insert| CON["MongoConnector<br/>data-connectors/mongo.py"]
+    COL -->|insert| CON["MongoConnector<br/>data_connectors/mongo.py"]
     CON --> MDB["MongoDB Atlas<br/>airline_landing<br/>(opensky_raw, adsb_raw, ...)<br/>mongo-mk1 (eu-central-1)"]
 
     style OS fill:#4CAF50,color:#fff
@@ -44,10 +44,9 @@ graph LR
 ```
 
 **What exists now:**
-- `01-bronze/opensky_api/client.py` — OpenSky client (OAuth2)
-- `01-bronze/collectors/opensky_collector.py` — OpenSky States collector ✅
+- `01-bronze/collectors/opensky_states_collector.py` — OpenSky `/states/all` collector (OAuth2/basic-auth inline) ✅
 - `01-bronze/collectors/adsb_collector.py` — adsb.lol collector (Bronze-only) ✅
-- `data-connectors/mongo.py` — MongoDB Atlas connector ✅
+- `data_connectors/mongo.py` — MongoDB Atlas connector ✅
 - `airline_landing` collections live on Atlas ✅
 
 > **adsb.lol is Bronze-only** — collected raw for optionality and a later OpenSky-vs-adsb.lol
@@ -85,7 +84,7 @@ graph LR
 
 **What exists now:**
 - `02-silver/etl/opensky_to_supabase.py` — ETL: Atlas `adsb_raw` + `opensky_raw` → Supabase `map1` ✅
-- `data-connectors/supabase.py` — Postgres connector ✅
+- `data_connectors/supabase.py` — Postgres connector ✅
 - `02-silver/warehouse/schema.sql` — star-schema DDL (target model; `map1` itself was created via the Supabase UI and is *not* in this DDL) ✅
 
 **What is pending — promote the `map1` MVP to the star schema:**
@@ -185,16 +184,16 @@ Moved to [silver-layer-er.md](silver-layer-er.md).
 
 ```mermaid
 graph TD
-    OS["opensky_api/client.py"]
+    OS["collectors/opensky_states_collector.py"]
     ADSB["adsb.lol API"]
 
     OS --> COL["01-bronze/collectors/"]
     ADSB --> COL
 
-    COL --> CONN["data-connectors/mongo.py"]
+    COL --> CONN["data_connectors/mongo.py"]
     CONN --> MDB["MongoDB Atlas (Bronze)"]
     MDB --> ETL["02-silver/etl/"]
-    ETL --> WCON["data-connectors/supabase.py"]
+    ETL --> WCON["data_connectors/supabase.py"]
     WCON --> PG["PostgreSQL (Silver)"]
     PG --> API["03-gold/api/ (FastAPI)"]
     PG --> DASH["03-gold/dashboard/"]

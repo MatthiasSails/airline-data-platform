@@ -30,7 +30,7 @@ See [ADR 003](../adr/003-dual-stream.md) for the dual-stream rationale and [ADR 
 - Docs: `opensky_api_doc.md`
 - Auth: OAuth2 Client Credentials (`OPENSKY_CLIENT_ID`, `OPENSKY_CLIENT_SECRET` in `.env`)
 - Code format: **ICAO** (4 chars — `EDDB`, `EDDM`)
-- Client: `01-bronze/opensky_api/client.py`
+- Live access: `01-bronze/collectors/opensky_states_collector.py` (`/states/all`)
 - Credits: 4,000/day (registered user)
 - Key endpoints: `/flights/departure`, `/flights/arrival`, `/flights/aircraft`
 

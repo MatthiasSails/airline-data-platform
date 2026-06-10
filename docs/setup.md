@@ -62,10 +62,8 @@ Open VS Code, select the `.venv` kernel in Jupyter, then open any notebook:
 
 ```
 notebooks/collect_adsb.ipynb         ← ADS-B collector walkthrough
-notebooks/collect_opensky.ipynb       ← OpenSky collector walkthrough
 notebooks/explore_mongo_atlas.ipynb   ← MongoDB landing zone exploration (all 3 collections)
 notebooks/explore_adsb_lol.ipynb      ← adsb.lol API exploration
-notebooks/explore_opensky_api.ipynb   ← OpenSky API exploration
 ```
 
 ---

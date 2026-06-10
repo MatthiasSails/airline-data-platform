@@ -86,7 +86,7 @@ pipeline phases** (Bronze → Silver → consumption → deployment).
 | **[02-silver/](02-silver/)** | **Bronze → Silver**: [`etl/`](02-silver/etl/) + [`warehouse/`](02-silver/warehouse/) (PostgreSQL star schema) |
 | **[03-gold/](03-gold/)** | Consumption layer: [`api/`](03-gold/api/) (FastAPI) + [`dashboard/`](03-gold/dashboard/) (Streamlit). `warehouse/` (Gold aggregates) planned — [ADR 011](docs/adr/011-layer-named-folders-connector-abstraction-ml.md) |
 | **[deployment/](deployment/)** | docker-compose, scheduler, orchestration (un-numbered, cross-cutting) |
-| **[data-connectors/](data-connectors/)** | Provider-abstracted DB access: `mongo.py` (Bronze), `supabase.py` (Silver) — [ADR 011](docs/adr/011-layer-named-folders-connector-abstraction-ml.md) |
+| **[data_connectors/](data_connectors/)** | Provider-abstracted DB access: `mongo.py` (Bronze), `supabase.py` (Silver) — [ADR 011](docs/adr/011-layer-named-folders-connector-abstraction-ml.md) |
 | **[notebooks/](notebooks/)** | Exploration + collector walkthroughs (`explore_*`, `collect_*`) |
 
 ---

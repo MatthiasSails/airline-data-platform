@@ -8,14 +8,17 @@ in no single numbered layer.
 | File | Store | Used by |
 |---|---|---|
 | `mongo.py` | MongoDB Atlas — **Bronze** raw landing zone (`airline_landing`) | collectors (`01-bronze/`) |
-| `supabase.py` | Supabase/PostgreSQL — **Silver** (and later Gold) | ETL (`02-silver/etl/`), dashboard |
+| `supabase.py` | Supabase/PostgreSQL — **Silver** (and later Gold) | ETL (`02-silver/etl/`) |
+
+This is an **importable Python package** (underscore name, with `__init__.py`). Consumers add the
+repo root to `sys.path` and import e.g. `from data_connectors.mongo import from_env` (see the
+collectors in `01-bronze/collectors/`).
 
 > **ADR 011 follow-up (not yet done):** introduce the Ports & Adapters split — an abstract
 > `base.py` (`SourceStore`, `WarehouseStore`) plus a `factory.py` selecting the adapter from env, so
 > the ETL depends on the interface instead of `psycopg2`/`pymongo` directly. The current
-> `mongo.py` / `supabase.py` are the existing concrete connectors, moved here unchanged.
-> Note: a hyphenated dir is not a valid Python package name — the abstraction step will need an
-> import-safe shim (e.g. `data_connectors/` package or a path entry).
+> `mongo.py` / `supabase.py` are the existing concrete connectors, moved here unchanged
+> (`02-silver/etl/opensky_to_supabase.py` still calls `psycopg2`/`pymongo` directly).
 
 ---
 

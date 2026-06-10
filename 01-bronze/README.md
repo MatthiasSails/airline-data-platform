@@ -17,16 +17,14 @@ Background: [ADR 003](../docs/adr/003-dual-stream-adsb.md), [ADR 004](../docs/ad
 
 | Path | Source | Role | Status |
 |---|---|---|---|
-| `opensky_api/client.py` | OpenSky | OAuth2 API client (live + mock) | active |
-| `opensky_api/mock_data.py` | OpenSky | Mock responses for `--mock` runs | active |
-| `collectors/opensky_states_collector.py` | OpenSky | `/states/all` → `opensky_raw` (local Mac only) | **active** |
-| `collectors/opensky_collector.py` | OpenSky | `/flights/*` → `opensky_raw` (local only) | legacy — retired per ADR 009 |
+| `collectors/opensky_states_collector.py` | OpenSky | `/states/all` → `opensky_raw` (local Mac only; OAuth2/basic-auth inline) | **active** |
 | `collectors/adsb_collector.py` | adsb.lol | `/v2` → `adsb_raw` (local or cloud VM) | active |
+| `collectors/flight_tracker.py` | OpenSky | single-flight `/flights/aircraft` → `flight_tracker_raw` | active |
 
-> **Moved (ADR 011):** the Mongo connector now lives in [`../data-connectors/mongo.py`](../data-connectors/mongo.py);
+> **Moved (ADR 011):** the Mongo connector now lives in [`../data_connectors/mongo.py`](../data_connectors/mongo.py);
 > the `collect_*` / `explore_*` notebooks now live in [`../notebooks/`](../notebooks/).
 > The Silver schema is in [`../02-silver/warehouse/`](../02-silver/warehouse/); the PostgreSQL
-> connector in [`../data-connectors/supabase.py`](../data-connectors/supabase.py).
+> connector in [`../data_connectors/supabase.py`](../data_connectors/supabase.py).
 
 Convention: `collect_*.ipynb` = production walkthrough with MongoDB writes; `explore_*.ipynb` = ad-hoc inspection without side effects.
 

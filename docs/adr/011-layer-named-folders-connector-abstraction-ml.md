@@ -71,7 +71,7 @@ The rule that resolves every "where does X go?" question: **data flows → numbe
 workloads → un-numbered folders.**
 
 ```
-data-connectors/   # provider-abstracted data access (see §4)
+data_connectors/   # provider-abstracted data access (see §4)
 ml/                # machine-learning workload (see §5)
 deployment/        # Docker, compose, GitHub Actions, scheduler, Portainer GitOps
 docs/              # knowledge layer (ADR 010)
@@ -79,14 +79,14 @@ notebooks/         # exploration
 requirements.txt   # dev tooling lives at repo root, not inside a layer
 ```
 
-### 4. Database access goes through a provider-abstracted `data-connectors/` (Ports & Adapters)
+### 4. Database access goes through a provider-abstracted `data_connectors/` (Ports & Adapters)
 
 Connectors are shared by multiple layers (the warehouse store is written by Silver ETL and read by
 the Gold serving apps), so they belong to *no single layer*. They are abstracted so that the
 technology and vendor are swappable:
 
 ```
-data-connectors/
+data_connectors/
 ├── base.py       # Ports: abstract SourceStore, WarehouseStore (domain operations)
 ├── mongo.py      # MongoSource(SourceStore)          — Bronze landing zone
 ├── supabase.py   # SupabaseWarehouse(WarehouseStore) — Silver / Gold
@@ -96,6 +96,12 @@ data-connectors/
 The interface speaks in **domain terms** (`read_raw_states()`, `upsert_fact_states(rows)`), never in
 DB terms (`execute(sql)`), so provider/SQL knowledge cannot leak into ETL or apps. Swapping
 Supabase → Neon, or Mongo → another store, becomes a new adapter with **zero ETL changes**.
+
+> **Naming exception — underscore, not hyphen.** This folder is `data_connectors/` (not
+> `data-connectors/`): unlike the numbered layers, it is *imported as a Python package*
+> (`from data_connectors.mongo import from_env`), and a hyphen is not a valid identifier. The
+> hyphen convention applies only to dirs that are never imported. Collectors add the repo root to
+> `sys.path` to import it.
 
 ### 5. Machine learning is a *workload*, not a data layer
 
@@ -108,7 +114,7 @@ If ML is added later, it does **not** become "the Gold folder". It splits across
 
   ```
   ml/
-  ├── features/    # feature engineering (reads Silver via data-connectors)
+  ├── features/    # feature engineering (reads Silver via data_connectors)
   ├── training/
   ├── models/      # artifacts / registry references
   └── inference/   # scoring → writes Gold
@@ -121,8 +127,7 @@ ML is **out of scope** for the current DE track and is recorded here only to res
 ```
 airline-data-platform/
 ├── 01-bronze/
-│   ├── collectors/        # opensky_states_collector.py, adsb_collector.py (→ Mongo)
-│   ├── opensky_api/       # OpenSky OAuth2 client
+│   ├── collectors/        # opensky_states_collector.py, adsb_collector.py, flight_tracker.py (→ Mongo; auth inline)
 │   └── reference/         # raw fetch of OpenFlights / OurAirports / OpenSky AircraftDB → Mongo
 ├── 02-silver/
 │   ├── etl/               # extract.py · transform.py · load.py · dimensions.py
@@ -131,7 +136,7 @@ airline-data-platform/
 │   ├── warehouse/         # Gold aggregates / materialized views (DDL)
 │   ├── api/               # FastAPI
 │   └── dashboard/         # Streamlit
-├── data-connectors/       # base.py · mongo.py · supabase.py · factory.py
+├── data_connectors/       # base.py · mongo.py · supabase.py · factory.py
 ├── deployment/            # docker/ · scheduler/  (CI lives in .github/workflows/ at root)
 ├── docs/                  # adr/ · architecture/ · data-sources/ · requirements/ · report/
 ├── notebooks/             # exploration (moved out of 01-)
@@ -166,7 +171,7 @@ ADR 010 already rejected on architectural grounds).
 | `reports/figures/`                             | `docs/report/`                               |
 | `.github/workflows/`                           | `deployment/` (CI/CD)                        |
 | `requirements.txt`                             | repo root                                    |
-| *(none)*                                       | `data-connectors/`, `03-gold/{warehouse,api}` (no medallion / API / connector abstraction in the template) |
+| *(none)*                                       | `data_connectors/`, `03-gold/{warehouse,api}` (no medallion / API / connector abstraction in the template) |
 
 ## Rationale
 
@@ -210,13 +215,18 @@ ADR 010 already rejected on architectural grounds).
   template question is handled separately with the tutors and assessed as non-binding; if a
   template-shaped submission is ever required, §6's mapping table is the bridge (and the medallion
   could live *inside* a `src/` package as a follow-up). This does not block our repo.
-- When executed:
-  - `git mv` the three phase folders (`01-data-collection` → `01-bronze`, etc.); `04-deployment` →
-    un-numbered `deployment/`; collapse `03-data-consumption` into `03-gold/`.
-  - Extract `data-connectors/`; refactor `02-silver/etl/opensky_to_supabase.py` to depend on the
-    `WarehouseStore` port instead of calling `psycopg2` directly.
-  - Update all cross-references in `README.md`, `CLAUDE.md`, `docs/architecture/*`, and module docs;
-    verify relative Markdown links.
-  - Reconcile the stale architecture docs (which still say "ETL pending / Neon" and describe a star
-    schema while the live Silver is the flat `map1` table) with the executed reality.
-- ADR prose left as a historical point-in-time record per repo convention.
+- **Executed 2026-06-10** (commits `12b82b9`, `3d9bf36`, + this cleanup):
+  - `git mv` the phase folders (`01-data-collection`→`01-bronze`, `02-data-modeling`→`02-silver`,
+    `03-data-consumption`→`03-gold`, `04-deployment`→`deployment/`); notebooks → `notebooks/`.
+  - Extracted the connectors into the **`data_connectors/`** package (underscore — see §4) and fixed
+    the three collectors to `from data_connectors.mongo import from_env` (the move had broken their
+    old `from db.mongo.connector` import). Verified via `--help` on the venv interpreter.
+  - Removed the retired `/flights/*` stack (`opensky_api/`, `opensky_collector.py`, the two
+    flights-only notebooks) per ADR 009.
+  - Updated all cross-references in `README.md`, `CLAUDE.md`, `docs/*`, module docs; ADR history
+    001–010 left untouched.
+  - Reconciled the stale architecture/ETL docs (`map1` MVP vs. target star schema; Neon → Supabase).
+- **Still a follow-up:** the Ports & Adapters abstraction (`base.py`/`factory.py`); the ETL still
+  calls `psycopg2`/`pymongo` directly. Also: Portainer GitOps stacks must be repointed
+  `04-deployment/…` → `deployment/…` (stored outside git).
+- ADR prose otherwise left as a point-in-time record per repo convention.
