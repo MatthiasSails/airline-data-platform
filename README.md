@@ -2,7 +2,7 @@
 
 End-to-end data pipeline for live airline / flight data — built as the capstone project of the **DataScientest Data Engineer Bootcamp**.
 
-📋 **Project status:** Step 1 complete (2026-05-27), Step 2 in progress (deadline 10.06.2026) — see [docs/requirements](docs/requirements/README.md)
+📋 **Project status:** Steps 0–1 complete, Step 2 in progress (Data Consumption & API). ETL (Bronze → Silver) is running and the Streamlit dashboard is **live in production** — deployed via Docker/Portainer behind a Cloudflare Tunnel. See [docs/requirements](docs/requirements/README.md).
 
 ---
 
@@ -24,15 +24,15 @@ graph LR
     OS["OpenSky Network<br/>(local only)"]
     KAG["Kaggle datasets<br/>(historical)"]
 
-    ADSB -->|raw JSON| MDB[("MongoDB<br/>Landing Zone")]
+    ADSB -->|raw JSON| MDB[("MongoDB Atlas<br/>Landing Zone (Bronze)")]
     OS -->|raw JSON| MDB
     KAG -->|raw JSON| MDB
 
-    MDB -->|ETL| PG[("PostgreSQL<br/>Warehouse")]
+    MDB -->|ETL| PG[("Supabase Postgres<br/>Warehouse (Silver)")]
 
-    PG --> API["FastAPI<br/>backend"]
-    MDB -.->|"direct read<br/>Step 1"| DASH["Streamlit<br/>Dashboard"]
-    API --> DASH
+    PG -->|live read| DASH["Streamlit<br/>Dashboard"]
+    PG -.->|planned| API["FastAPI<br/>backend"]
+    API -.->|planned| DASH
 
     style ADSB fill:#4CAF50,color:#fff
     style OS fill:#4CAF50,color:#fff
@@ -52,14 +52,14 @@ graph LR
 | Step | Topic | Deadline | Status |
 |---|---|---|---|
 | 0 | Scoping & Kickoff | 07.05.2026 | ✅ |
-| 1 | Data Discovery & Organization | 20.05.2026 | 🚧 |
-| 2 | Data Consumption & API | 10.06.2026 | ⏳ |
+| 1 | Data Discovery & Organization | 20.05.2026 | ✅ |
+| 2 | Data Consumption & API | 10.06.2026 | 🚧 |
 | 3 | Automation & Pipelines | 16.06.2026 | ⏳ |
 | 4 | Deployment & Frontend | 02.07.2026 | ⏳ |
 | Final Defense | Presentation & Demo | 20.07.2026 | ⏳ |
 
-**Live now:** ADS-B collector → MongoDB landing zone → Streamlit dashboard.
-**Next:** UML/ERD, ETL pipeline, FastAPI backend.
+**Live now:** ADS-B + OpenSky collectors → MongoDB Atlas (Bronze) → ETL → Supabase Postgres (Silver) → Streamlit dashboard — deployed via Docker/Portainer behind a Cloudflare Tunnel. Collection is narrowed to a Frankfurt bounding box (~150×150 km).
+**Next:** FastAPI backend over the Silver warehouse, automated collection scheduler (Step 3).
 
 ---
 
