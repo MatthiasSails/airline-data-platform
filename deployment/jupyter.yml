@@ -1,0 +1,16 @@
+# airline-jupyter stack — analysis/dev notebook with the repo mounted at /workspace.
+#
+# Dev tool, independent lifecycle from the dashboard. Env (JUPYTER_TOKEN, MONGO_URI)
+# is injected by Portainer per stack, not from the repo .env.
+services:
+  jupyter:
+    build: ./jupyter
+    container_name: jupyter
+    ports:
+      - "8888:8888"
+    volumes:
+      - ..:/workspace
+    environment:
+      - JUPYTER_TOKEN=${JUPYTER_TOKEN}
+      - MONGO_URI=${MONGO_URI}
+    restart: unless-stopped
