@@ -13,6 +13,16 @@ OurAirports CSV (planned)          ──►  MongoDB Atlas airline_landing.airp
 ETL lives in [`../02-silver/etl/opensky_to_supabase.py`](../02-silver/etl/opensky_to_supabase.py).
 Background: [ADR 003](../docs/adr/003-dual-stream-adsb.md), [ADR 004](../docs/adr/004-mongo-as-multisource-hub.md), [ADR 009](../docs/adr/009-states-api-silver-model.md).
 
+### Layer contract
+
+- **Collectors write to the raw zone only.** Every collector here persists the
+  *unmodified* API payload to a `*_raw` MongoDB collection (`opensky_raw`, `adsb_raw`)
+  via [`../data_connectors/mongo.py`](../data_connectors/mongo.py). No collector touches
+  PostgreSQL — the `psycopg2`/Supabase connector is never imported in this layer.
+- **Raw → PostgreSQL happens exclusively in Silver.** The only path out of the raw zone
+  into Supabase is the Silver ETL, which `extract()`s from `*_raw` and `load()`s into `map1`.
+  Bronze never writes Postgres; Silver never calls a live source API.
+
 ## Index
 
 | Path | Source | Role | Status |
