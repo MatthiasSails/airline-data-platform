@@ -145,7 +145,8 @@ As of 2026-05-27 this project is **no longer** tied to Liora VM (see ADR 007). P
     ssh -i ~/.ssh/airline_vm -f -N \
         -L 5432:db.civmkvcgbklejootrkks.supabase.co:5432 \
         ubuntu@63.185.229.117
-    # psycopg2 → host=localhost port=5432 user=postgres dbname=postgres
+    # ETL load() reads SUPABASE_DB_HOST/PORT (default localhost:5432). Keep SUPABASE_DB_HOST
+    # unset on the Mac so it targets the tunnel; user=postgres dbname=postgres.
     ```
   - **On aws-airline-1:** use port **5432** (Direct Connection on `db.<ref>.supabase.co`, IPv6) — verified working from the VM 2026-06-11 (387 rows in `map1`). `app.py` defaults to 5432.
   - **Docker containers on aws-airline-1 do NOT inherit IPv6 automatically.** Docker bridge networks are created without IPv6 even when the host is dual-stack. Any container that needs to reach Supabase must use `network_mode: host`. Do not add `ports:` when using host networking (silently ignored).
@@ -226,13 +227,16 @@ python collectors/opensky_states_collector.py --interval 60  # continuous pollin
 ### Bronze → Silver ETL
 
 ```bash
-# Requires SSH tunnel (Mac → aws-airline-1 → Supabase, see below).
-# On aws-airline-1: connect directly (VM has IPv6), no tunnel needed.
+# load() reads SUPABASE_DB_HOST/PORT (default localhost:5432) since commit bdf363b — this is
+# what makes the VM-direct path actually work. Mac → tunnel (SUPABASE_DB_HOST unset → localhost);
+# VM → direct (SUPABASE_DB_HOST set in the VM .env, IPv6, no tunnel).
 
-# Start tunnel (Mac dev):
+# --- On aws-airline-1 (no tunnel; VM has its own venv) ---
+ssh -i ~/.ssh/airline_vm ubuntu@63.185.229.117
+cd ~/airline-data-platform && .venv/bin/python 02-silver/etl/opensky_to_supabase.py
+
+# --- Local Mac dev (start tunnel first, SUPABASE_DB_HOST stays unset) ---
 ssh -i ~/.ssh/airline_vm -f -N -L 5432:db.civmkvcgbklejootrkks.supabase.co:5432 ubuntu@63.185.229.117
-
-# Run ETL:
 python 02-silver/etl/opensky_to_supabase.py
 ```
 
