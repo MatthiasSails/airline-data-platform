@@ -25,10 +25,11 @@ def load_snapshot() -> pd.DataFrame:
     conn = _conn()
     df = pd.read_sql(
         """
-        SELECT icao24, callsign, latitude, longitude, on_ground,
-               true_track, vertical_rate, time_position, updated_at
+        SELECT DISTINCT ON (icao24, callsign)
+               icao24, callsign, latitude, longitude, on_ground,
+               true_track, vertical_rate, time_position
         FROM map1
-        WHERE updated_at = (SELECT MAX(updated_at) FROM map1)
+        ORDER BY icao24, callsign, time_position DESC, id DESC
         """,
         conn,
     )
@@ -43,11 +44,11 @@ if df.empty:
     st.warning("No data in map1 — run the ETL first.")
     st.stop()
 
-snapshot_time = df["updated_at"].iloc[0]
+newest_position = df["time_position"].max()
 c1, c2, c3 = st.columns(3)
 c1.metric("Aircraft", len(df))
 c2.metric("In flight", int((~df["on_ground"]).sum()))
-c3.metric("Snapshot", snapshot_time.strftime("%Y-%m-%d %H:%M UTC"))
+c3.metric("Newest position", newest_position.strftime("%Y-%m-%d %H:%M UTC"))
 
 st.subheader("Map")
 st.map(df[["latitude", "longitude"]].dropna())
