@@ -20,5 +20,6 @@ create table public.map1 (
   true_track double precision null,
   vertical_rate double precision null,
   updated_at timestamp with time zone null,
-  constraint map1_pkey primary key (id)
+  constraint map1_pkey primary key (id),
+  constraint constr_map1_planetime unique (icao24, time_position)
 ) TABLESPACE pg_default;
