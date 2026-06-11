@@ -5,15 +5,21 @@ Reads from two Bronze collections and merges into map1:
   - adsb_raw      (adsb.lol)          field format: ac[].hex/lat/lon/…
   - opensky_raw   (OpenSky /states/all) field format: states[] as index-list
 
-Uses direct Postgres connection. SSH tunnel required for local dev:
-    ssh -i ~/.ssh/airline_vm -f -N \\
-        -L 5432:db.civmkvcgbklejootrkks.supabase.co:5432 \\
-        ubuntu@63.185.229.117
-On aws-airline-1 (IPv6): connect directly, no tunnel needed.
+Postgres target is controlled by SUPABASE_DB_HOST (default: localhost).
+
+  - On aws-airline-1 (IPv6): set SUPABASE_DB_HOST=db.<ref>.supabase.co and
+    connect directly — no tunnel needed.
+  - Local dev (Mac has no global IPv6): leave SUPABASE_DB_HOST unset (→ localhost)
+    and open an SSH tunnel through the VM first:
+        ssh -i ~/.ssh/airline_vm -f -N \\
+            -L 5432:db.<ref>.supabase.co:5432 \\
+            ubuntu@63.185.229.117
 
 Requires in .env (project root):
     MONGO_URI              read-only Atlas URI
     MONGO_DB               airline_landing
+    SUPABASE_DB_HOST       Supabase Postgres host (optional; default localhost)
+    SUPABASE_DB_PORT       Supabase Postgres port (optional; default 5432)
     SUPABASE_DB_PASSWORD   Supabase postgres user password
 """
 
@@ -110,8 +116,8 @@ def load(rows: list[dict]) -> None:
     import psycopg2.extras
 
     conn = psycopg2.connect(
-        host="localhost",
-        port=5432,
+        host=os.environ.get("SUPABASE_DB_HOST", "localhost"),
+        port=int(os.environ.get("SUPABASE_DB_PORT", "5432")),
         dbname="postgres",
         user="postgres",
         password=os.environ["SUPABASE_DB_PASSWORD"],
