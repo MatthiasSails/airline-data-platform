@@ -34,7 +34,7 @@ We have three database users:
 | `airline-collector-rw` | `atlasAdmin` | Collectors, ETL, anything that writes data |
 | `matthiaskoehler_db_user` | `atlasAdmin` | Matthias' personal admin account |
 
-### 2. Atlas UI Members (for browser access to cloud.mongodb.com)
+### 2. Project Members (for browser access to cloud.mongodb.com)
 
 These are accounts that log into the Atlas web console to manage the project —
 view metrics, configure database users, manage the IP allowlist. This is a
@@ -42,17 +42,17 @@ browser login, not a database connection.
 
 We use a **shared team account** for this:
 
-- **Account:** `SECRET@protonmail.com`
+- **Account:** `bde.airline.0426@protonmail.com`
 - **Role:** `Project Data Access Admin` — full visibility into the project,
   clusters, metrics, and database user management. Cannot create or scale
   clusters, cannot touch billing.
-- **2FA is mandatory:** authentication codes are delivered to the Protonmail
-  inbox — you need access to `SECRET@protonmail.com` to log in.
+- **MFA is mandatory:** authentication codes are delivered to the Protonmail
+  inbox — you need access to `bde.airline.0426@protonmail.com` to log in.
 
 ### Where the secrets live
 
 All credentials (Protonmail login, Atlas UI login, database user URIs) are
-stored in **Proton Pass** under `SECRET@protonmail.com`. Ask Pavel or
+stored in **Proton Pass** under `bde.airline.0426@protonmail.com`. Ask Pavel or
 Matthias for access.
 
 ---
@@ -168,7 +168,7 @@ entries or an Atlas Private Endpoint.
 
 URL: https://cloud.mongodb.com → Project `airline` → Cluster `mongo-mk1`
 
-Log in with the shared team account (`SECRET@protonmail.com`). Key sections:
+Log in with the shared team account (`bde.airline.0426@protonmail.com`). Key sections:
 
 - **Database Access** — manage DB users, rotate passwords
 - **Network Access** — IP allowlist
