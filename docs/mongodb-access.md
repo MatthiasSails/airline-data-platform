@@ -2,31 +2,63 @@
 
 ## What is MongoDB Atlas?
 
-**MongoDB** is the database engine — it stores documents (JSON-like records) in
-collections. **Atlas** is MongoDB's managed cloud service: MongoDB runs on Atlas
-infrastructure, Atlas handles backups, scaling, networking, and access control.
+**MongoDB** is the document database engine. **Atlas** is MongoDB's managed
+cloud service: it handles infrastructure, backups, scaling, and access control.
 You never touch a server directly.
-
-In this project Atlas hosts our raw landing zone (Bronze layer):
-
-- **Cluster:** `mongo-mk1` (M0 Free Tier, eu-central-1 Frankfurt)
-- **Database:** `airline_landing`
-- **Collections:** `adsb_raw`, `opensky_raw`
 
 ---
 
-## User types and access
+## Atlas hierarchy
 
-Atlas has two completely independent user layers — do not confuse them:
+```
+Organization  (Matthias Koehler Co.)
+└── Project: airline
+    └── Cluster: mongo-mk1  (M0 Free Tier, eu-central-1 Frankfurt)
+        ├── airline_landing     ← Bronze landing zone (active)
+        │   ├── flight_tracker_raw
+        │   ├── opensky_raw
+        │   └── adsb_raw
+        └── airlines            ← legacy experiment, not in active use
+            └── states_all
+```
 
-### 1. Database Users (for code and tooling)
+`mongodbVSCodePlaygroundDB` is a VS Code Playground leftover — ignore it.
 
-These are MongoDB credentials embedded in a connection string (URI). They have
-no browser login — they exist solely to authenticate programmatic access to the
-data. All application code, collectors, notebooks, and external tools (e.g. VS
-Code MongoDB extension, Compass) connect via a database user.
+---
 
-We have three database users:
+## Access layers
+
+Atlas has three completely independent access layers — do not confuse them:
+
+### 1. Organization Members
+
+Browser login to `cloud.mongodb.com` at the **organization** level. Grants
+visibility across all projects in the org. Managed under
+*Access Manager → Members* at the org level.
+
+### 2. Project Members
+
+Browser login to `cloud.mongodb.com` scoped to the **airline** project.
+Grants access to cluster metrics, database user management, IP allowlist,
+and collection browsing. Managed under *Access Manager → Project Access*.
+
+We use a shared team account:
+
+| | |
+|---|---|
+| **Account** | `bde.airline.0426@protonmail.com` |
+| **Project Role** | `Project Data Access Admin` |
+| **Can** | View metrics, manage DB users, manage IP allowlist, browse collections |
+| **Cannot** | Create/scale clusters, touch billing |
+| **MFA** | Mandatory — codes go to the Protonmail inbox |
+
+Credentials are stored in **Proton Pass** → Vault "Airlines". Ask Pavel or
+Matthias for access.
+
+### 3. Database Users
+
+MongoDB credentials embedded in a connection string (URI). No browser login —
+used exclusively for programmatic access (application code, notebooks, tooling).
 
 | DB User | Role | When to use |
 |---|---|---|
@@ -34,26 +66,7 @@ We have three database users:
 | `airline-collector-rw` | `atlasAdmin` | Collectors, ETL, anything that writes data |
 | `matthiaskoehler_db_user` | `atlasAdmin` | Matthias' personal admin account |
 
-### 2. Project Members (for browser access to cloud.mongodb.com)
-
-These are accounts that log into the Atlas web console to manage the project —
-view metrics, configure database users, manage the IP allowlist. This is a
-browser login, not a database connection.
-
-We use a **shared team account** for this:
-
-- **Account:** `bde.airline.0426@protonmail.com`
-- **Role:** `Project Data Access Admin` — full visibility into the project,
-  clusters, metrics, and database user management. Cannot create or scale
-  clusters, cannot touch billing.
-- **MFA is mandatory:** authentication codes are delivered to the Protonmail
-  inbox — you need access to `bde.airline.0426@protonmail.com` to log in.
-
-### Where the secrets live
-
-All credentials (Protonmail login, Atlas UI login, database user URIs) are
-stored in **Proton Pass** under `bde.airline.0426@protonmail.com`. Ask Pavel or
-Matthias for access.
+Passwords are stored in **Proton Pass** (`bde.airline.0426@protonmail.com`).
 
 ---
 
@@ -73,8 +86,7 @@ MONGO_URI=mongodb+srv://airline-reader-ro:<PASSWORD>@mongo-mk1.ptb1k2b.mongodb.n
 MONGO_URI_RW=mongodb+srv://airline-collector-rw:<PASSWORD>@mongo-mk1.ptb1k2b.mongodb.net/?appName=mongo-mk1
 ```
 
-Both variables must be present. Get the passwords from Proton Pass
-(`bde.airline.0426@protonmail.com`).
+Get the passwords from Proton Pass (`bde.airline.0426@protonmail.com`).
 
 ### Step 2 — Use the connector
 
@@ -113,39 +125,24 @@ EOF
 
 ### Connecting from other tools
 
-**VS Code MongoDB Extension:** connect via `Cmd+Shift+P` → `MongoDB: Connect`
-→ `Connect with Connection String`. Use the SRV URI from Proton Pass.
+**VS Code MongoDB Extension:** `Cmd+Shift+P` → `MongoDB: Connect` → `Connect with Connection String`. Use the read-only SRV URI from Proton Pass.
 
 **MongoDB Compass:** paste the SRV URI into the connection dialog.
-
-**Other languages / tools:** use the SRV URI directly — the format is the same
-regardless of driver or language.
 
 ---
 
 ## Secret management
-
-### Current setup
 
 | Environment | How secrets are provided |
 |---|---|
 | Local Mac | `.env` in project root, filled manually from Proton Pass |
 | aws-airline-1 (Lightsail) | `.env` deployed manually to project root |
 
-### Future: AWS SSM Parameter Store (aws-airline-1)
-
-Replacing the manually deployed `.env` on the VM with AWS-native secret
-management is planned. The Lightsail instance gets an IAM role that allows
-`ssm:GetParameter` — the URI is fetched at runtime, never written to disk:
-
-```
-Lightsail (IAM role)  →  ssm:GetParameter  →  MONGO_URI in memory only
-```
-
-SSM Parameter Store (Standard tier) is free and sufficient for this project.
+**Future:** replace the manually deployed `.env` on the VM with AWS SSM
+Parameter Store — the Lightsail instance gets an IAM role that allows
+`ssm:GetParameter`, so the URI is fetched at runtime and never written to disk.
 
 ---
-
 
 ## Troubleshooting
 
@@ -157,21 +154,19 @@ SSM Parameter Store (Standard tier) is free and sufficient for this project.
 | `MONGO_URI not set` | `.env` missing or wrong directory | Check `pwd` — must be the project root |
 
 **IP Allowlist:** Atlas is configured with `0.0.0.0/0` (all IPs allowed).
-Security relies on SCRAM authentication — without valid credentials, no access
-is possible. This is deliberate for the project duration to avoid friction from
-changing IPs (home, office, VM reboots). For production: switch to individual IP
-entries or an Atlas Private Endpoint.
+Security relies on SCRAM authentication. For production: switch to individual
+IP entries or an Atlas Private Endpoint.
 
 ---
 
 ## Atlas console (browser)
 
-URL: https://cloud.mongodb.com → Project `airline` → Cluster `mongo-mk1`
+URL: `https://cloud.mongodb.com` → Organization *Matthias Koehler Co.* → Project `airline` → Cluster `mongo-mk1`
 
 Log in with the shared team account (`bde.airline.0426@protonmail.com`). Key sections:
 
-- **Database Access** — manage DB users, rotate passwords
+- **Database Access** — manage database users, rotate passwords
 - **Network Access** — IP allowlist
 - **Browse Collections** — inspect data directly in the browser
 - **Metrics** — connections, storage, operations
-- **Access Manager** — manage UI members and their roles
+- **Access Manager** — manage project members and their roles
