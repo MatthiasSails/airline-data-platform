@@ -13,6 +13,7 @@ run this" docs live in each code module's own README (e.g. `01-bronze/README.md`
 | [report/](report/) | DataScientest final project report |
 | [setup.md](setup.md) | Local development setup (venv, kernel, environment) |
 | [mongodb-access.md](mongodb-access.md) | MongoDB Atlas team access — users, roles, connection, secrets |
+| [vm-access.md](vm-access.md) | AWS Lightsail VM — SSH access, running services, team keys |
 
 `images/` holds shared assets referenced from the project README and these docs.
 
