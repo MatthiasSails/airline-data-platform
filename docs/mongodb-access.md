@@ -64,7 +64,6 @@ used exclusively for programmatic access (application code, notebooks, tooling).
 |---|---|---|
 | `airline-reader-ro` | `read` (all databases) | Notebooks, exploration, any read-only query |
 | `airline-collector-rw` | `atlasAdmin` | Collectors, ETL, anything that writes data |
-| `matthiaskoehler_db_user` | `atlasAdmin` | Matthias' personal admin account |
 
 Passwords are stored in **Proton Pass** (`bde.airline.0426@protonmail.com`).
 
