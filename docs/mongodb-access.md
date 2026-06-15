@@ -74,7 +74,7 @@ MONGO_URI_RW=mongodb+srv://airline-collector-rw:<PASSWORD>@mongo-mk1.ptb1k2b.mon
 ```
 
 Both variables must be present. Get the passwords from Proton Pass
-(`SECRET@protonmail.com`).
+(`bde.airline.0426@protonmail.com`).
 
 ### Step 2 — Use the connector
 
