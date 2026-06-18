@@ -32,25 +32,27 @@ Key file: `~/.ssh/airline_vm` (Ed25519, OpenSSH format, `chmod 400`)
 
 ### Team (Pavel, Chaitra)
 
-The team uses the same key as Matthias. Request the private key file `airline_vm` from Matthias and save it to your machine. It is an Ed25519 key in OpenSSH format (not a `.pem`).
+The team uses the dedicated team key `airline_team` — kept separate from Matthias's owner key so team access can be revoked independently (just remove its line from the VM's `authorized_keys`). Request the private key file `airline_team` from Matthias **as a file** (not copy-pasted text — Ed25519 keys are easily corrupted by copy-paste, which caused earlier setup failures). It is an Ed25519 key in OpenSSH format (not a `.pem`).
 
 #### Step 1 — Save the key file and set permissions
 
 **macOS / Linux:**
 ```bash
-chmod 400 ~/path/to/airline_vm
+chmod 400 ~/path/to/airline_team
 ```
 
 **Windows (PowerShell):**
 ```powershell
-icacls $env:USERPROFILE\.ssh\airline_vm /inheritance:r /grant:r "$env:USERNAME:R"
+icacls $env:USERPROFILE\.ssh\airline_team /inheritance:r /grant:r "$env:USERNAME:R"
 ```
 
 #### Step 2 — Connect
 
 ```bash
-ssh -i ~/path/to/airline_vm ubuntu@63.185.229.117
+ssh -i ~/path/to/airline_team ubuntu@63.185.229.117
 ```
+
+> Both `airline_vm` and `airline_team` are authorized on the VM; either key grants full `ubuntu` access. `airline_team` is the canonical key for the team.
 
 ---
 
