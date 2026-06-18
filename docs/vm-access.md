@@ -32,13 +32,46 @@ Key file: `~/.ssh/airline_vm` (`.pem`, `chmod 400`)
 
 ### Team (Pavel, Chaitra)
 
+The team uses a shared Ed25519 key stored in **Proton Pass** → Vault "Airlines" → item "AWS VM ubuntu user".
+
+**Step 1 — Save the private key**
+
 ```bash
-ssh -i ~/.ssh/airline_team ubuntu@63.185.229.117
+nano ~/.ssh/airline_team
 ```
 
-Key file: `~/.ssh/airline_team` (Ed25519, `chmod 600`)  
-Private key stored in **Proton Pass** → item "AWS VM ubuntu user" → Vault "Airlines".  
-After saving the key file: `ssh-add --apple-use-keychain ~/.ssh/airline_team` (macOS) or `ssh-add ~/.ssh/airline_team` (Linux).
+Paste the private key text from Proton Pass (must start with `-----BEGIN OPENSSH PRIVATE KEY-----` and end with `-----END OPENSSH PRIVATE KEY-----`). Save with `Ctrl+X`, `Y`, `Enter`. Then set permissions:
+
+```bash
+chmod 600 ~/.ssh/airline_team
+```
+
+**Step 2 — Add SSH config entry**
+
+```bash
+nano ~/.ssh/config
+```
+
+Append this block (create the file if it does not exist):
+
+```
+Host airline
+    HostName 63.185.229.117
+    User ubuntu
+    IdentityFile ~/.ssh/airline_team
+    AddKeysToAgent yes
+    UseKeychain yes
+```
+
+Save with `Ctrl+X`, `Y`, `Enter`.
+
+**Step 3 — Connect**
+
+```bash
+ssh airline
+```
+
+> The key has no passphrase. `UseKeychain yes` and `AddKeysToAgent yes` ensure the key is loaded automatically after a reboot — no manual `ssh-add` required.
 
 ---
 
