@@ -34,7 +34,7 @@ Key file: `~/.ssh/airline_vm` (`.pem`, `chmod 400`)
 
 The team uses a shared Ed25519 key stored in **Proton Pass** → Vault "Airlines" → item "AWS VM ubuntu user".
 
-**Step 1 — Save the private key**
+#### Step 1 — Save the private key
 
 ```bash
 nano ~/.ssh/airline_team
@@ -46,7 +46,7 @@ Paste the private key text from Proton Pass (must start with `-----BEGIN OPENSSH
 chmod 600 ~/.ssh/airline_team
 ```
 
-**Step 2 — Add SSH config entry**
+#### Step 2 — Add SSH config entry
 
 ```bash
 nano ~/.ssh/config
@@ -65,7 +65,7 @@ Host airline
 
 Save with `Ctrl+X`, `Y`, `Enter`.
 
-**Step 3 — Connect**
+#### Step 3 — Connect
 
 ```bash
 ssh airline
