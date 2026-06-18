@@ -28,28 +28,28 @@ Connection details and SSH access for the team.
 ssh -i ~/.ssh/airline_vm ubuntu@63.185.229.117
 ```
 
-Key file: `~/.ssh/airline_vm` (`.pem`, `chmod 400`)
+Key file: `~/.ssh/airline_vm` (Ed25519, OpenSSH format, `chmod 400`)
 
 ### Team (Pavel, Chaitra)
 
-The team uses the same `.pem` key as Matthias. Request the file `airline_vm.pem` from Matthias and save it to your machine.
+The team uses the same key as Matthias. Request the private key file `airline_vm` from Matthias and save it to your machine. It is an Ed25519 key in OpenSSH format (not a `.pem`).
 
 #### Step 1 — Save the key file and set permissions
 
 **macOS / Linux:**
 ```bash
-chmod 400 ~/path/to/airline_vm.pem
+chmod 400 ~/path/to/airline_vm
 ```
 
 **Windows (PowerShell):**
 ```powershell
-icacls $env:USERPROFILE\.ssh\airline_vm.pem /inheritance:r /grant:r "$env:USERNAME:R"
+icacls $env:USERPROFILE\.ssh\airline_vm /inheritance:r /grant:r "$env:USERNAME:R"
 ```
 
 #### Step 2 — Connect
 
 ```bash
-ssh -i ~/path/to/airline_vm.pem ubuntu@63.185.229.117
+ssh -i ~/path/to/airline_vm ubuntu@63.185.229.117
 ```
 
 ---
