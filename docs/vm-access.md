@@ -104,6 +104,5 @@ Entry point: `04-deployment/docker-compose.yml` in `airline-data-platform` repo.
 
 ## Notes
 
-- Lightsail has a **fixed monthly cost** regardless of usage — stop instance if unused for extended periods
 - Atlas Network Access: the VM's IPv4 (`63.185.229.117`) must be whitelisted in the MongoDB Atlas project. Symptom when missing: `pymongo.errors.ServerSelectionTimeoutError: SSL handshake failed: TLSV1_ALERT_INTERNAL_ERROR`
 - Account hard-stop 2026-11-28: provision replacement in paid account before this date and update DNS + Atlas whitelist
