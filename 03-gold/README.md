@@ -22,12 +22,18 @@ docker-compose.local.yml    Local development compose file
    cp .env.example .env
    ```
 
-   Use the **session/direct** Postgres connection string from Supabase (not the transaction
-   pooler), in SQLAlchemy async form:
+   Use the **Supavisor session pooler** connection string from Supabase (Project Settings ->
+   Database -> Connection string -> "Session" mode), in SQLAlchemy async form:
 
    ```
-   DATABASE_URL=postgresql+asyncpg://postgres:<password>@db.<project-ref>.supabase.co:5432/postgres
+   DATABASE_URL=postgresql+asyncpg://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
    ```
+
+   Do **not** use the direct `db.<project-ref>.supabase.co` host — it's IPv6-only since early
+   2024, and most Docker hosts (including Docker Desktop) have no outbound IPv6 route, which
+   surfaces as `OSError: [Errno 101] Network is unreachable` from inside the `api` container.
+   The session pooler is IPv4-compatible and, unlike the transaction pooler, supports the
+   persistent long-lived connections this app uses.
 
 2. Build and run both services:
 
