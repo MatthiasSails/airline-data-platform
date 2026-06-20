@@ -28,11 +28,13 @@ Project-level instructions for Claude Code when working in this repository.
 
 ---
 
-## Branching
+## Git workflow
 
-- `main` = stable, deployable state
-- `feature/<topic>` branches for larger changes
-- Use Markdown + Mermaid for any new diagrams
+- **Feature branch + pull request required — never push directly to `main`.**
+  Open a PR for every change, even small ones, so the history stays reviewable.
+- `main` = stable, deployable state.
+- `feature/<topic>` branches for the work.
+- Use Markdown + Mermaid for any new diagrams.
 
 ---
 
