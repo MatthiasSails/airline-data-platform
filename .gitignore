@@ -7,3 +7,6 @@ __pycache__/
 .env.*
 .venv/
 *.ipynb_checkpoints
+*.log
+logs/
+etl/opensky_data
