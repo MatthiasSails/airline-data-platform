@@ -139,7 +139,7 @@ Star schema (`fact_states` + dims per ADR 008/009) will be added alongside `map1
 As of 2026-05-27 this project is **no longer** tied to Liora VM (see ADR 007). Planned infrastructure:
 
 - **Bronze (Landing Zone):** MongoDB Atlas cluster `mongo-mk1` (Free Tier, eu-central-1). Connection string in `.env` at project root.
-- **Silver (Warehouse):** **Supabase Postgres** — project `leanMVP` (`civmkvcgbklejootrkks`), eu-central-1, Free/NANO. Credentials in Proton Pass (`bde.airline.0426@protonmail.com`). `SUPABASE_DB_PASSWORD` in `.env`.
+- **Silver (Warehouse):** **Supabase Postgres** — project `leanMVP` (`civmkvcgbklejootrkks`), eu-central-1, Free/NANO. Credentials in Proton Pass (`SECRET@protonmail.com`). `SUPABASE_DB_PASSWORD` in `.env`.
   - **Local dev connection** (Mac has no global IPv6 — Direct Connection is IPv6-only on Free Tier):
     ```bash
     ssh -i ~/.ssh/airline_vm -f -N \

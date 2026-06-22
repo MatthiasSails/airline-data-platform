@@ -14,9 +14,9 @@ Connection details and SSH access for the team.
 | Region | eu-central-1a (Frankfurt) |
 | Plan | $10/Mon — 2 GB RAM, 2 vCPU, 60 GB SSD, x86_64 |
 | OS | Ubuntu, user `ubuntu` |
-| Static IPv4 | `63.185.229.117` |
-| DNS | `airline.matthiaskoehler.com` |
-| Account | Study "Consulting" (`503726126644`) — **expires 2026-11-28** → migrate to paid account before that |
+| Static IPv4 | `<VM_STATIC_IP>` (Proton Pass → Vault "Airlines") |
+| DNS | `<VM_DNS_NAME>` (Proton Pass → Vault "Airlines") |
+| Account | Study "Consulting" (`<AWS_ACCOUNT_ID>`) — **expires 2026-11-28** → migrate to paid account before that |
 
 ---
 
@@ -25,7 +25,7 @@ Connection details and SSH access for the team.
 ### Matthias (owner key)
 
 ```bash
-ssh -i ~/.ssh/airline_vm ubuntu@63.185.229.117
+ssh -i ~/.ssh/airline_vm ubuntu@<VM_STATIC_IP>
 ```
 
 Key file: `~/.ssh/airline_vm` (Ed25519, OpenSSH format, `chmod 400`)
@@ -49,7 +49,7 @@ icacls $env:USERPROFILE\.ssh\airline_team /inheritance:r /grant:r "$env:USERNAME
 #### Step 2 — Connect
 
 ```bash
-ssh -i ~/path/to/airline_team ubuntu@63.185.229.117
+ssh -i ~/path/to/airline_team ubuntu@<VM_STATIC_IP>
 ```
 
 > Both `airline_vm` and `airline_team` are authorized on the VM; either key grants full `ubuntu` access. `airline_team` is the canonical key for the team.
@@ -69,7 +69,7 @@ ssh -i ~/path/to/airline_team ubuntu@63.185.229.117
 
 | Service | URL |
 | --- | --- |
-| Streamlit Dashboard | http://airline.matthiaskoehler.com:8501 |
+| Streamlit Dashboard | http://`<VM_DNS_NAME>`:8501 |
 
 Entry point: `04-deployment/docker-compose.yml` in `airline-data-platform` repo.
 
@@ -85,5 +85,5 @@ Entry point: `04-deployment/docker-compose.yml` in `airline-data-platform` repo.
 
 ## Notes
 
-- Atlas Network Access: the VM's IPv4 (`63.185.229.117`) must be whitelisted in the MongoDB Atlas project. Symptom when missing: `pymongo.errors.ServerSelectionTimeoutError: SSL handshake failed: TLSV1_ALERT_INTERNAL_ERROR`
+- Atlas Network Access: the VM's IPv4 (`<VM_STATIC_IP>`) must be whitelisted in the MongoDB Atlas project. Symptom when missing: `pymongo.errors.ServerSelectionTimeoutError: SSL handshake failed: TLSV1_ALERT_INTERNAL_ERROR`
 - Account hard-stop 2026-11-28: provision replacement in paid account before this date and update DNS + Atlas whitelist

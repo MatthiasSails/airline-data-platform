@@ -46,7 +46,7 @@ We use a shared team account:
 
 | | |
 |---|---|
-| **Account** | `bde.airline.0426@protonmail.com` |
+| **Account** | `SECRET@protonmail.com` |
 | **Project Role** | `Project Data Access Admin` |
 | **Can** | View metrics, manage DB users, manage IP allowlist, browse collections |
 | **Cannot** | Create/scale clusters, touch billing |
@@ -65,7 +65,7 @@ used exclusively for programmatic access (application code, notebooks, tooling).
 | `airline-reader-ro` | `read` (all databases) | Notebooks, exploration, any read-only query |
 | `airline-collector-rw` | `atlasAdmin` | Collectors, ETL, anything that writes data |
 
-Passwords are stored in **Proton Pass** (`bde.airline.0426@protonmail.com`).
+Passwords are stored in **Proton Pass** (`SECRET@protonmail.com`).
 
 ---
 
@@ -85,7 +85,7 @@ MONGO_URI=mongodb+srv://airline-reader-ro:<PASSWORD>@mongo-mk1.ptb1k2b.mongodb.n
 MONGO_URI_RW=mongodb+srv://airline-collector-rw:<PASSWORD>@mongo-mk1.ptb1k2b.mongodb.net/?appName=mongo-mk1
 ```
 
-Get the passwords from Proton Pass (`bde.airline.0426@protonmail.com`).
+Get the passwords from Proton Pass (`SECRET@protonmail.com`).
 
 ### Step 2 — Use the connector
 
@@ -162,7 +162,7 @@ IP entries or an Atlas Private Endpoint.
 
 URL: `https://cloud.mongodb.com` → Organization *Matthias Koehler Co.* → Project `airline` → Cluster `mongo-mk1`
 
-Log in with the shared team account (`bde.airline.0426@protonmail.com`). Key sections:
+Log in with the shared team account (`SECRET@protonmail.com`). Key sections:
 
 - **Database Access** — manage database users, rotate passwords
 - **Network Access** — IP allowlist
