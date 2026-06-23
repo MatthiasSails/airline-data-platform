@@ -11,18 +11,17 @@ Concrete deliverables per phase, with explicit non-goals.
 **Deadline:** 20.05.2026
 
 **In scope:**
-- Live ADS-B data collection from adsb.lol (Berlin, 60 nm radius)
-- MongoDB landing zone (`airline_landing.adsb_raw`) on Liora VM
-- OpenSky Network collection via local CLI (`collectors/opensky_states_collector.py`) → `airline_landing.opensky_raw`
+- Live flight data collection into a MongoDB Atlas landing zone (Bronze): OpenSky `/states/all`
+  (Frankfurt bounding box, ~150×150 km) and adsb.lol ADS-B
+- OpenSky collected via a local script — external VMs block OpenSky egress (see [ADR 005](../adr/005-opensky-mongo-migration.md))
 - Cross-collection join exploration: ADS-B ↔ OpenSky via ICAO24 transponder address
-- PostgreSQL warehouse schema (airports, airlines, flights)
-- Streamlit dashboard visualizing the landing zone (live on VM)
-- UML / ERD documentation
-- Data source documentation
+- PostgreSQL warehouse schema design (later revised to the States-centric star schema — [ADR 008](../adr/008-airline-attribution-star-schema.md) / [ADR 009](../adr/009-states-api-silver-model.md))
+- Streamlit dashboard (live)
+- UML / ERD and data-source documentation
 
 **Out of scope:**
 - Lufthansa API integration (no key available — see [ADR 004](../adr/004-mongo-as-multisource-hub.md))
-- OpenSky from Liora VM (outbound HTTPS blocked — local-only collector, see [ADR 005](../adr/005-opensky-mongo-migration.md))
+- OpenSky from the deployment VM (OpenSky blocks the VM's egress — local-only collector, see [ADR 005](../adr/005-opensky-mongo-migration.md))
 
 ---
 
@@ -30,7 +29,7 @@ Concrete deliverables per phase, with explicit non-goals.
 **Deadline:** 10.06.2026
 
 **In scope:**
-- FastAPI backend with `/stats`, `/charts`, `/flights` endpoints
+- FastAPI backend with `/states`, `/aircraft`, `/airlines`, `/airports` endpoints (no route/delay endpoints — see [ADR 009](../adr/009-states-api-silver-model.md))
 - ETL pipeline: MongoDB raw → PostgreSQL curated
 - IATA ↔ ICAO mapping table (from OurAirports.com)
 - Dashboard reads from FastAPI (not directly from DBs)
@@ -57,7 +56,7 @@ Concrete deliverables per phase, with explicit non-goals.
 **Deadline:** 02.07.2026
 
 **In scope:**
-- Full `docker-compose.yml` with: postgres, mongo, fastapi, dashboard, scheduler
+- Docker Compose stacks for the app services (dashboard, ETL, API, landing) via Portainer GitOps — MongoDB Atlas and Supabase Postgres are managed, not containerized
 - CI pipeline: lint + unit tests + Docker build (`ci.yaml`)
 - Release pipeline: + DockerHub push on `main` (`release.yaml`)
 - Unit tests for API code
