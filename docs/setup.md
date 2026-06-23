@@ -42,10 +42,18 @@ Variables you need:
 
 ## 5. Start exploring
 
-Open VS Code, select the `.venv` kernel in Jupyter, then open any notebook:
+Register the venv-internal Jupyter kernel once per venv, then open any notebook:
+
+```bash
+python -m ipykernel install --sys-prefix --name python3 --display-name ".venv"
+```
+
+In VS Code / JupyterLab always select the **`.venv`** kernel (`display_name: .venv`). Do not install
+a separate `--user` kernel — a second entry causes "kernel not found". If `.venv` breaks after a
+project rename (`bad interpreter`): `rm -rf .venv` and redo steps 2–3.
 
 ```
-notebooks/collect_adsb.ipynb         ← ADS-B collector walkthrough
+notebooks/collect_adsb.ipynb          ← ADS-B collector walkthrough
 notebooks/explore_mongo_atlas.ipynb   ← MongoDB landing zone exploration (all 3 collections)
 notebooks/explore_adsb_lol.ipynb      ← adsb.lol API exploration
 ```
