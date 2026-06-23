@@ -1,4 +1,4 @@
-# ADR 012 — Branching & Merge Strategy
+# ADR 012 — GitHub Flow: Branching & Merge Strategy
 
 **Status:** Accepted — team-confirmed 2026-06-23 (Slack)
 **Date:** 2026-06-23

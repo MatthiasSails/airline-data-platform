@@ -17,7 +17,7 @@ Each ADR documents one significant decision: the context, the choice, the altern
 | [009](009-states-api-silver-model.md) | Silver Model: OpenSky States as central fact; adsb.lol Bronze-only | Accepted | 2026-06-02 |
 | [010](010-repo-layout-knowledge-vs-pipeline.md) | Repo Layout: `docs/` knowledge layer + numbered pipeline phases | Accepted | 2026-06-02 |
 | [011](011-layer-named-folders-connector-abstraction-ml.md) | Layer-named folders, data-connector abstraction, ML placement | Accepted | 2026-06-10 |
-| [012](012-github-flow-cicd-pipeline.md) | Branching & merge strategy (feature branches + squash-merge) | Accepted | 2026-06-23 |
+| [012](012-github-flow-branch-merge.md) | GitHub Flow — branching & merge (feature branches + squash-merge) | Accepted | 2026-06-23 |
 
 ## Format
 
