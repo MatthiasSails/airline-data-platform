@@ -7,13 +7,18 @@ what's specific to airline-data-platform. Private infra pointers (VM, hosts, key
 
 ---
 
-## What Claude may and may not do
+## Git workflow
 
-**Git workflow** (see [ADR 012](docs/adr/012-github-flow-cicd-pipeline.md)):
+See [ADR 012](docs/adr/012-github-flow-cicd-pipeline.md) for the full decision (GitHub Flow + CI/CD).
+
 - **Feature branch + Pull Request required — never push directly to `main`.** Every change goes
   through a PR, reviewed by a second team member.
 - **Squash and merge** is the team's default merge strategy (one commit per PR, linear history).
-- `main` is always deployable.
+- `main` is always deployable. Use `feature/` · `fix/` · `chore/` branches; delete after merge.
+
+---
+
+## What Claude may and may not do
 
 **Secrets:**
 - Never commit secrets. `.env` lives at the project root and is gitignored.
