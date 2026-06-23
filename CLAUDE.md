@@ -9,7 +9,7 @@ what's specific to airline-data-platform. Private infra pointers (VM, hosts, key
 
 ## Git workflow
 
-See [ADR 012](docs/adr/012-github-flow-cicd-pipeline.md) for the full decision (GitHub Flow + CI/CD).
+See [ADR 012](docs/adr/012-github-flow-cicd-pipeline.md) for the full decision (feature branches + squash-merge).
 
 - **Feature branch + Pull Request required — never push directly to `main`.** Every change goes
   through a PR, reviewed by a second team member.
