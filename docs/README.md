@@ -11,7 +11,6 @@ next to the code, in each module's own README.
 | [architecture/](architecture/) | Data flow, Silver ER model, diagrams |
 | [data-sources/](data-sources/) | External API references (OpenSky, adsb.lol, market overview) |
 | [report/](report/) | DataScientest final project report |
-| [setup.md](setup.md) | Local development setup (venv, kernel, environment) |
 | [mongodb-access.md](mongodb-access.md) | MongoDB Atlas team access — users, roles, connection, secrets |
 | [vm-access.md](vm-access.md) | AWS Lightsail VM — SSH access, running services, team keys |
 

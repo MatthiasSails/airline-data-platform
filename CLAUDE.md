@@ -69,7 +69,6 @@ airline-data-platform/
 | Docs index | [docs/README.md](docs/README.md) |
 | Why the design is what it is | [docs/adr/](docs/adr/README.md) |
 | Scope, deadlines, mentor context | [docs/requirements/](docs/requirements/README.md) |
-| Local setup | [docs/setup.md](docs/setup.md) |
 | DB access (MongoDB / Postgres) | [docs/mongodb-access.md](docs/mongodb-access.md) |
 | VM / SSH / running services | [docs/vm-access.md](docs/vm-access.md) |
 | Private infra pointers (local, gitignored) | `CLAUDE.local.md` |
