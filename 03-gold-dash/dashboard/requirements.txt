@@ -1,0 +1,4 @@
+dash==2.18.1
+dash-leaflet==1.0.15
+httpx==0.27.2
+gunicorn==23.0.0
