@@ -1,89 +1,38 @@
-# Airline VM — Access & Connection Details
+# Airline VM — Team Access
 
-Deployed instance for the `airline-data-platform` project.  
-Connection details and SSH access for the team.
-
----
-
-## Instance
-
-| Parameter | Value |
-| --- | --- |
-| Service | AWS Lightsail |
-| Name | `aws-airline-1` |
-| Region | eu-central-1a (Frankfurt) |
-| Plan | $10/Mon — 2 GB RAM, 2 vCPU, 60 GB SSD, x86_64 |
-| OS | Ubuntu, user `ubuntu` |
-| Static IPv4 | `<VM_STATIC_IP>` (Proton Pass → Vault "Airlines") |
-| DNS | `<VM_DNS_NAME>` (Proton Pass → Vault "Airlines") |
-| Account | Study "Consulting" (`<AWS_ACCOUNT_ID>`) — **expires 2026-11-28** → migrate to paid account before that |
+The project's deployed instance: AWS Lightsail, `eu-central-1` (Frankfurt), Ubuntu (user `ubuntu`).
+The real host, DNS name, and AWS account ID are **not** in this repo — they live in Proton Pass
+(vault "Airlines"). Ask the project owner for access.
 
 ---
 
-## SSH Access
+## SSH
 
-### Matthias (owner key)
+The team uses a shared key `airline_team` (Ed25519, OpenSSH format — not a `.pem`), authorized
+alongside the owner key and revocable independently (remove its line from the VM's
+`authorized_keys`). Request the private key file from the project owner **as a file** — copy-paste
+corrupts Ed25519 keys.
 
 ```bash
-ssh -i ~/.ssh/airline_vm ubuntu@<VM_STATIC_IP>
+chmod 400 ~/.ssh/airline_team          # macOS / Linux
+# Windows (PowerShell): icacls $env:USERPROFILE\.ssh\airline_team /inheritance:r /grant:r "$env:USERNAME:R"
+
+ssh -i ~/.ssh/airline_team ubuntu@<VM_HOST>   # <VM_HOST> from Proton Pass
 ```
-
-Key file: `~/.ssh/airline_vm` (Ed25519, OpenSSH format, `chmod 400`)
-
-### Team (Pavel, Chaitra)
-
-The team uses the dedicated team key `airline_team` — kept separate from Matthias's owner key so team access can be revoked independently (just remove its line from the VM's `authorized_keys`). Request the private key file `airline_team` from Matthias **as a file** (not copy-pasted text — Ed25519 keys are easily corrupted by copy-paste, which caused earlier setup failures). It is an Ed25519 key in OpenSSH format (not a `.pem`).
-
-#### Step 1 — Save the key file and set permissions
-
-**macOS / Linux:**
-```bash
-chmod 400 ~/path/to/airline_team
-```
-
-**Windows (PowerShell):**
-```powershell
-icacls $env:USERPROFILE\.ssh\airline_team /inheritance:r /grant:r "$env:USERNAME:R"
-```
-
-#### Step 2 — Connect
-
-```bash
-ssh -i ~/path/to/airline_team ubuntu@<VM_STATIC_IP>
-```
-
-> Both `airline_vm` and `airline_team` are authorized on the VM; either key grants full `ubuntu` access. `airline_team` is the canonical key for the team.
 
 ---
 
-## Software
+## What runs there
 
-| Package | Version |
-| --- | --- |
-| Docker | 29.1 |
-| Docker Compose | 2.40 |
-
----
-
-## Running Services
-
-| Service | URL |
-| --- | --- |
-| Streamlit Dashboard | http://`<VM_DNS_NAME>`:8501 |
-
-Entry point: `04-deployment/docker-compose.yml` in `airline-data-platform` repo.
-
----
-
-## Cross-references
-
-- `airline-compute-prototype-arch.md` — VPC/EC2 architecture planning (longer-term target)
-- `aws-free-tier-2026.md` — account limits and monthly cost estimates
-- Memory: `project_airlines_status.md`, `reference_aws_accounts.md`
+Docker containers via Portainer GitOps (`deployment/`): the Streamlit dashboard, JupyterLab, the
+landing page, and the ETL pipeline — all exposed through a Cloudflare Tunnel (service URLs in
+Proton Pass).
 
 ---
 
 ## Notes
 
-- Atlas Network Access: the VM's IPv4 (`<VM_STATIC_IP>`) must be whitelisted in the MongoDB Atlas project. Symptom when missing: `pymongo.errors.ServerSelectionTimeoutError: SSL handshake failed: TLSV1_ALERT_INTERNAL_ERROR`
-- Account hard-stop 2026-11-28: provision replacement in paid account before this date and update DNS + Atlas whitelist
+- The VM's IP must be whitelisted in MongoDB Atlas (Network Access). Symptom when missing:
+  `ServerSelectionTimeoutError: SSL handshake failed`.
+- The study AWS account **expires 2026-11-28** — migrate to a paid account before then and update
+  DNS + the Atlas whitelist.
