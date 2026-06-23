@@ -30,15 +30,10 @@ We adopt a **feature-branch** workflow (GitHub Flow), as agreed by the team:
 This is the pull-request life cycle from *GitOps and Kubernetes* (Fig. 1.6): create branch → open PR
 and request review → review and revise → maintainer merges → branch deleted.
 
-```mermaid
-flowchart LR
-    A["1. Create branch,\nstart working"] --> B["2. Open PR,\nrequest review"]
-    B --> C["3. Team reviews,\nrequests changes"]
-    C -->|revise| D["4. Developer\nkeeps making changes"]
-    D --> C
-    C -->|approved| E["5. Maintainer merges PR,\nbranch deleted"]
-```
-*after GitOps and Kubernetes, Fig. 1.6*
+![The pull-request life cycle](../images/GitHub-flow-branching-merge.jpg)
+
+*Figure 1.6 from Billy Yuen, Alexander Matyushentsev, Todd Ekenstam, Jesse Suen —*GitOps and
+Kubernetes*, Manning Publications, 2021, p. 13. Reproduced for internal team reference.*
 
 ### Merge strategy: Squash and merge
 
