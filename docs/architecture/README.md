@@ -6,7 +6,6 @@ The platform follows a **medallion** structure: Bronze (raw landing zone, MongoD
 *design and the why*; the pipeline code lives in the top-level code modules, each with its own README.
 
 **Related:**
-- [data-flow.md](data-flow.md) — prose explanation of data flow
 - [silver-layer-er.md](silver-layer-er.md) — Silver-layer ER diagram (relational model)
 - [../adr/](../adr/) — Architecture Decision Records (why)
 - [../requirements/timeline.md](../requirements/timeline.md) — deadlines
@@ -96,7 +95,7 @@ graph LR
     style DASH fill:#9933CC,color:#fff
 ```
 
-> **Endpoint scope** (see [data-flow.md](data-flow.md)): `/states` (live positions, backed by
+> **Endpoint scope:** `/states` (live positions, backed by
 > `fact_states`), `/aircraft` (`dim_aircraft`), `/airlines` (`dim_airlines`), `/airports`
 > (`dim_airports`, standalone). Route from/to and delay endpoints are out of scope — the live States
 > feed has no origin/destination or scheduled times.
@@ -164,3 +163,15 @@ graph LR
 
 > Unit conversions: m → ft (×3.281), m/s → kt (×1.944), m/s → fpm (×196.85).
 > `airline_icao = COALESCE(dim_aircraft.operator_icao, callsign_prefix(callsign))`.
+
+---
+
+## Design principles & future options
+
+**Design goals:** simple, reproducible, dockerized, explainable, extensible. Prefer understandable
+systems and small deployable services over premature distributed systems, unnecessary cloud
+complexity, or Kubernetes too early — this is a learning project.
+
+**Future options (not in the MVP):** Kafka for streaming ingestion / real-time updates; Spark for
+distributed processing of larger datasets (likely overkill at this scale); Neo4j for route-network /
+airport-graph analysis. All optional extensions, deferred until a concrete need appears.

@@ -18,9 +18,11 @@ Two stages:
 
 ## Stage 1 — MVP: `map1` (deployed)
 
-Flat table. One row per aircraft observation. No joins, no unit conversion, no deduplication key —
-Supabase auto-generates `id`. ETL appends on every run (`ON CONFLICT DO NOTHING` is a no-op since
-the only unique constraint is `id`).
+Flat table. One row per aircraft observation. No joins, no unit conversion. The table has a
+surrogate `id` PK **plus** a `unique (icao24, time_position)` constraint. The current loader
+(`etl/silver.py`) does a **full refresh** — `TRUNCATE map1`, then insert the latest OpenSky
+snapshot — so the unique constraint mainly guards against duplicates within a single snapshot
+(it does not use `ON CONFLICT`).
 
 **Source of every field is shown inline.**
 
@@ -28,7 +30,7 @@ the only unique constraint is `id`).
 erDiagram
     map1 {
         bigint      id              PK  "Supabase auto-generated"
-        timestamptz created_at          "Supabase auto-generated"
+        timestamptz created_at          "ETL-written (silver.py, UTC now)"
         varchar     icao24              "OpenSky States · icao24 (ICAO24 transponder hex)"
         integer     time_position       "OpenSky States · time_position (unix seconds, raw)"
         varchar     callsign            "OpenSky States · callsign"
@@ -217,4 +219,4 @@ dimension completeness.
   `closed`) carry **no `icao_code`**. Since `icao_code` is the PK (NOT NULL), the loader filters
   `WHERE icao_code IS NOT NULL` (optionally also `type IN ('large_airport','medium_airport')`).
 
-DDL: [`02-silver/warehouse/schema.sql`](../../02-silver/warehouse/schema.sql) — in sync with this model (Star Schema target; `map1` was created via Supabase UI).
+DDL: [`etl/sql/map1.sql`](../../etl/sql/map1.sql) holds the deployed `map1` MVP table. The star-schema DDL (`fact_states` + dims) is the **target** model described above and is **not yet in the repo** (the earlier `schema.sql` draft was removed with the `02-silver/` → `etl/` restructure).
