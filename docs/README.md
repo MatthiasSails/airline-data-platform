@@ -1,8 +1,8 @@
 # docs/ — Knowledge Layer
 
-Everything *about the whole project* lives here (project-wide, un-numbered). The **numbered folders**
-(`01-bronze/` … `deployment/`) are the **pipeline phases (code)**; module-specific "how to
-run this" docs live in each code module's own README (e.g. `01-bronze/README.md`).
+Everything *about the whole project* lives here — concepts, decisions, requirements (project-wide).
+The **pipeline code** lives in the top-level code modules; module-specific "how to run this" docs live
+next to the code, in each module's own README.
 
 | Path | Purpose |
 |---|---|
