@@ -10,3 +10,9 @@ __pycache__/
 *.log
 logs/
 etl/opensky_data
+
+# Local-only Claude Code memory (private infra pointers, never committed)
+CLAUDE.local.md
+
+# Local ADR drafts — kept local until promoted to a real ADR via a PR
+*.draft.md

@@ -55,8 +55,8 @@ paywalls the useful fields, 10 h look-ahead, 50 results — evaluated and declin
 ## Consequences
 
 - `silver-layer-er.md` (renamed from `erd.md`) and `schema.sql` rewritten to the States-centric star.
-- `data-flow.md` still references `fact_flights` / `fact_delays` / `/delays` in its API & Dashboard
-  sections — **to be reworked next session**.
+- `data-flow.md` was consolidated into `architecture/README.md` and removed; the architecture doc
+  is States-centric (no `fact_flights` / `fact_delays` / `/delays`).
 - adsb.lol collector stays as-is (Bronze); no Silver promotion path for it.
 - Deprecated LH collectors (`airports_collector.py`, `airlines_collector.py`) remain a separate
   cleanup to-do (per project status notes).
