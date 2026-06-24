@@ -1,0 +1,33 @@
+.app-container {
+  font-family: sans-serif;
+}
+
+.header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.title {
+  margin: 0 0 4px 0;
+}
+
+.status-line {
+  color: #4b5563;
+  font-size: 14px;
+}
+
+.vr-arrow {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.vr-climb {
+  color: #16a34a;
+}
+
+.vr-descend {
+  color: #dc2626;
+}

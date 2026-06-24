@@ -1,0 +1,31 @@
+services:
+  api:
+    build: ./api
+    env_file: .env
+    networks: [appnet]
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./api:/app
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  dashboard:
+    build: ./dashboard
+    environment:
+      - API_BASE_URL=http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [appnet]
+    ports:
+      - "8050:8050"
+    volumes:
+      - ./dashboard:/app
+
+networks:
+  appnet:
+    driver: bridge
