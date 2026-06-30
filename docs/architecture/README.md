@@ -179,20 +179,23 @@ separately.
 
 ```mermaid
 graph LR
-    ETL["etl_app2<br/>bronze.py + silver.py"]
+    BRONZE["etl_app2<br/>bronze.py"]
+    SILVER["etl_app2<br/>silver.py"]
     DASH1["adsb_dashboard<br/>Streamlit"]
     API["03-gold-dash api<br/>FastAPI"]
     MONGO["MongoDB Atlas<br/>Bronze"]
     SUPA["Supabase Postgres<br/>Silver — map1"]
 
-    ETL -->|write| MONGO
-    ETL -->|write| SUPA
+    BRONZE -->|write| MONGO
+    MONGO -->|read| SILVER
+    SILVER -->|write| SUPA
     DASH1 -->|read| SUPA
     API -->|read| SUPA
 
     style MONGO fill:#FF6B35,color:#fff
     style SUPA fill:#FF6B35,color:#fff
-    style ETL fill:#0066CC,color:#fff
+    style BRONZE fill:#0066CC,color:#fff
+    style SILVER fill:#0066CC,color:#fff
     style DASH1 fill:#0066CC,color:#fff
     style API fill:#0066CC,color:#fff
 ```
