@@ -31,6 +31,17 @@ BBOX = {
     "lomax": 15.0,   # east edge
 }
 
+# adsb.lol — secondary Bronze-only source (ADR 003/009). No auth required.
+# Center + radius approximating the same Germany-wide BBOX coverage as OpenSky,
+# since adsb.lol takes a lat/lon/dist (NM) circle rather than a bounding box.
+ADSB_BASE_URL = "https://api.adsb.lol/v2"
+ADSB_GEO = {
+    "lat":  49.5,   # BBOX center latitude
+    "lon":  10.0,   # BBOX center longitude
+    "dist": 245,    # NM — covers the BBOX corners
+}
+ADSB_URL = f"{ADSB_BASE_URL}/lat/{ADSB_GEO['lat']}/lon/{ADSB_GEO['lon']}/dist/{ADSB_GEO['dist']}"
+
 # =============================================================================
 # LOGGING SETUP
 # Main log    → pipeline.log (root level)
@@ -81,7 +92,7 @@ class TokenManager:
                 "grant_type":    "client_credentials",
                 "client_id":     os.environ["OPENSKY_CLIENT_ID"],
                 "client_secret": os.environ["OPENSKY_CLIENT_SECRET"],
-            })
+            }, timeout=10)
             r.raise_for_status()
             data            = r.json()
             self.token      = data["access_token"]
@@ -207,9 +218,9 @@ def log_credits(response, name):
 # CORE FETCH FUNCTION
 # Fetches from API then saves to MongoDB
 # =============================================================================
-def fetch_and_store(name, url, db, pipeline_run_id, params=None):
+def fetch_and_store(name, url, db, pipeline_run_id, params=None, headers=None):
     """
-    Fetch data from OpenSky API endpoint then:
+    Fetch data from an API endpoint then:
       1. Validate the response
       2. Save to local JSON file inside timestamped run folder
       3. Insert into MongoDB collection with audit fields
@@ -220,11 +231,14 @@ def fetch_and_store(name, url, db, pipeline_run_id, params=None):
         db              : MongoDB database object
         pipeline_run_id : unique ID for this pipeline run
         params          : optional query parameters dict
+        headers         : optional request headers; defaults to OpenSky bearer
+                           token (pass {} for sources that need no auth, e.g. adsb.lol)
     """
     log.info(f"Fetching '{name}' — params={params}")
 
     try:
-        r = requests.get(url, params=params, headers=tokens.headers(), timeout=10)
+        req_headers = headers if headers is not None else tokens.headers()
+        r = requests.get(url, params=params, headers=req_headers, timeout=10)
 
         # Log credits after every call
         log_credits(r, name)
@@ -278,11 +292,13 @@ def main():
 
     endpoints = [
         # Bounding box keeps cost at 2 credits instead of 4 for global
-        ("states_all",       f"{BASE_URL}/states/all",        BBOX),
+        ("states_all", f"{BASE_URL}/states/all", BBOX, None),
+        # Bronze-only secondary source (ADR 003/009) — no auth, same geo coverage as BBOX
+        ("adsb_raw",   ADSB_URL,                 None, {}),
     ]
 
-    for name, url, params in endpoints:
-        fetch_and_store(name, url, db, pipeline_run_id, params)
+    for name, url, params, headers in endpoints:
+        fetch_and_store(name, url, db, pipeline_run_id, params, headers)
 
     log.info("=" * 60)
     log.info(f"PIPELINE COMPLETE — {pipeline_run_id}")
