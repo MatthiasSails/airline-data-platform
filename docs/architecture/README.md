@@ -1,9 +1,8 @@
 # Architecture
 
 The platform follows a **medallion** structure: Bronze (raw landing zone, MongoDB Atlas) → Silver
-(Supabase Postgres — currently the flat `map1` MVP table; curated star schema is the target) → Gold
-(consumption layer: two independent dashboards). This page describes the system **as it currently
-runs**; planned/future work is tracked as draft issues in the
+(Supabase Postgres, flat `map1` table) → Gold (consumption layer: two independent dashboards). This
+page describes the system **as it currently runs**; future work is tracked as draft issues in the
 [GitHub Project](https://github.com/users/MatthiasSails/projects/1), not here. The pipeline code
 lives in the top-level code modules, each with its own README.
 
@@ -19,23 +18,20 @@ Ingest every source **raw, untransformed** into the MongoDB Atlas landing zone. 
 modeling* (ADR 004): Bronze keeps the original payloads; the Silver model promotes only what it
 needs. Two live feeds run every Bronze cycle (`etl/bronze.py`): OpenSky `/states/all` (the
 preferred, richer source) and adsb.lol (no-auth secondary source, same geo coverage as the OpenSky
-BBOX). Static reference feeds (AircraftDB, OpenFlights, OurAirports) are still planned.
+BBOX).
 
 ```mermaid
 graph LR
     OS["OpenSky States API<br/>/states/all<br/>OAuth2 — live"]
-    REF["Static reference feeds<br/>AircraftDB · OpenFlights · OurAirports<br/>(planned)"]
     ADSB["adsb.lol API<br/>public REST, no auth<br/>same geo coverage as OpenSky BBOX"]
 
     OS -->|state vectors| COL["Collectors<br/>(etl/bronze.py)"]
-    REF -->|raw rows| COL
     ADSB -->|raw snapshots| COL
 
     COL -->|insert| CON["Mongo connector"]
     CON --> MDB["MongoDB Atlas<br/>airlines db<br/>states_all + adsb_raw"]
 
     style OS fill:#4CAF50,color:#fff
-    style REF fill:#4CAF50,color:#fff,stroke-dasharray:5 5
     style ADSB fill:#4CAF50,color:#fff
     style COL fill:#0066CC,color:#fff
     style CON fill:#0066CC,color:#fff
@@ -51,18 +47,14 @@ graph LR
 ## Silver — Normalized Layer
 
 ETL from the Bronze landing zone into the **Silver** layer on Supabase Postgres
-(`etl/silver.py`). **Current state is a lean MVP:** the ETL flattens the latest raw snapshot into a
-single table **`map1`** (raw values, no dimensions) that backs both Gold dashboards. The curated
-**star schema** (`fact_states` + dims) is the *target* model
-([silver-layer-er.md](silver-layer-er.md)) — not yet built; tracked as a draft issue in the
-[GitHub Project](https://github.com/users/MatthiasSails/projects/1).
+(`etl/silver.py`). The ETL flattens the latest raw snapshot into a single table **`map1`** (raw
+values, no dimensions) that backs both Gold dashboards.
 
 **OpenSky is the preferred source; adsb.lol is a fallback** ([ADR 014](../adr/014-adsb-lol-silver-fallback.md)).
 `silver.py` picks whichever Bronze snapshot is freshest by `fetched_at`. In normal operation
 that's OpenSky; on the production VM, OpenSky's egress is blocked by `opensky-network.org` and its
 snapshot goes stale, so adsb.lol takes over automatically — no environment-specific branching, no
-manual failover. This fallback applies to the `map1` MVP only; the target `fact_states` model is
-still OpenSky-States-centric per ADR 009 and will need revisiting once that model is built.
+manual failover.
 
 ```mermaid
 graph LR
@@ -70,37 +62,27 @@ graph LR
     MDB2["MongoDB Atlas<br/>adsb_raw (adsb.lol)"]
     MDB1 -->|freshest wins| ETL["Python ETL<br/>(psycopg2 direct)"]
     MDB2 -->|freshest wins| ETL
-    ETL -->|write| PG["Supabase Postgres (Silver)<br/>map1 — flat live-map table ✅"]
-    PG -.->|planned| STAR["Star schema (target)<br/>fact_states + dim_aircraft<br/>dim_airlines · dim_airports"]
+    ETL -->|write| PG["Supabase Postgres (Silver)<br/>map1 — flat live-map table"]
 
     style MDB1 fill:#FF6B35,color:#fff
     style MDB2 fill:#FF6B35,color:#fff
     style ETL fill:#FFA500,color:#fff
     style PG fill:#0066CC,color:#fff
-    style STAR fill:#0066CC,color:#fff,stroke-dasharray:5 5
 ```
-
-> **Target Silver tables** (see [silver-layer-er.md](silver-layer-er.md), [ADR 008](../adr/008-airline-attribution-star-schema.md), [ADR 009](../adr/009-states-api-silver-model.md)):
-> `fact_states` (OpenSky `/states/all`), `dim_aircraft` (OpenSky AircraftDB, join on `icao24`),
-> `dim_airlines` (OpenFlights, join on resolved `airline_icao`), `dim_airports` (OurAirports,
-> **standalone reference, unjoined**). No `fact_flights` / `fact_delays`: the live States feed has no
-> origin/destination and no scheduled-vs-actual times, so route from/to and delay analytics are out
-> of scope for Silver.
 
 ---
 
 ## Gold — Consumption (API & Dashboards)
 
 **Two independent Gold-layer implementations run side by side**, each its own Cloudflare Tunnel
-subdomain — not a planned/built split, but two parallel, fully working stacks, both reading the
-same `map1` table:
+subdomain — two parallel, fully working stacks, both reading the same `map1` table:
 
 ```mermaid
 graph LR
     PG["Supabase Postgres (Silver)<br/>map1"]
-    PG -->|psycopg2| ST["Streamlit dashboard ✅<br/>03-gold/dashboard<br/>airline-dashboard.matthiaskoehler.com"]
-    PG -->|asyncpg, read-only| API["FastAPI ✅<br/>03-gold-dash/api<br/>/states · /aircraft (planned endpoints)"]
-    API -->|polls every 45s| DASH["Dash map ✅<br/>03-gold-dash/dashboard"]
+    PG -->|psycopg2| ST["Streamlit dashboard<br/>03-gold/dashboard<br/>airline-dashboard.matthiaskoehler.com"]
+    PG -->|asyncpg, read-only| API["FastAPI<br/>03-gold-dash/api<br/>/health · /aircraft/current"]
+    API -->|polls every 45s| DASH["Dash map<br/>03-gold-dash/dashboard"]
     DASH -->|Nginx reverse proxy| TUN["airlive.matthiaskoehler.com"]
 
     style PG fill:#0066CC,color:#fff
@@ -124,8 +106,7 @@ graph LR
 
 Data stores are **managed cloud services** (MongoDB Atlas, Supabase Postgres); the application
 services run as **Docker containers** on a dedicated VM, via **two different deployment paths** —
-not by original design, just how each stack was actually rolled out. Automated ingestion
-scheduling and CI/CD are still planned.
+not by original design, just how each stack was actually rolled out.
 
 ```mermaid
 graph TB
@@ -134,28 +115,21 @@ graph TB
         M2["Supabase Postgres — Silver"]
     end
     subgraph GITOPS["Portainer GitOps (deployment/*.yml, auto-pulls main)"]
-        D1["adsb_dashboard (Streamlit) ✅"]
-        D2["landing_page ✅"]
-        D3["etl_app2 (ETL pipeline) ✅"]
-        D6["scheduler — planned"]
+        D1["adsb_dashboard (Streamlit)"]
+        D2["landing_page"]
+        D3["etl_app2 (ETL pipeline)"]
     end
     subgraph MANUAL["Manually deployed (03-gold-dash/, plain docker compose)"]
-        D4["api (FastAPI) ✅"]
-        D5["dashboard (Dash) ✅"]
-    end
-    subgraph CICD["CI/CD — GitHub Actions (planned)"]
-        CI["lint · test · build · push"]
+        D4["api (FastAPI)"]
+        D5["dashboard (Dash)"]
     end
 
-    D6 -.-> M1
-    D6 -.-> M2
-    CI -.-> GITOPS
-    CI -.-> MANUAL
+    D3 -.-> M1
+    D3 -.-> M2
 
     style MANAGED fill:#FF6B35,color:#fff
     style GITOPS fill:#0066CC,color:#fff
     style MANUAL fill:#9933CC,color:#fff
-    style CICD fill:#FFA500,color:#fff
 ```
 
 - **Portainer GitOps** (`deployment/*.yml`) — `adsb_dashboard`, `landing_page`, `etl_app2`. Each is
