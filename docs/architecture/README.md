@@ -169,30 +169,70 @@ graph TB
 
 ## Infrastructure
 
-What's actually running on the VM and how it's wired together, independent of which deployment
-path put it there:
+The actual resources — data stores, compute, network — and how they connect. Independent of which
+deployment path put a given container there (see [Deployment](#deployment) above).
 
 ```mermaid
-graph LR
-    APPS["Application containers<br/>(GitOps + manually deployed, see Deployment)"]
-    NGINX["Nginx<br/>native systemd service, not a container<br/>reverse-proxies 03-gold-dash only"]
-    TUNNEL["Cloudflare Tunnel<br/>(cloudflared container)<br/>no inbound ports open"]
+graph TB
+    subgraph CLOUD["Managed cloud (outside the VM)"]
+        MONGO["MongoDB Atlas<br/>Bronze landing zone<br/>(SRV connection, no IPv6 issue)"]
+        SUPA["Supabase Postgres<br/>Silver — map1<br/>Direct Connection :5432 is IPv6-only"]
+    end
 
-    APPS -->|03-gold-dash, 127.0.0.1 only| NGINX
-    NGINX --> TUNNEL
-    APPS -->|adsb_dashboard, landing_page —<br/>published ports| TUNNEL
+    subgraph VM["Single VM (aws-airline-1)"]
+        ETL["etl_app2<br/>bronze.py + silver.py<br/>bridge network — reaches Supabase<br/>fine despite no host networking"]
+        DASH1["adsb_dashboard (Streamlit)<br/>network_mode: host"]
+        API["03-gold-dash api (FastAPI)<br/>127.0.0.1:8000, bridge network"]
+        DASH2["03-gold-dash dashboard (Dash)<br/>127.0.0.1:8050"]
+        LAND["landing_page"]
+        NGINX["Nginx — native systemd,<br/>not a container"]
+        CF["cloudflared"]
+    end
 
-    style APPS fill:#0066CC,color:#fff
+    EDGE["Cloudflare edge<br/>*.matthiaskoehler.com"]
+
+    ETL -->|write| MONGO
+    ETL -->|write| SUPA
+    DASH1 -->|read, host networking| SUPA
+    API -->|read, Supavisor session pooler<br/>IPv4-compatible| SUPA
+    DASH2 -->|polls every 45s| API
+    DASH2 --> NGINX --> CF
+    DASH1 --> CF
+    LAND --> CF
+    CF -->|outbound-only tunnel,<br/>no inbound ports open| EDGE
+
+    style CLOUD fill:#FF6B35,color:#fff
+    style VM fill:#1e293b,color:#fff,stroke:#334155
     style NGINX fill:#475569,color:#fff
-    style TUNNEL fill:#475569,color:#fff
+    style CF fill:#475569,color:#fff
+    style EDGE fill:#475569,color:#fff
 ```
 
-- **Nginx runs natively on the VM** (systemd service, not a container) and is the only public
-  entry point for `03-gold-dash` — reverse-proxies `127.0.0.1:8050` out to
-  `airlive.matthiaskoehler.com`. Config is installed manually per `03-gold-dash/README.md`, not
-  pulled by GitOps.
-- **Cloudflare Tunnel** (`cloudflared` container) fronts everything — GitOps-deployed services and
-  the manually-deployed Nginx proxy alike — so no inbound ports are open on the VM.
+- **MongoDB Atlas** (Bronze) — written only by `etl_app2`, via SRV connection string (no IPv6
+  dependency). Nothing currently reads it back out (the notebooks that used to are gone, #16).
+- **Supabase Postgres** (Silver, `map1`) — three independent connections, **two different
+  connection strategies**, both confirmed working on the VM despite `docker-compose.yml`
+  (`etl_app2`) not setting `network_mode: host` the way `dashboard.yml` does:
+  - `adsb_dashboard` (host networking, by design — see `dashboard.yml`'s comment block) and
+    `etl_app2` (plain bridge network) both reach the Direct Connection (port 5432) successfully;
+    `etl_app2`'s logs confirm repeated successful `map1` writes from inside its bridge-networked
+    container, so the IPv6-bridge concern documented for the dashboard doesn't block it in
+    practice.
+  - `03-gold-dash api` uses the **Supavisor session pooler** (IPv4-compatible) instead — see
+    `03-gold-dash/README.md`.
+- **`etl_app2` has no restart policy** (`docker-compose.yml` lacks `restart:`, unlike
+  `dashboard.yml`'s `unless-stopped`). A single unhandled exception in `bronze.py`/`silver.py` (any
+  uncaught error — e.g. a Postgres `statement_timeout`) makes `run_pipeline.sh` exit (`set -e`),
+  which stops the container for good with no automatic recovery. This has happened in production:
+  the container sat `Exited (1)` for 3 days (2026-06-27 → 2026-06-30) before being noticed and
+  manually restarted — `map1` silently went stale for that entire window. Fix tracked separately
+  (`fix/etl-restart-policy`).
+- **Nginx runs natively on the VM** (systemd service, not a container) and is the only entry point
+  for `03-gold-dash` — reverse-proxies `127.0.0.1:8050` out to `airlive.matthiaskoehler.com`.
+  Installed manually per `03-gold-dash/README.md`, not pulled by GitOps.
+- **Cloudflare Tunnel** (`cloudflared`) makes an outbound-only connection to the Cloudflare edge;
+  no inbound ports are open on the VM. The edge maps each subdomain (`airline-dashboard.`,
+  `airlive.`, `airline.`) to the matching local service.
 
 ---
 
