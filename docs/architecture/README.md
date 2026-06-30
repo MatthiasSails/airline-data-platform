@@ -176,24 +176,12 @@ graph LR
     style API fill:#0066CC,color:#fff
 ```
 
-- **MongoDB Atlas** (Bronze) — written only by `etl_app2`, via SRV connection string (no IPv6
-  dependency). Nothing currently reads it back out (the notebooks that used to are gone, #16).
+- **MongoDB Atlas** (Bronze) — written only by `etl_app2`, via SRV connection string. Nothing
+  currently reads it back out.
 - **Supabase Postgres** (Silver, `map1`) — three readers/writers, **two different connection
-  strategies**, both confirmed working despite `docker-compose.yml` (`etl_app2`) not setting
-  `network_mode: host` the way `dashboard.yml` does:
-  - `adsb_dashboard` (host networking, by design — see `dashboard.yml`'s comment block) and
-    `etl_app2` (plain bridge network) both reach the Direct Connection (port 5432) successfully;
-    `etl_app2`'s logs confirm repeated successful `map1` writes from its bridge-networked
-    container, so the IPv6-bridge concern documented for the dashboard doesn't block it in
-    practice.
-  - `03-gold-dash api` instead uses the **Supavisor session pooler** (IPv4-compatible) — see
-    `03-gold-dash/README.md`.
-- **`etl_app2` reliability** — it had no restart policy and an unhandled-exception path that could
-  kill the whole pipeline loop on a single transient error (e.g. a Postgres `statement_timeout` on
-  the old `TRUNCATE TABLE map1`, since replaced with `DELETE`). Confirmed in production: the
-  container sat `Exited (1)` for 3 days (2026-06-27 → 2026-06-30), `map1` silently stale the whole
-  time. Fixed in #18 (`restart: unless-stopped`, resilient `run_pipeline.sh`, `DELETE` instead of
-  `TRUNCATE`).
+  strategies** against the Direct Connection (port 5432, IPv6-only): `adsb_dashboard` and
+  `etl_app2` connect directly (`adsb_dashboard` via `network_mode: host`); `03-gold-dash api` uses
+  the **Supavisor session pooler** instead (IPv4-compatible) — see `03-gold-dash/README.md`.
 
 ### Network exposure
 
