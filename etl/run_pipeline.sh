@@ -7,7 +7,9 @@ cd "$SCRIPT_DIR"
 
 while true; do
     echo "[$(date)] Running pipeline..."
-    python3 bronze.py && python3 silver.py
+    if ! python3 bronze.py || ! python3 silver.py; then
+        echo "[$(date)] Pipeline iteration failed — see pipeline.log, retrying next cycle."
+    fi
     echo "[$(date)] Done. Sleeping 45s..."
     sleep 45
 done
