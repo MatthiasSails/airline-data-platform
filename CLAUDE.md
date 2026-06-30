@@ -56,10 +56,7 @@ airline-data-platform/
 ├── docs/             # knowledge layer — requirements, ADRs, architecture, data-sources, report
 ├── etl/              # the pipeline: bronze.py (ingest) + silver.py (transform) + run_pipeline.sh
 ├── 03-gold/          # consumption: api/ (FastAPI, planned) + dashboard/ (Streamlit)
-├── data_connectors/  # provider-abstracted DB access (mongo.py, supabase.py)
-├── deployment/       # Docker Compose stacks (Portainer GitOps)
-├── notebooks/        # exploration + walkthroughs
-└── requirements.txt
+└── deployment/       # Docker Compose stacks (Portainer GitOps)
 ```
 
 > Bronze + Silver used to be numbered folders (`01-bronze/`, `02-silver/`); they were merged into

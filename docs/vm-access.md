@@ -24,9 +24,8 @@ ssh -i ~/.ssh/airline_team ubuntu@<VM_HOST>   # <VM_HOST> from Proton Pass
 
 ## What runs there
 
-Docker containers via Portainer GitOps (`deployment/`): the Streamlit dashboard, JupyterLab, the
-landing page, and the ETL pipeline — all exposed through a Cloudflare Tunnel (service URLs in
-Proton Pass).
+Docker containers via Portainer GitOps (`deployment/`): the Streamlit dashboard, the landing page,
+and the ETL pipeline — all exposed through a Cloudflare Tunnel (service URLs in Proton Pass).
 
 ---
 

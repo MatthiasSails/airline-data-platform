@@ -10,7 +10,6 @@ own stack. Per-service Dockerfiles live with their service (e.g. [`../03-gold/da
 | Portainer stack | Compose file | Service | Port / network | Env (set in Portainer) |
 |---|---|---|---|---|
 | `airline-dashboard` | [`dashboard.yml`](dashboard.yml) | Streamlit live map over Silver (Supabase) | host net, `:8501` | `SUPABASE_DB_HOST`, `SUPABASE_DB_PASSWORD` |
-| `airline-jupyter` | [`jupyter.yml`](jupyter.yml) | analysis/dev notebook, repo mounted | `:8888` | `JUPYTER_TOKEN`, `MONGO_URI` |
 | `airline-landing` | [`landing.yml`](landing.yml) | static landing page | `:80` | — |
 
 Reserved for later (not yet containerized): `airline-etl` → `etl.yml`, the Bronze→Silver
