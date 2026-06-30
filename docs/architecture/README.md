@@ -16,32 +16,33 @@ The platform follows a **medallion** structure: Bronze (raw landing zone, MongoD
 
 Ingest every source **raw, untransformed** into the MongoDB Atlas landing zone. *Ingestion ≠
 modeling* (ADR 004): Bronze keeps the original payloads; the Silver model promotes only what it needs.
-The central live feed is OpenSky **`/states/all`** state vectors; adsb.lol and static reference feeds
-are planned alongside it.
+The central live feed is OpenSky **`/states/all`** state vectors; adsb.lol runs alongside it as a
+no-auth secondary source (static reference feeds are still planned).
 
 ```mermaid
 graph LR
     OS["OpenSky States API<br/>/states/all<br/>OAuth2 — live"]
     REF["Static reference feeds<br/>AircraftDB · OpenFlights · OurAirports<br/>(planned)"]
-    ADSB["adsb.lol API<br/>public REST<br/>(planned, Bronze-only)"]
+    ADSB["adsb.lol API<br/>public REST, no auth<br/>same geo coverage as OpenSky BBOX"]
 
-    OS -->|state vectors| COL["Collectors"]
+    OS -->|state vectors| COL["Collectors<br/>(etl/bronze.py)"]
     REF -->|raw rows| COL
     ADSB -->|raw snapshots| COL
 
     COL -->|insert| CON["Mongo connector"]
-    CON --> MDB["MongoDB Atlas<br/>airline_landing<br/>(eu-central-1)"]
+    CON --> MDB["MongoDB Atlas<br/>airlines db<br/>states_all + adsb_raw"]
 
     style OS fill:#4CAF50,color:#fff
     style REF fill:#4CAF50,color:#fff,stroke-dasharray:5 5
-    style ADSB fill:#4CAF50,color:#fff,stroke-dasharray:5 5
+    style ADSB fill:#4CAF50,color:#fff
     style COL fill:#0066CC,color:#fff
     style CON fill:#0066CC,color:#fff
     style MDB fill:#FF6B35,color:#fff
 ```
 
-> **adsb.lol is Bronze-only** — intended for optionality and a later OpenSky-vs-adsb.lol
-> data-quality comparison, **not promoted** to Silver (see [ADR 009](../adr/009-states-api-silver-model.md)).
+> **adsb.lol is implemented and runs every Bronze cycle**, writing to its own `adsb_raw` collection.
+> It started Bronze-only for data-quality reasons (see [ADR 009](../adr/009-states-api-silver-model.md))
+> but is now also a **Silver fallback**: see Phase 2 below and [ADR 014](../adr/014-adsb-lol-silver-fallback.md).
 > The retrospective OpenSky `/flights/*` model was dropped in favour of the live States feed.
 
 ---
@@ -49,26 +50,37 @@ graph LR
 ## Phase 2 — Data Modeling (Silver) 🚧
 
 ETL from the Bronze landing zone into the **Silver** layer on Supabase Postgres. **Current state is a
-lean MVP:** the ETL flattens the latest raw OpenSky snapshot into a single table **`map1`** (raw
-values, no dimensions) that backs the live-map dashboard. The curated **star schema** (`fact_states` +
-dims) is the *target* model ([silver-layer-er.md](silver-layer-er.md)), not yet built. Only **OpenSky**
-(States + AircraftDB) is promoted; adsb.lol stays in Bronze.
+lean MVP:** the ETL flattens the latest raw snapshot into a single table **`map1`** (raw values, no
+dimensions) that backs the live-map dashboard. The curated **star schema** (`fact_states` + dims) is
+the *target* model ([silver-layer-er.md](silver-layer-er.md)), not yet built.
+
+**OpenSky is the preferred source; adsb.lol is a fallback** ([ADR 014](../adr/014-adsb-lol-silver-fallback.md)).
+`silver.py` picks whichever Bronze snapshot is freshest by `fetched_at`. In normal operation that's
+OpenSky; on the production VM, OpenSky's egress is blocked by `opensky-network.org` and its
+snapshot goes stale, so adsb.lol takes over automatically — no environment-specific branching, no
+manual failover.
 
 ```mermaid
 graph LR
-    MDB["MongoDB Atlas<br/>(Bronze raw)"]
-    MDB -->|read raw| ETL["Python ETL<br/>(psycopg2 direct)"]
+    MDB1["MongoDB Atlas<br/>states_all (OpenSky)"]
+    MDB2["MongoDB Atlas<br/>adsb_raw (adsb.lol)"]
+    MDB1 -->|freshest wins| ETL["Python ETL<br/>(psycopg2 direct)"]
+    MDB2 -->|freshest wins| ETL
     ETL -->|write| PG["Supabase Postgres (Silver)<br/>map1 — flat live-map table ✅"]
     PG -.->|planned| STAR["Star schema (target)<br/>fact_states + dim_aircraft<br/>dim_airlines · dim_airports"]
 
-    style MDB fill:#FF6B35,color:#fff
+    style MDB1 fill:#FF6B35,color:#fff
+    style MDB2 fill:#FF6B35,color:#fff
     style ETL fill:#FFA500,color:#fff
     style PG fill:#0066CC,color:#fff
     style STAR fill:#0066CC,color:#fff,stroke-dasharray:5 5
 ```
 
 **Pending — promote the `map1` MVP to the star schema:** unit conversion (m→ft, m/s→kt, m/s→fpm),
-`airline_icao` resolution, dimension loaders, and `fact_states` instead of `map1`.
+`airline_icao` resolution, dimension loaders, and `fact_states` instead of `map1`. The
+OpenSky/adsb.lol fallback above is a `map1`-MVP concern only — the target `fact_states` model below
+is still OpenSky-States-centric per ADR 009; the fallback question will need revisiting once that
+model is built.
 
 > **Silver tables** (see [silver-layer-er.md](silver-layer-er.md), [ADR 008](../adr/008-airline-attribution-star-schema.md), [ADR 009](../adr/009-states-api-silver-model.md)):
 > `fact_states` (OpenSky `/states/all`), `dim_aircraft` (OpenSky AircraftDB, join on `icao24`),

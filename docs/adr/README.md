@@ -18,6 +18,7 @@ Each ADR documents one significant decision: the context, the choice, the altern
 | [010](010-repo-layout-knowledge-vs-pipeline.md) | Repo Layout: `docs/` knowledge layer + numbered pipeline phases | Accepted | 2026-06-02 |
 | [011](011-layer-named-folders-connector-abstraction-ml.md) | Layer-named folders, data-connector abstraction, ML placement | Accepted | 2026-06-10 |
 | [012](012-github-flow-branch-merge.md) | GitHub Flow — branching & merge (feature branches + squash-merge) | Accepted | 2026-06-23 |
+| [014](014-adsb-lol-silver-fallback.md) | adsb.lol Promoted to Silver as an Operational Fallback (OpenSky VM egress block) | Accepted | 2026-06-30 |
 
 ## Format
 
