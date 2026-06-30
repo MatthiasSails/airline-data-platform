@@ -81,24 +81,34 @@ graph LR
 
 ## Phase 3 — Data Consumption (API & Dashboard)
 
-Expose the Silver layer via FastAPI and visualize it. Endpoints and dashboard views are
+Expose the Silver layer and visualize it. Endpoints and dashboard views are
 position/aircraft/airline-centric — there is no route or delay analytics in this model.
+
+**Two independent Gold-layer implementations run side by side**, each its own Cloudflare Tunnel
+subdomain — not a planned/built split, but two parallel, fully working stacks:
 
 ```mermaid
 graph LR
-    PG["Supabase Postgres (Silver)"]
-    PG -->|SQL queries| API["FastAPI<br/>/states · /aircraft<br/>/airlines · /airports<br/>(planned)"]
-    PG -->|analytics| DASH["Streamlit dashboard<br/>live position map ✅"]
+    PG["Supabase Postgres (Silver)<br/>map1"]
+    PG -->|psycopg2| ST["Streamlit dashboard ✅<br/>03-gold/dashboard<br/>airline-dashboard.matthiaskoehler.com"]
+    PG -->|asyncpg, read-only| API["FastAPI ✅<br/>03-gold-dash/api<br/>/states · /aircraft (planned endpoints)"]
+    API -->|polls every 45s| DASH["Dash map ✅<br/>03-gold-dash/dashboard"]
+    DASH -->|Nginx reverse proxy| TUN["airlive.matthiaskoehler.com"]
 
     style PG fill:#0066CC,color:#fff
-    style API fill:#9933CC,color:#fff,stroke-dasharray:5 5
+    style ST fill:#9933CC,color:#fff
+    style API fill:#9933CC,color:#fff
     style DASH fill:#9933CC,color:#fff
+    style TUN fill:#475569,color:#fff
 ```
 
-> **Endpoint scope:** `/states` (live positions, backed by
-> `fact_states`), `/aircraft` (`dim_aircraft`), `/airlines` (`dim_airlines`), `/airports`
-> (`dim_airports`, standalone). Route from/to and delay endpoints are out of scope — the live States
-> feed has no origin/destination or scheduled times.
+> **`03-gold/dashboard`** — Streamlit, queries `map1` directly via psycopg2, deployed via
+> `deployment/dashboard.yml` (Portainer GitOps), exposed at `airline-dashboard.matthiaskoehler.com`.
+> **`03-gold-dash/`** — read-only FastAPI service (`api/`, asyncpg/Supavisor session pooler) +
+> Dash frontend (`dashboard/`, polls the API every 45s) behind an Nginx reverse proxy on the same
+> VM, exposed at `airlive.matthiaskoehler.com`. Endpoint scope for both: positions/aircraft/airline
+> only — no route or delay analytics, since the live States feed has no origin/destination or
+> scheduled times.
 
 ---
 
@@ -116,7 +126,7 @@ graph TB
     end
     subgraph COMPOSE["Docker containers (VM, Portainer GitOps)"]
         C1["dashboard (Streamlit) ✅"]
-        C2["api (FastAPI) — planned"]
+        C2["api + dashboard (FastAPI + Dash) ✅<br/>behind Nginx reverse proxy"]
         C3["scheduler — planned"]
     end
     subgraph CICD["CI/CD — GitHub Actions (planned)"]
