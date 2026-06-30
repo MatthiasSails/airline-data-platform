@@ -43,3 +43,18 @@ erDiagram
 ```
 
 DDL: [`etl/sql/map1.sql`](../../etl/sql/map1.sql).
+
+---
+
+## Diagram legend (ER notation)
+
+How to read the entity box above — Mermaid's attribute grammar (a Crow's-Foot /
+Information-Engineering style box, not part of the original Chen ER standard). Each row has **no
+header**; its meaning is fixed by position:
+
+| Position | Content | Example | Note |
+|---|---|---|---|
+| 1 | **data type** | `bigint`, `timestamptz`, `varchar`, `integer`, `real`, `boolean`, `double` | physical SQL type |
+| 2 | **column name** | `icao24`, `id` | — |
+| 3 | **key constraint** | `PK` | optional — `map1` has no `FK`/`UK` (single flat table, no joins) |
+| 4 | **comment** | `"OpenSky States · icao24..."` | optional; here = **data source** of each field (Mermaid extension) |
