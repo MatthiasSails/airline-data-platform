@@ -3,8 +3,9 @@
 The platform follows a **medallion** structure: Bronze (raw landing zone, MongoDB Atlas) → Silver
 (Supabase Postgres — currently the flat `map1` MVP table; curated star schema is the target) → Gold
 (consumption layer: two independent dashboards). This page describes the system **as it currently
-runs**; the [Roadmap](#roadmap--pending) section at the end lists what's still ahead. The pipeline
-code lives in the top-level code modules, each with its own README.
+runs**; planned/future work is tracked as draft issues in the
+[GitHub Project](https://github.com/users/MatthiasSails/projects/1), not here. The pipeline code
+lives in the top-level code modules, each with its own README.
 
 **Related:**
 - [silver-layer-er.md](silver-layer-er.md) — Silver-layer ER diagram (relational model)
@@ -53,14 +54,15 @@ ETL from the Bronze landing zone into the **Silver** layer on Supabase Postgres
 (`etl/silver.py`). **Current state is a lean MVP:** the ETL flattens the latest raw snapshot into a
 single table **`map1`** (raw values, no dimensions) that backs both Gold dashboards. The curated
 **star schema** (`fact_states` + dims) is the *target* model
-([silver-layer-er.md](silver-layer-er.md), see [Roadmap](#roadmap--pending)) — not yet built.
+([silver-layer-er.md](silver-layer-er.md)) — not yet built; tracked as a draft issue in the
+[GitHub Project](https://github.com/users/MatthiasSails/projects/1).
 
 **OpenSky is the preferred source; adsb.lol is a fallback** ([ADR 014](../adr/014-adsb-lol-silver-fallback.md)).
 `silver.py` picks whichever Bronze snapshot is freshest by `fetched_at`. In normal operation
 that's OpenSky; on the production VM, OpenSky's egress is blocked by `opensky-network.org` and its
 snapshot goes stale, so adsb.lol takes over automatically — no environment-specific branching, no
-manual failover. This fallback applies to the `map1` MVP only; the target `fact_states` model below
-is still OpenSky-States-centric per ADR 009 and will need revisiting once that model is built.
+manual failover. This fallback applies to the `map1` MVP only; the target `fact_states` model is
+still OpenSky-States-centric per ADR 009 and will need revisiting once that model is built.
 
 ```mermaid
 graph LR
@@ -123,7 +125,7 @@ graph LR
 Data stores are **managed cloud services** (MongoDB Atlas, Supabase Postgres); the application
 services run as **Docker containers** on a dedicated VM, via **two different deployment paths** —
 not by original design, just how each stack was actually rolled out. Automated ingestion
-scheduling and CI/CD are still planned (see [Roadmap](#roadmap--pending)).
+scheduling and CI/CD are still planned.
 
 ```mermaid
 graph TB
@@ -253,59 +255,3 @@ graph LR
   no inbound ports are open on the VM. The edge maps each subdomain (`airline-dashboard.`,
   `airlive.`, `airline.`) to the matching local service.
 
----
-
-## Target Bronze → Silver Transformation (`fact_states`)
-
-The core ETL step **of the target star schema** (not the current `map1` MVP, which stores raw
-values without conversion): a raw OpenSky `/states/all` state vector (Bronze) becomes a
-`fact_states` row (Silver), with SI → aviation unit conversion and a resolved `airline_icao` (see
-[ADR 008](../adr/008-airline-attribution-star-schema.md)).
-
-```mermaid
-graph LR
-    subgraph MONGO["MongoDB Document (Bronze, raw state vector)"]
-        M["icao24: 3c6750<br/>callsign: DLH123<br/>baro_altitude: 11277.6 (m)<br/>velocity: 231.5 (m/s)<br/>vertical_rate: 0.0 (m/s)<br/>on_ground: false"]
-    end
-
-    subgraph ETL["Python ETL"]
-        T["normalize · convert units<br/>resolve airline_icao"]
-    end
-
-    subgraph PGSQL["PostgreSQL Row (Silver, fact_states)"]
-        P["icao24: 3c6750<br/>callsign: DLH123<br/>airline_icao: DLH (resolved)<br/>altitude_baro_ft: 37000<br/>ground_speed_kts: 450<br/>vertical_rate_fpm: 0<br/>on_ground: false"]
-    end
-
-    M --> T --> P
-
-    style MONGO fill:#FF6B35,color:#fff
-    style ETL fill:#FFA500,color:#fff
-    style PGSQL fill:#0066CC,color:#fff
-```
-
-> Unit conversions: m → ft (×3.281), m/s → kt (×1.944), m/s → fpm (×196.85).
-> `airline_icao = COALESCE(dim_aircraft.operator_icao, callsign_prefix(callsign))`.
-
----
-
-## Roadmap / Pending
-
-- **Star schema promotion** — `fact_states` + `dim_aircraft`/`dim_airlines`/`dim_airports` instead
-  of the flat `map1` MVP: unit conversion, `airline_icao` resolution, dimension loaders.
-- **Silver fallback re-evaluation** — the OpenSky/adsb.lol "freshest wins" fallback ([ADR 014](../adr/014-adsb-lol-silver-fallback.md))
-  covers `map1` only; needs a decision once `fact_states` is built.
-- **Static reference feeds** (AircraftDB, OpenFlights, OurAirports) — not yet ingested into Bronze.
-- **Scheduler** — automated ingestion cadence (currently manual/cron-equivalent via `run_pipeline.sh`).
-- **CI/CD** — GitHub Actions (lint · test · build · push), not yet set up.
-
----
-
-## Design principles & future options
-
-**Design goals:** simple, reproducible, dockerized, explainable, extensible. Prefer understandable
-systems and small deployable services over premature distributed systems, unnecessary cloud
-complexity, or Kubernetes too early — this is a learning project.
-
-**Future options (not in the MVP):** Kafka for streaming ingestion / real-time updates; Spark for
-distributed processing of larger datasets (likely overkill at this scale); Neo4j for route-network /
-airport-graph analysis. All optional extensions, deferred until a concrete need appears.
