@@ -92,7 +92,7 @@ try:
         password=os.environ["SUPABASE_DB_PASSWORD"]
     )
     cur = conn.cursor()
-    cur.execute("TRUNCATE TABLE map1")
+    cur.execute("DELETE FROM map1")
     execute_values(cur,
         "INSERT INTO map1 (icao24, callsign, time_position, longitude, latitude, on_ground, true_track, vertical_rate, created_at) VALUES %s",
         [[*row, datetime.now(timezone.utc)] for row in rows]
