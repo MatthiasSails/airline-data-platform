@@ -170,63 +170,79 @@ graph TB
 ## Infrastructure
 
 The actual resources — data stores, compute, network — and how they connect. Independent of which
-deployment path put a given container there (see [Deployment](#deployment) above).
+deployment path put a given container there (see [Deployment](#deployment) above). Split into two
+diagrams on purpose: one combined graph of data-store connections *and* network exposure becomes an
+unreadable tangle of crossing lines, so **data connectivity** and **network exposure** are shown
+separately.
+
+### Data connectivity
 
 ```mermaid
-graph TB
-    subgraph CLOUD["Managed cloud (outside the VM)"]
-        MONGO["MongoDB Atlas<br/>Bronze landing zone<br/>(SRV connection, no IPv6 issue)"]
-        SUPA["Supabase Postgres<br/>Silver — map1<br/>Direct Connection :5432 is IPv6-only"]
-    end
-
-    subgraph VM["Single VM (aws-airline-1)"]
-        ETL["etl_app2<br/>bronze.py + silver.py<br/>bridge network — reaches Supabase<br/>fine despite no host networking"]
-        DASH1["adsb_dashboard (Streamlit)<br/>network_mode: host"]
-        API["03-gold-dash api (FastAPI)<br/>127.0.0.1:8000, bridge network"]
-        DASH2["03-gold-dash dashboard (Dash)<br/>127.0.0.1:8050"]
-        LAND["landing_page"]
-        NGINX["Nginx — native systemd,<br/>not a container"]
-        CF["cloudflared"]
-    end
-
-    EDGE["Cloudflare edge<br/>*.matthiaskoehler.com"]
+graph LR
+    ETL["etl_app2<br/>bronze.py + silver.py"]
+    DASH1["adsb_dashboard<br/>Streamlit"]
+    API["03-gold-dash api<br/>FastAPI"]
+    MONGO["MongoDB Atlas<br/>Bronze"]
+    SUPA["Supabase Postgres<br/>Silver — map1"]
 
     ETL -->|write| MONGO
     ETL -->|write| SUPA
-    DASH1 -->|read, host networking| SUPA
-    API -->|read, Supavisor session pooler<br/>IPv4-compatible| SUPA
-    DASH2 -->|polls every 45s| API
+    DASH1 -->|read| SUPA
+    API -->|read| SUPA
+
+    style MONGO fill:#FF6B35,color:#fff
+    style SUPA fill:#FF6B35,color:#fff
+    style ETL fill:#0066CC,color:#fff
+    style DASH1 fill:#0066CC,color:#fff
+    style API fill:#0066CC,color:#fff
+```
+
+- **MongoDB Atlas** (Bronze) — written only by `etl_app2`, via SRV connection string (no IPv6
+  dependency). Nothing currently reads it back out (the notebooks that used to are gone, #16).
+- **Supabase Postgres** (Silver, `map1`) — three readers/writers, **two different connection
+  strategies**, both confirmed working despite `docker-compose.yml` (`etl_app2`) not setting
+  `network_mode: host` the way `dashboard.yml` does:
+  - `adsb_dashboard` (host networking, by design — see `dashboard.yml`'s comment block) and
+    `etl_app2` (plain bridge network) both reach the Direct Connection (port 5432) successfully;
+    `etl_app2`'s logs confirm repeated successful `map1` writes from its bridge-networked
+    container, so the IPv6-bridge concern documented for the dashboard doesn't block it in
+    practice.
+  - `03-gold-dash api` instead uses the **Supavisor session pooler** (IPv4-compatible) — see
+    `03-gold-dash/README.md`.
+- **`etl_app2` reliability** — it had no restart policy and an unhandled-exception path that could
+  kill the whole pipeline loop on a single transient error (e.g. a Postgres `statement_timeout` on
+  the old `TRUNCATE TABLE map1`, since replaced with `DELETE`). Confirmed in production: the
+  container sat `Exited (1)` for 3 days (2026-06-27 → 2026-06-30), `map1` silently stale the whole
+  time. Fixed in #18 (`restart: unless-stopped`, resilient `run_pipeline.sh`, `DELETE` instead of
+  `TRUNCATE`).
+
+### Network exposure
+
+```mermaid
+graph LR
+    subgraph PUBLISHED["Published ports"]
+        DASH1["adsb_dashboard"]
+        LAND["landing_page"]
+    end
+    subgraph LOCALONLY["127.0.0.1-only"]
+        DASH2["03-gold-dash dashboard"]
+    end
+    NGINX["Nginx<br/>native systemd, not a container"]
+    CF["cloudflared"]
+    EDGE["Cloudflare edge<br/>*.matthiaskoehler.com"]
+
     DASH2 --> NGINX --> CF
     DASH1 --> CF
     LAND --> CF
     CF -->|outbound-only tunnel,<br/>no inbound ports open| EDGE
 
-    style CLOUD fill:#FF6B35,color:#fff
-    style VM fill:#1e293b,color:#fff,stroke:#334155
+    style PUBLISHED fill:#0066CC,color:#fff
+    style LOCALONLY fill:#9933CC,color:#fff
     style NGINX fill:#475569,color:#fff
     style CF fill:#475569,color:#fff
     style EDGE fill:#475569,color:#fff
 ```
 
-- **MongoDB Atlas** (Bronze) — written only by `etl_app2`, via SRV connection string (no IPv6
-  dependency). Nothing currently reads it back out (the notebooks that used to are gone, #16).
-- **Supabase Postgres** (Silver, `map1`) — three independent connections, **two different
-  connection strategies**, both confirmed working on the VM despite `docker-compose.yml`
-  (`etl_app2`) not setting `network_mode: host` the way `dashboard.yml` does:
-  - `adsb_dashboard` (host networking, by design — see `dashboard.yml`'s comment block) and
-    `etl_app2` (plain bridge network) both reach the Direct Connection (port 5432) successfully;
-    `etl_app2`'s logs confirm repeated successful `map1` writes from inside its bridge-networked
-    container, so the IPv6-bridge concern documented for the dashboard doesn't block it in
-    practice.
-  - `03-gold-dash api` uses the **Supavisor session pooler** (IPv4-compatible) instead — see
-    `03-gold-dash/README.md`.
-- **`etl_app2` has no restart policy** (`docker-compose.yml` lacks `restart:`, unlike
-  `dashboard.yml`'s `unless-stopped`). A single unhandled exception in `bronze.py`/`silver.py` (any
-  uncaught error — e.g. a Postgres `statement_timeout`) makes `run_pipeline.sh` exit (`set -e`),
-  which stops the container for good with no automatic recovery. This has happened in production:
-  the container sat `Exited (1)` for 3 days (2026-06-27 → 2026-06-30) before being noticed and
-  manually restarted — `map1` silently went stale for that entire window. Fix tracked separately
-  (`fix/etl-restart-policy`).
 - **Nginx runs natively on the VM** (systemd service, not a container) and is the only entry point
   for `03-gold-dash` — reverse-proxies `127.0.0.1:8050` out to `airlive.matthiaskoehler.com`.
   Installed manually per `03-gold-dash/README.md`, not pulled by GitOps.
