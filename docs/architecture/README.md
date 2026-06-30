@@ -121,8 +121,9 @@ graph LR
 ## Deployment
 
 Data stores are **managed cloud services** (MongoDB Atlas, Supabase Postgres); the application
-services run as **Docker containers** on a dedicated VM. Automated ingestion scheduling and CI/CD
-are still planned (see [Roadmap](#roadmap--pending)).
+services run as **Docker containers** on a dedicated VM, via **two different deployment paths** —
+not by original design, just how each stack was actually rolled out. Automated ingestion
+scheduling and CI/CD are still planned (see [Roadmap](#roadmap--pending)).
 
 ```mermaid
 graph TB
@@ -130,67 +131,68 @@ graph TB
         M1["MongoDB Atlas — Bronze"]
         M2["Supabase Postgres — Silver"]
     end
-    subgraph COMPOSE["Docker containers (VM)"]
-        C1["dashboard (Streamlit) ✅"]
-        C2["api + dashboard (FastAPI + Dash) ✅"]
-        C3["scheduler — planned"]
+    subgraph GITOPS["Portainer GitOps (deployment/*.yml, auto-pulls main)"]
+        D1["adsb_dashboard (Streamlit) ✅"]
+        D2["landing_page ✅"]
+        D3["etl_app2 (ETL pipeline) ✅"]
+        D6["scheduler — planned"]
+    end
+    subgraph MANUAL["Manually deployed (03-gold-dash/, plain docker compose)"]
+        D4["api (FastAPI) ✅"]
+        D5["dashboard (Dash) ✅"]
     end
     subgraph CICD["CI/CD — GitHub Actions (planned)"]
         CI["lint · test · build · push"]
     end
 
-    C3 -.-> M1
-    C3 -.-> M2
-    CI -.-> COMPOSE
+    D6 -.-> M1
+    D6 -.-> M2
+    CI -.-> GITOPS
+    CI -.-> MANUAL
 
     style MANAGED fill:#FF6B35,color:#fff
-    style COMPOSE fill:#0066CC,color:#fff
+    style GITOPS fill:#0066CC,color:#fff
+    style MANUAL fill:#9933CC,color:#fff
     style CICD fill:#FFA500,color:#fff
 ```
+
+- **Portainer GitOps** (`deployment/*.yml`) — `adsb_dashboard`, `landing_page`, `etl_app2`. Each is
+  its own Portainer stack, auto-pulled from `main` (see
+  [`deployment/README.md`](../../deployment/README.md)). Portainer here is purely a management
+  view over the containers (equivalent to running `docker ps`/`docker compose` by hand on the VM)
+  — it isn't part of the infrastructure itself, just how updates get rolled out.
+- **`03-gold-dash`** (FastAPI + Dash) is **not** Portainer-managed — it's a plain `docker compose
+  up` from `03-gold-dash/docker-compose.yml`, run manually on the VM, both containers bound to
+  `127.0.0.1` only (see [Infrastructure](#infrastructure) for how it's exposed).
 
 ---
 
 ## Infrastructure
 
-The VM runs **two operationally different deployment paths** for the two Gold-layer stacks — not
-by original design, just how each was actually rolled out:
+What's actually running on the VM and how it's wired together, independent of which deployment
+path put it there:
 
 ```mermaid
 graph LR
-    subgraph GITOPS["Portainer GitOps (deployment/*.yml, auto-pulls main)"]
-        D1["adsb_dashboard<br/>(Streamlit)"]
-        D2["landing_page"]
-        D3["etl_app2<br/>(ETL pipeline)"]
-    end
-    subgraph MANUAL["Manually deployed (03-gold-dash/, plain docker compose)"]
-        D4["03-gold-dash-api-1<br/>127.0.0.1:8000"]
-        D5["03-gold-dash-dashboard-1<br/>127.0.0.1:8050"]
-    end
-    NGINX["Nginx (native systemd service,<br/>not containerized)"]
-    TUNNEL["Cloudflare Tunnel<br/>(cloudflared container)"]
+    APPS["Application containers<br/>(GitOps + manually deployed, see Deployment)"]
+    NGINX["Nginx<br/>native systemd service, not a container<br/>reverse-proxies 03-gold-dash only"]
+    TUNNEL["Cloudflare Tunnel<br/>(cloudflared container)<br/>no inbound ports open"]
 
-    D4 --> D5
-    D5 --> NGINX
+    APPS -->|03-gold-dash, 127.0.0.1 only| NGINX
     NGINX --> TUNNEL
-    D1 --> TUNNEL
-    D2 --> TUNNEL
+    APPS -->|adsb_dashboard, landing_page —<br/>published ports| TUNNEL
 
-    style GITOPS fill:#0066CC,color:#fff
-    style MANUAL fill:#9933CC,color:#fff
+    style APPS fill:#0066CC,color:#fff
     style NGINX fill:#475569,color:#fff
     style TUNNEL fill:#475569,color:#fff
 ```
 
-- **Portainer GitOps** (`deployment/*.yml`) — `adsb_dashboard`, `landing_page`, `etl_app2`. Each is
-  its own Portainer stack, pulled from `main` (see [`deployment/README.md`](../../deployment/README.md)).
-- **`03-gold-dash`** (FastAPI + Dash) is **not** Portainer-managed — it's a plain `docker compose
-  up` from `03-gold-dash/docker-compose.yml`, both containers bound to `127.0.0.1` only.
 - **Nginx runs natively on the VM** (systemd service, not a container) and is the only public
   entry point for `03-gold-dash` — reverse-proxies `127.0.0.1:8050` out to
   `airlive.matthiaskoehler.com`. Config is installed manually per `03-gold-dash/README.md`, not
   pulled by GitOps.
-- **Cloudflare Tunnel** (`cloudflared` container) fronts everything — Portainer-managed services
-  and the manually-deployed Nginx proxy alike — so no inbound ports are open on the VM.
+- **Cloudflare Tunnel** (`cloudflared` container) fronts everything — GitOps-deployed services and
+  the manually-deployed Nginx proxy alike — so no inbound ports are open on the VM.
 
 ---
 
