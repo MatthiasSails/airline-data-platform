@@ -9,7 +9,6 @@ code lives in the top-level code modules, each with its own README.
 **Related:**
 - [silver-layer-er.md](silver-layer-er.md) — Silver-layer ER diagram (relational model)
 - [../adr/](../adr/) — Architecture Decision Records (why)
-- [../requirements/timeline.md](../requirements/timeline.md) — deadlines
 
 ---
 
