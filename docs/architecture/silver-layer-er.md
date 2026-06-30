@@ -10,9 +10,11 @@ Two stages:
 | **Step 3 — Star Schema** | `fact_states`, `dim_aircraft`, `dim_airlines`, `dim_airports` | planned |
 
 > **Bronze vs. Silver:** the raw landing zone (MongoDB Atlas, Bronze) keeps *all* sources —
-> including **adsb.lol** — collected for optionality and a later OpenSky-vs-adsb.lol data-quality
-> comparison. This Silver model promotes **only OpenSky** (States + AircraftDB). adsb.lol is
-> intentionally *not* in this diagram. Ingestion ≠ modeling (ADR 004).
+> OpenSky **and** adsb.lol. The **Stage 2 star schema** (`fact_states` + dims, below) promotes
+> **only OpenSky** (States + AircraftDB) — adsb.lol is intentionally not in that diagram. The
+> **Stage 1 MVP** (`map1`) is the exception: it also accepts adsb.lol as an automatic fallback when
+> OpenSky's snapshot goes stale ([ADR 014](../adr/014-adsb-lol-silver-fallback.md)) — see Stage 1
+> below. Ingestion ≠ modeling (ADR 004).
 
 ---
 
@@ -20,11 +22,13 @@ Two stages:
 
 Flat table. One row per aircraft observation. No joins, no unit conversion. The table has a
 surrogate `id` PK **plus** a `unique (icao24, time_position)` constraint. The current loader
-(`etl/silver.py`) does a **full refresh** — `TRUNCATE map1`, then insert the latest OpenSky
-snapshot — so the unique constraint mainly guards against duplicates within a single snapshot
-(it does not use `ON CONFLICT`).
+(`etl/silver.py`) does a **full refresh** — `DELETE FROM map1`, then insert the latest snapshot
+from whichever source is freshest (OpenSky, or adsb.lol as a fallback — [ADR 014](../adr/014-adsb-lol-silver-fallback.md))
+— so the unique constraint mainly guards against duplicates within a single snapshot (it does not
+use `ON CONFLICT`).
 
-**Source of every field is shown inline.**
+**Source of every field is shown inline** (OpenSky States field names; when adsb.lol is the active
+source, `etl/silver.py`'s `map_adsb_doc()` maps its `ac[]` fields onto these same columns instead).
 
 ```mermaid
 erDiagram
@@ -212,9 +216,9 @@ dimension completeness.
 - **No departure/arrival airports (from/to unknown)** — the States API model dropped OpenSky's
   retrospective `/flights/*` endpoints (not live; see ADR 003). Only live position/state is captured,
   so `dim_airports` stays unjoined; real origin/destination is deferred to the Bronze layer.
-- **adsb.lol is Bronze-only** — collected raw into the landing zone for optionality and a later
-  OpenSky-vs-adsb.lol data-quality comparison, but **not promoted** into this Silver model.
-  Aircraft metadata comes solely from the OpenSky AircraftDB.
+- **adsb.lol and the Stage 2 star schema** — not promoted into `fact_states`/dims (this Stage 2
+  model). Aircraft metadata in `dim_aircraft` comes solely from the OpenSky AircraftDB. adsb.lol
+  *is* used as a Stage 1 (`map1`) fallback — see Stage 1 above and [ADR 014](../adr/014-adsb-lol-silver-fallback.md).
 - **`dim_airports` load filter** — OurAirports has ~85k rows but most (small fields, heliports,
   `closed`) carry **no `icao_code`**. Since `icao_code` is the PK (NOT NULL), the loader filters
   `WHERE icao_code IS NOT NULL` (optionally also `type IN ('large_airport','medium_airport')`).
