@@ -181,8 +181,8 @@ separately.
 graph LR
     BRONZE["etl_app2<br/>bronze.py"]
     SILVER["etl_app2<br/>silver.py"]
-    DASH1["adsb_dashboard<br/>Streamlit"]
-    API["03-gold-dash api<br/>FastAPI"]
+    DASH1["Streamlit Dashboard<br/>adsb_dashboard"]
+    API["FastAPI<br/>03-gold-dash api"]
     MONGO["MongoDB Atlas<br/>Bronze"]
     SUPA["Supabase Postgres<br/>Silver — map1"]
 
@@ -224,11 +224,11 @@ graph LR
 ```mermaid
 graph LR
     subgraph PUBLISHED["Published ports"]
-        DASH1["adsb_dashboard"]
+        DASH1["Streamlit Dashboard<br/>adsb_dashboard"]
         LAND["landing_page"]
     end
     subgraph LOCALONLY["127.0.0.1-only"]
-        DASH2["03-gold-dash dashboard"]
+        DASH2["Dash Dashboard<br/>03-gold-dash dashboard"]
     end
     NGINX["Nginx<br/>native systemd, not a container"]
     CF["cloudflared"]
