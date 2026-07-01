@@ -196,9 +196,8 @@ instance to achieve the SAA goal.
 - Provider: AWS Lightsail, eu-central-1a (Frankfurt)
 - Plan: $12/month — 2 GB RAM, 2 vCPU, 60 GB SSD, 3 TB transfer
 - OS: Ubuntu 24.04 LTS
-- Static IPv4: `63.185.229.117` (Lightsail Static IP `aws-airline-ip1`)
-- IPv6: `2a05:d014:1cd1:d300:d4ef:708d:7bdf:9e34` (dual-stack, persistent)
-- SSH: `ssh -i ~/.ssh/airline_vm ubuntu@63.185.229.117`
+- Static IPv4/IPv6: Lightsail Static IP `aws-airline-ip1` (dual-stack, persistent) — see
+  `CLAUDE.local.md` for the address and SSH alias
 - Account: Study "Consulting" (503726126644); expires 2026-11-28 →
   migrate to a paid account before expiry.
 
@@ -214,7 +213,7 @@ a Supabase project ("leanMVP") directly rather than evaluating Neon formally.
 The team accepted this as the de-facto decision on 2026-06-09.
 
 **Chosen provider:** Supabase Postgres
-- Project: `leanMVP` (ID `civmkvcgbklejootrkks`)
+- Project: `leanMVP` (ID redacted — see `CLAUDE.local.md`)
 - Region: eu-central-1 (Frankfurt) — same region as MongoDB Atlas
 - Plan: Free / NANO compute (t4g.nano)
 - Existing table: `map1` — Pavel's flat prototype for live-map display
@@ -226,15 +225,11 @@ identical to Neon (managed Postgres). Having a working instance beats a theoreti
 preference.
 
 **IPv4 limitation on Free Tier:**
-- Direct Connection (`db.civmkvcgbklejootrkks.supabase.co:5432`) is **IPv6-only**.
+- Direct Connection (`db.<project-ref>.supabase.co:5432`) is **IPv6-only**.
 - Session Pooler (IPv4-compatible) requires a paid add-on.
-- **Workaround for local dev** (Mac, no global IPv6):
-  ```bash
-  ssh -i ~/.ssh/airline_vm -f -N \
-      -L 5432:db.civmkvcgbklejootrkks.supabase.co:5432 \
-      ubuntu@63.185.229.117
-  # then psycopg2 → postgresql://postgres:[PW]@localhost:5432/postgres
-  ```
+- **Workaround for local dev** (Mac, no global IPv6): SSH tunnel through the VM to the
+  Direct Connection host, then `psycopg2` → `postgresql://postgres:[PW]@localhost:5432/postgres`.
+  See `CLAUDE.local.md` for the exact host/alias.
 - **Production path** (aws-airline-1 has IPv6): connect directly, no tunnel.
 
 **PostgREST / REST API gotcha:**

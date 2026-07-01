@@ -44,27 +44,14 @@ ADSB_URL = f"{ADSB_BASE_URL}/lat/{ADSB_GEO['lat']}/lon/{ADSB_GEO['lon']}/dist/{A
 
 # =============================================================================
 # LOGGING SETUP
-# Main log    → pipeline.log (root level)
-# Credit log  → credits.log (root level)
-# Both loggers write to console as well
 # =============================================================================
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.FileHandler("pipeline.log"),
-        logging.StreamHandler()
-    ]
+    handlers=[logging.StreamHandler()]
 )
 log = logging.getLogger(__name__)
-
-_credit_logger = logging.getLogger("credits")
-_credit_logger.setLevel(logging.INFO)
-_credit_handler = logging.FileHandler("credits.log")
-_credit_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
-_credit_logger.addHandler(_credit_handler)
-credit_log = _credit_logger
 
 
 # =============================================================================
@@ -194,23 +181,16 @@ def save_to_db(db, collection_name, data, pipeline_run_id):
 
 # =============================================================================
 # CREDIT MONITOR
-# Writes to credits.log in run folder AND main pipeline.log
 # =============================================================================
 def log_credits(response, name):
-    """
-    Read and log rate limit headers from OpenSky response.
-    Credit info goes to dedicated credits.log in run folder.
-    Summary also written to main pipeline.log.
-    """
+    """Read and log rate limit headers from OpenSky response."""
     remaining   = response.headers.get("X-Rate-Limit-Remaining")
     retry_after = response.headers.get("X-Rate-Limit-Retry-After-Seconds")
 
     if remaining:
-        credit_log.info(f"[{name}] Credits remaining: {remaining}")
         log.info(f"[{name}] Credits remaining: {remaining}")
 
     if retry_after:
-        credit_log.warning(f"[{name}] Rate limited — retry after: {retry_after}s")
         log.warning(f"[{name}] Rate limited — retry after: {retry_after}s")
 
 

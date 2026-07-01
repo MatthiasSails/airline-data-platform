@@ -15,3 +15,6 @@ CLAUDE.local.md
 
 # Local ADR drafts — kept local until promoted to a real ADR via a PR
 *.draft.md
+
+# Scratch/throwaway files, never committed
+tmp/

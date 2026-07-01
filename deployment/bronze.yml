@@ -1,0 +1,32 @@
+# airline-etl-bronze stack — fetches OpenSky + adsb.lol snapshots into MongoDB.
+#
+# Rate-limited by upstream APIs (OpenSky: 4,000 credits/day on the Registered tier, 2 credits
+# per states/all call; adsb.lol: maintainers recommend 30-60s intervals) — see
+# docs/data-sources/. Runs on its own 50s loop, independent of silver's refresh cadence.
+#
+# Image is built and pushed to GHCR by ../.github/workflows/build-push.yml on every push to
+# main that touches etl/ or deployment/Dockerfile — Portainer only pulls, it doesn't build.
+# Same image as silver.yml (identical Dockerfile/context); only the command differs.
+#
+# Env is injected by Portainer per stack ("Environment variables" field), not from the repo
+# .env — that file is gitignored and absent in the GitOps clone, so an env_file: reference
+# would fail the deploy outright.
+services:
+  bronze:
+    image: ghcr.io/matthiassails/airline-etl:latest
+    pull_policy: always
+    container_name: etl_bronze
+    environment:
+      - OPENSKY_CLIENT_ID=${OPENSKY_CLIENT_ID}
+      - OPENSKY_CLIENT_SECRET=${OPENSKY_CLIENT_SECRET}
+      - MONGO_URL=${MONGO_URL}
+    command: bash run_bronze.sh
+    restart: unless-stopped
+    logging:
+      driver: local
+    healthcheck:
+      test: ["CMD-SHELL", "test $(( $(date +%s) - $(stat -c %Y heartbeat 2>/dev/null || echo 0) )) -lt 150"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3

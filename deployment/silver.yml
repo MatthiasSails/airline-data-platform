@@ -1,0 +1,33 @@
+# airline-etl-silver stack — refreshes the map1 Postgres table from the latest Mongo
+# snapshot written by bronze. No external rate limit (local Mongo -> Postgres only), so it
+# runs on its own, much faster 10s loop, decoupled from bronze's cadence.
+#
+# Image is built and pushed to GHCR by ../.github/workflows/build-push.yml on every push to
+# main that touches etl/ or deployment/Dockerfile — Portainer only pulls, it doesn't build.
+# Same image as bronze.yml (identical Dockerfile/context); only the command differs.
+#
+# Env is injected by Portainer per stack ("Environment variables" field), not from the repo
+# .env — that file is gitignored and absent in the GitOps clone, so an env_file: reference
+# would fail the deploy outright.
+services:
+  silver:
+    image: ghcr.io/matthiassails/airline-etl:latest
+    pull_policy: always
+    container_name: etl_silver
+    # Supabase's Direct Connection endpoint is IPv6-only; the Docker bridge
+    # network has no IPv6, so host networking is required (same as dashboard.yml).
+    network_mode: host
+    environment:
+      - MONGO_URL=${MONGO_URL}
+      - SUPABASE_DB_URL=${SUPABASE_DB_URL}
+      - SUPABASE_DB_PASSWORD=${SUPABASE_DB_PASSWORD}
+    command: bash run_silver.sh
+    restart: unless-stopped
+    logging:
+      driver: local
+    healthcheck:
+      test: ["CMD-SHELL", "test $(( $(date +%s) - $(stat -c %Y heartbeat 2>/dev/null || echo 0) )) -lt 30"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 3

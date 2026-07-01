@@ -1,8 +1,12 @@
+# Image is built and pushed to GHCR by ../.github/workflows/build-push.yml on every push to
+# main that touches deployment/landing-page/ — Portainer only pulls, it doesn't build.
 services:
   landing-page:
-    build:
-      context: ./landing-page
+    image: ghcr.io/matthiassails/airline-landing:latest
+    pull_policy: always
     container_name: landing_page
     ports:
       - "80:80"
     restart: unless-stopped
+    logging:
+      driver: local
