@@ -3,11 +3,14 @@
 # Rate-limited by upstream APIs (OpenSky: 4,000 credits/day on the Registered tier, 2 credits
 # per states/all call; adsb.lol: maintainers recommend 30-60s intervals) — see
 # docs/data-sources/. Runs on its own 50s loop, independent of silver's refresh cadence.
+#
+# Image is built and pushed to GHCR by ../.github/workflows/build-push.yml on every push to
+# main that touches etl/ or deployment/Dockerfile — Portainer only pulls, it doesn't build.
+# Same image as silver.yml (identical Dockerfile/context); only the command differs.
 services:
   bronze:
-    build:
-      context: ..
-      dockerfile: deployment/Dockerfile
+    image: ghcr.io/matthiassails/airline-etl:latest
+    pull_policy: always
     container_name: etl_bronze
     env_file:
       - ../.env

@@ -27,13 +27,13 @@ healthcheck.
 
 ## Conventions
 
-- **`dashboard.yml`, `landing.yml`, and `gold-dash.yml` reference pre-built images, they don't
-  build.** [`../.github/workflows/build-push.yml`](../.github/workflows/build-push.yml) builds and
-  pushes to GHCR (`ghcr.io/matthiassails/airline-{dashboard,landing,gold-api,gold-dashboard}`) on
-  every push to `main` that touches the relevant source. Portainer only pulls (`pull_policy:
-  always`, since `:latest` is a mutable tag). `bronze.yml`/`silver.yml` still build in place on the
-  VM — no separate image to publish for those, since ETL code changes as often as the containers
-  redeploy anyway.
+- **Every stack references a pre-built image — none of them build on the VM anymore.**
+  [`../.github/workflows/build-push.yml`](../.github/workflows/build-push.yml) builds and pushes to
+  GHCR (`ghcr.io/matthiassails/airline-{dashboard,landing,gold-api,gold-dashboard,etl}`) on every
+  push to `main` that touches the relevant source. Portainer only pulls (`pull_policy: always`,
+  since `:latest` is a mutable tag). `bronze.yml` and `silver.yml` both reference the same
+  `airline-etl` image — they share an identical Dockerfile/build context and differ only in which
+  script `command:` runs, so building two copies of the same image would be wasteful.
 - **Env comes from Portainer**, per stack — *not* from the repo `.env` (gitignored, absent in the
   GitOps clone). Enter the variables in each stack's "Environment variables" field.
 - **The dashboard must use `network_mode: host`.** It connects to the IPv6-only Supabase host

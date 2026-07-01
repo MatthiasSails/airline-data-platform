@@ -138,9 +138,9 @@ graph TB
   for why), auto-pulled from `main`. Portainer here is purely a management view over the containers
   (equivalent to running `docker ps`/`docker compose` by hand on the VM) — it isn't part of the
   infrastructure itself, just how updates get rolled out.
-- **Images**: `adsb_dashboard`, `landing_page`, `gold_api`, `gold_dashboard` are built once by CI
-  and pulled from GHCR (see [`deployment/README.md`](../../deployment/README.md)); `etl_bronze`/
-  `etl_silver` build in place on the VM from the same Compose file that deploys them.
+- **Images**: every container's image is built once by CI and pulled from GHCR — never built on
+  the VM (see [`deployment/README.md`](../../deployment/README.md)). `etl_bronze` and `etl_silver`
+  share one image (same Dockerfile, different `command:`).
 
 ---
 

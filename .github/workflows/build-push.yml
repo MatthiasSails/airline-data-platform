@@ -8,6 +8,8 @@ on:
       - "deployment/landing-page/**"
       - "03-gold-dash/api/**"
       - "03-gold-dash/dashboard/**"
+      - "etl/**"
+      - "deployment/Dockerfile"
       - ".github/workflows/build-push.yml"
 
 jobs:
@@ -82,3 +84,22 @@ jobs:
           context: ./03-gold-dash/dashboard
           push: true
           tags: ghcr.io/matthiassails/airline-gold-dashboard:latest
+
+  etl:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./deployment/Dockerfile
+          push: true
+          tags: ghcr.io/matthiassails/airline-etl:latest

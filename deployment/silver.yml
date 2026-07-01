@@ -1,11 +1,14 @@
 # airline-etl-silver stack — refreshes the map1 Postgres table from the latest Mongo
 # snapshot written by bronze. No external rate limit (local Mongo -> Postgres only), so it
 # runs on its own, much faster 10s loop, decoupled from bronze's cadence.
+#
+# Image is built and pushed to GHCR by ../.github/workflows/build-push.yml on every push to
+# main that touches etl/ or deployment/Dockerfile — Portainer only pulls, it doesn't build.
+# Same image as bronze.yml (identical Dockerfile/context); only the command differs.
 services:
   silver:
-    build:
-      context: ..
-      dockerfile: deployment/Dockerfile
+    image: ghcr.io/matthiassails/airline-etl:latest
+    pull_policy: always
     container_name: etl_silver
     # Supabase's Direct Connection endpoint is IPv6-only; the Docker bridge
     # network has no IPv6, so host networking is required (same as dashboard.yml).
