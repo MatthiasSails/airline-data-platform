@@ -9,3 +9,4 @@ services:
     command: bash run_pipeline.sh
     volumes:
       - ../etl:/app
+    restart: unless-stopped
