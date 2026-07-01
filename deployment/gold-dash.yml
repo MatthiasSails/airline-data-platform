@@ -1,0 +1,53 @@
+# airline-gold-dash stack — read-only FastAPI (api) + Dash frontend (dashboard) over the Silver
+# layer (Supabase), exposed at airlive.<domain> via the Cloudflare Tunnel directly to
+# 127.0.0.1:8050 (no reverse proxy on the VM — see docs/architecture/README.md).
+#
+# api and dashboard are one stack, not two: they share a release cycle and a hard runtime
+# dependency (dashboard depends_on api being healthy), unlike bronze/silver which were split
+# because they have independent cadences and failure domains.
+#
+# Images are built and pushed to GHCR by ../.github/workflows/build-push.yml on every push to
+# main that touches 03-gold-dash/api/ or 03-gold-dash/dashboard/ — Portainer only pulls, it
+# doesn't build.
+#
+# DATABASE_URL uses the Supabase Session Pooler (IPv4-compatible), not the IPv6-only Direct
+# Connection host — so this stack stays on the default bridge network, unlike dashboard.yml/
+# silver.yml which need network_mode: host. See 03-gold-dash/README.md.
+services:
+  api:
+    image: ghcr.io/matthiassails/airline-gold-api:latest
+    pull_policy: always
+    container_name: gold_api
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    networks: [appnet]
+    ports:
+      - "127.0.0.1:8000:8000"
+    restart: unless-stopped
+    logging:
+      driver: local
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  dashboard:
+    image: ghcr.io/matthiassails/airline-gold-dashboard:latest
+    pull_policy: always
+    container_name: gold_dashboard
+    environment:
+      - API_BASE_URL=http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [appnet]
+    ports:
+      - "127.0.0.1:8050:8050"
+    restart: unless-stopped
+    logging:
+      driver: local
+
+networks:
+  appnet:
+    driver: bridge
