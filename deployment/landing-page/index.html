@@ -160,22 +160,22 @@
     <div class="arrow">→</div>
     <div class="layer silver"><strong>Silver</strong>Supabase Postgres<br>Normalized / map1</div>
     <div class="arrow">→</div>
-    <div class="layer gold"><strong>Gold</strong>FastAPI + Streamlit<br>Analytics &amp; Dashboards</div>
+    <div class="layer gold"><strong>Gold</strong>Streamlit + FastAPI/Dash<br>Analytics &amp; Dashboards</div>
   </div>
 
   <div class="services">
     <a class="card" href="https://airline-dashboard.matthiaskoehler.com" target="_blank">
       <span class="card-icon">🗺️</span>
-      <span class="card-title">ADS-B Live Dashboard</span>
-      <span class="card-desc">Real-time flight positions from adsb.lol — interactive Streamlit map with aircraft positions and metadata.</span>
+      <span class="card-title">Live Map — Streamlit</span>
+      <span class="card-desc">Interactive map over the Silver layer (Supabase map1) — Streamlit app behind the Cloudflare Tunnel.</span>
       <span class="card-url">airline-dashboard.matthiaskoehler.com</span>
     </a>
 
-    <a class="card" href="https://airline-jupyter.matthiaskoehler.com" target="_blank">
-      <span class="card-icon">📓</span>
-      <span class="card-title">JupyterLab</span>
-      <span class="card-desc">Interactive notebooks for data exploration — Bronze/Silver queries, ETL development, and pipeline prototyping.</span>
-      <span class="card-url">airline-jupyter.matthiaskoehler.com</span>
+    <a class="card" href="https://airlive.matthiaskoehler.com" target="_blank">
+      <span class="card-icon">✈️</span>
+      <span class="card-title">Live Traffic — FastAPI + Dash</span>
+      <span class="card-desc">Read-only FastAPI service + Dash map over the Silver layer (Supabase map1) — Nginx reverse proxy on the VM.</span>
+      <span class="card-url">airlive.matthiaskoehler.com</span>
     </a>
 
     <a class="card" href="https://airline-portainer.matthiaskoehler.com" target="_blank">
@@ -189,10 +189,10 @@
   <div class="stack">
     <h2>Infrastructure</h2>
     <div class="stack-grid">
-      <div class="stack-item">AWS Lightsail<span>aws-airline-1 · eu-central-1a · $12/mo</span></div>
+      <div class="stack-item">AWS Lightsail<span>aws-airline-1</span></div>
       <div class="stack-item">Cloudflare Tunnel<span>Zero-trust ingress · no open ports</span></div>
-      <div class="stack-item">MongoDB Atlas<span>Free M0 · eu-central-1 · adsb_raw + opensky_raw</span></div>
-      <div class="stack-item">Supabase Postgres<span>Free/NANO · eu-central-1 · 12 000+ rows</span></div>
+      <div class="stack-item">MongoDB Atlas<span>Free M0 · adsb_raw + opensky_raw</span></div>
+      <div class="stack-item">Supabase Postgres<span>Free/NANO · 12 000+ rows</span></div>
       <div class="stack-item">Docker 29.1<span>Compose stacks · Portainer CE 2.39</span></div>
       <div class="stack-item">Python 3.12<span>pymongo · psycopg2 · FastAPI · Streamlit</span></div>
     </div>

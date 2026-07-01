@@ -28,15 +28,13 @@ MONGO_URI=mongodb+srv://airline-reader-ro:<PASSWORD>@<cluster>.mongodb.net/...  
 MONGO_URI_RW=mongodb+srv://airline-collector-rw:<PASSWORD>@<cluster>.mongodb.net/... # write
 ```
 
-- **Notebooks** use the `data_connectors/mongo.py` helper (`from_env()` / `from_env(write=True)`),
-  which reads `MONGO_URI` / `MONGO_URI_RW` / `MONGO_DB`.
-- **The `etl/` pipeline** (`bronze.py` / `silver.py`) connects directly and reads **`MONGO_URL`**
-  (not `MONGO_URI`).
+- **The `etl/` pipeline** (`bronze.py` / `silver.py`) connects directly via `pymongo.MongoClient`
+  and reads **`MONGO_URL`** (not `MONGO_URI`).
 
-> ⚠️ **Naming drift to reconcile:** the live pipeline uses Mongo db `airlines`, collection
-> `states_all`; older docs and the notebook helper reference `airline_landing` with `opensky_raw` /
-> `adsb_raw`. Until the convention is settled, treat the console's "Browse Collections" as the source
-> of truth.
+> ⚠️ **Naming drift to reconcile:** the live pipeline uses Mongo db `airlines`, collections
+> `states_all` (OpenSky) and `adsb_raw` (adsb.lol); older docs reference `airline_landing` with
+> `opensky_raw` / `adsb_raw`. Until the convention is settled, treat the console's "Browse
+> Collections" as the source of truth.
 
 ---
 

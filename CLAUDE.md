@@ -31,6 +31,19 @@ See [ADR 012](docs/adr/012-github-flow-branch-merge.md) for the full decision (f
 - Keep it simple: no Kubernetes, no microservices, no premature optimization (it's a learning project).
 - New diagrams in Markdown + Mermaid.
 
+**`docs/architecture/` describes current state only:**
+- No "Phase N 🚧" / planned-vs-✅ framing mixed into the prose — describe what runs *today*. Future
+  work (unbuilt models, scheduler, CI/CD, …) belongs as draft issues in the
+  [GitHub Project](https://github.com/users/MatthiasSails/projects/1), not duplicated here where it
+  goes stale.
+- No incident narratives ("X crashed for 3 days, fixed in #N") — that's implementation history, not
+  architecture. It belongs in the PR description and `CLAUDE.local.md`, not in `docs/architecture/`.
+- A Mermaid diagram with many crossing edges (mixing e.g. data-store connections *and* network
+  exposure in one graph) is a sign to split it into two single-purpose diagrams, not to keep
+  untangling the layout.
+- Lead diagram node labels with the technology/role name ("Streamlit Dashboard"), container/folder
+  name as the secondary line — easier to scan than container names alone.
+
 ---
 
 ## The project (orientation)
@@ -56,10 +69,7 @@ airline-data-platform/
 ├── docs/             # knowledge layer — requirements, ADRs, architecture, data-sources, report
 ├── etl/              # the pipeline: bronze.py (ingest) + silver.py (transform) + run_pipeline.sh
 ├── 03-gold/          # consumption: api/ (FastAPI, planned) + dashboard/ (Streamlit)
-├── data_connectors/  # provider-abstracted DB access (mongo.py, supabase.py)
-├── deployment/       # Docker Compose stacks (Portainer GitOps)
-├── notebooks/        # exploration + walkthroughs
-└── requirements.txt
+└── deployment/       # Docker Compose stacks (Portainer GitOps)
 ```
 
 > Bronze + Silver used to be numbered folders (`01-bronze/`, `02-silver/`); they were merged into
