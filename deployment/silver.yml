@@ -7,6 +7,9 @@ services:
       context: ..
       dockerfile: deployment/Dockerfile
     container_name: etl_silver
+    # Supabase's Direct Connection endpoint is IPv6-only; the Docker bridge
+    # network has no IPv6, so host networking is required (same as dashboard.yml).
+    network_mode: host
     env_file:
       - ../.env
     command: bash run_silver.sh
