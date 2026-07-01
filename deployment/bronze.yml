@@ -7,13 +7,19 @@
 # Image is built and pushed to GHCR by ../.github/workflows/build-push.yml on every push to
 # main that touches etl/ or deployment/Dockerfile — Portainer only pulls, it doesn't build.
 # Same image as silver.yml (identical Dockerfile/context); only the command differs.
+#
+# Env is injected by Portainer per stack ("Environment variables" field), not from the repo
+# .env — that file is gitignored and absent in the GitOps clone, so an env_file: reference
+# would fail the deploy outright.
 services:
   bronze:
     image: ghcr.io/matthiassails/airline-etl:latest
     pull_policy: always
     container_name: etl_bronze
-    env_file:
-      - ../.env
+    environment:
+      - OPENSKY_CLIENT_ID=${OPENSKY_CLIENT_ID}
+      - OPENSKY_CLIENT_SECRET=${OPENSKY_CLIENT_SECRET}
+      - MONGO_URL=${MONGO_URL}
     command: bash run_bronze.sh
     restart: unless-stopped
     logging:

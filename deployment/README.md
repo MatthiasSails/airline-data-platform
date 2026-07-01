@@ -11,8 +11,8 @@ own stack. Per-service Dockerfiles live with their service (e.g. [`../03-gold/da
 |---|---|---|---|---|
 | `airline-dashboard` | [`dashboard.yml`](dashboard.yml) | Streamlit live map over Silver (Supabase) | host net, `:8501` | `SUPABASE_DB_HOST`, `SUPABASE_DB_PASSWORD` |
 | `airline-landing` | [`landing.yml`](landing.yml) | static landing page | `:80` | — |
-| `airline-etl-bronze` | [`bronze.yml`](bronze.yml) | fetches OpenSky + adsb.lol into MongoDB, 50s loop ([`../etl/bronze.py`](../etl/bronze.py)) | no published port | via `../.env` |
-| `airline-etl-silver` | [`silver.yml`](silver.yml) | refreshes `map1` (Postgres) from the latest Mongo snapshot, 10s loop ([`../etl/silver.py`](../etl/silver.py)) | no published port | via `../.env` |
+| `airline-etl-bronze` | [`bronze.yml`](bronze.yml) | fetches OpenSky + adsb.lol into MongoDB, 50s loop ([`../etl/bronze.py`](../etl/bronze.py)) | no published port | `OPENSKY_CLIENT_ID`, `OPENSKY_CLIENT_SECRET`, `MONGO_URL` |
+| `airline-etl-silver` | [`silver.yml`](silver.yml) | refreshes `map1` (Postgres) from the latest Mongo snapshot, 10s loop ([`../etl/silver.py`](../etl/silver.py)) | no published port | `MONGO_URL`, `SUPABASE_DB_URL`, `SUPABASE_DB_PASSWORD` |
 | `airline-gold-dash` | [`gold-dash.yml`](gold-dash.yml) | read-only FastAPI + Dash over Silver, Supabase session pooler ([`../03-gold-dash/`](../03-gold-dash/)) | bridge, `127.0.0.1:8000`/`:8050` | `DATABASE_URL` |
 
 `gold-dash.yml` holds two services (`api`, `dashboard`) in one stack, not two separate files —
