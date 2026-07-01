@@ -4,12 +4,16 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# heartbeat is only touched on success, so the healthcheck (deployment/silver.yml)
+# marks the container unhealthy when refreshes fail persistently (map1 going stale),
+# not just when the loop hangs.
 while true; do
     echo "[$(date)] Running silver..."
-    if ! python3 silver.py; then
-        echo "[$(date)] silver.py failed — see pipeline.log, retrying next cycle."
+    if python3 silver.py; then
+        touch heartbeat
+    else
+        echo "[$(date)] silver.py failed — see the log lines above, retrying next cycle."
     fi
-    touch heartbeat
     echo "[$(date)] Done. Sleeping 10s..."
     sleep 10
 done
