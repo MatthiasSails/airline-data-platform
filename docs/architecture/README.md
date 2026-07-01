@@ -96,18 +96,19 @@ graph LR
 > **`03-gold/dashboard`** — Streamlit, queries `map1` directly via psycopg2, deployed via
 > `deployment/dashboard.yml` (Portainer GitOps), exposed at `airline-dashboard.matthiaskoehler.com`.
 > **`03-gold-dash/`** — read-only FastAPI service (`api/`, asyncpg/Supavisor session pooler) +
-> Dash frontend (`dashboard/`, polls the API every 45s), exposed at `airlive.matthiaskoehler.com`
-> directly via the Cloudflare Tunnel — no reverse proxy on the VM. Endpoint scope for both: positions/aircraft/airline
-> only — no route or delay analytics, since the live States feed has no origin/destination or
-> scheduled times.
+> Dash frontend (`dashboard/`, polls the API every 45s), deployed via
+> `deployment/gold-dash.yml` (Portainer GitOps), exposed at `airlive.matthiaskoehler.com` directly
+> via the Cloudflare Tunnel — no reverse proxy on the VM. Endpoint scope for both:
+> positions/aircraft/airline only — no route or delay analytics, since the live States feed has no
+> origin/destination or scheduled times.
 
 ---
 
 ## Deployment
 
-Data stores are **managed cloud services** (MongoDB Atlas, Supabase Postgres); the application
-services run as **Docker containers** on a dedicated VM, via **two different deployment paths** —
-not by original design, just how each stack was actually rolled out.
+Data stores are **managed cloud services** (MongoDB Atlas, Supabase Postgres); every application
+service runs as a **Docker container** on a dedicated VM, deployed the same way: **Portainer
+GitOps**, auto-pulling `main`.
 
 ```mermaid
 graph TB
@@ -118,29 +119,28 @@ graph TB
     subgraph GITOPS["Portainer GitOps (deployment/*.yml, auto-pulls main)"]
         D1["adsb_dashboard (Streamlit)"]
         D2["landing_page"]
-        D3["etl_app2 (ETL pipeline)"]
-    end
-    subgraph MANUAL["Manually deployed (03-gold-dash/, plain docker compose)"]
-        D4["api (FastAPI)"]
-        D5["dashboard (Dash)"]
+        D3["etl_bronze"]
+        D6["etl_silver"]
+        D4["gold_api (FastAPI)"]
+        D5["gold_dashboard (Dash)"]
     end
 
     D3 -.-> M1
-    D3 -.-> M2
+    D6 -.-> M1
+    D6 -.-> M2
 
     style MANAGED fill:#FF6B35,color:#fff
     style GITOPS fill:#0066CC,color:#fff
-    style MANUAL fill:#9933CC,color:#fff
 ```
 
-- **Portainer GitOps** (`deployment/*.yml`) — `adsb_dashboard`, `landing_page`, `etl_app2`. Each is
-  its own Portainer stack, auto-pulled from `main` (see
-  [`deployment/README.md`](../../deployment/README.md)). Portainer here is purely a management
-  view over the containers (equivalent to running `docker ps`/`docker compose` by hand on the VM)
-  — it isn't part of the infrastructure itself, just how updates get rolled out.
-- **`03-gold-dash`** (FastAPI + Dash) is **not** Portainer-managed — it's a plain `docker compose
-  up` from `03-gold-dash/docker-compose.yml`, run manually on the VM, both containers bound to
-  `127.0.0.1` only (see [Infrastructure](#infrastructure) for how it's exposed).
+- **Portainer GitOps** (`deployment/*.yml`) — every service is its own Portainer stack (`gold_api`/
+  `gold_dashboard` share one stack, `gold-dash.yml`, see [`deployment/README.md`](../../deployment/README.md)
+  for why), auto-pulled from `main`. Portainer here is purely a management view over the containers
+  (equivalent to running `docker ps`/`docker compose` by hand on the VM) — it isn't part of the
+  infrastructure itself, just how updates get rolled out.
+- **Images**: `adsb_dashboard`, `landing_page`, `gold_api`, `gold_dashboard` are built once by CI
+  and pulled from GHCR (see [`deployment/README.md`](../../deployment/README.md)); `etl_bronze`/
+  `etl_silver` build in place on the VM from the same Compose file that deploys them.
 
 ---
 
@@ -156,10 +156,10 @@ separately.
 
 ```mermaid
 graph LR
-    BRONZE["etl_app2<br/>bronze.py"]
-    SILVER["etl_app2<br/>silver.py"]
+    BRONZE["etl_bronze<br/>bronze.py"]
+    SILVER["etl_silver<br/>silver.py"]
     DASH1["Streamlit Dashboard<br/>adsb_dashboard"]
-    API["FastAPI<br/>03-gold-dash api"]
+    API["FastAPI<br/>gold_api"]
     MONGO["MongoDB Atlas<br/>Bronze"]
     SUPA["Supabase Postgres<br/>Silver — map1"]
 
@@ -177,12 +177,12 @@ graph LR
     style API fill:#0066CC,color:#fff
 ```
 
-- **MongoDB Atlas** (Bronze) — written only by `etl_app2`, via SRV connection string. Nothing
-  currently reads it back out.
+- **MongoDB Atlas** (Bronze) — written only by `etl_bronze`, via SRV connection string, read only by
+  `etl_silver`.
 - **Supabase Postgres** (Silver, `map1`) — three readers/writers, **two different connection
   strategies** against the Direct Connection (port 5432, IPv6-only): `adsb_dashboard` and
-  `etl_app2` connect directly (`adsb_dashboard` via `network_mode: host`); `03-gold-dash api` uses
-  the **Supavisor session pooler** instead (IPv4-compatible) — see `03-gold-dash/README.md`.
+  `etl_silver` connect directly (both via `network_mode: host`); `gold_api` uses the **Supavisor
+  session pooler** instead (IPv4-compatible) — see `03-gold-dash/README.md`.
 
 ### Network exposure
 
@@ -193,7 +193,7 @@ graph LR
         LAND["landing_page"]
     end
     subgraph LOCALONLY["127.0.0.1-only"]
-        DASH2["Dash Dashboard<br/>03-gold-dash dashboard"]
+        DASH2["Dash Dashboard<br/>gold_dashboard"]
     end
     CF["cloudflared<br/>network_mode: host"]
     EDGE["Cloudflare edge<br/>*.matthiaskoehler.com"]
@@ -210,8 +210,8 @@ graph LR
 ```
 
 - **No reverse proxy on the VM.** `cloudflared` runs with `network_mode: host`, so it reaches
-  `03-gold-dash dashboard` directly on `127.0.0.1:8050` — same pattern as the other two services,
-  just without a published port.
+  `gold_dashboard` directly on `127.0.0.1:8050` — same pattern as the other two services, just
+  without a published port.
 - **Cloudflare Tunnel** (`cloudflared`) makes an outbound-only connection to the Cloudflare edge;
   no inbound ports are open on the VM. The edge maps each subdomain (`airline-dashboard.`,
   `airlive.`, `airline.`) to the matching local service.
