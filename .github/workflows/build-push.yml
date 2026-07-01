@@ -1,0 +1,46 @@
+name: Build and push images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "03-gold/dashboard/**"
+      - "deployment/landing-page/**"
+      - ".github/workflows/build-push.yml"
+
+jobs:
+  dashboard:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./03-gold/dashboard
+          push: true
+          tags: ghcr.io/matthiassails/airline-dashboard:latest
+
+  landing:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./deployment/landing-page
+          push: true
+          tags: ghcr.io/matthiassails/airline-landing:latest

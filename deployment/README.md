@@ -22,6 +22,12 @@ healthcheck.
 
 ## Conventions
 
+- **`dashboard.yml` and `landing.yml` reference pre-built images, they don't build.**
+  [`../.github/workflows/build-push.yml`](../.github/workflows/build-push.yml) builds and pushes
+  both to GHCR (`ghcr.io/matthiassails/airline-dashboard`, `airline-landing`) on every push to
+  `main` that touches their source. Portainer only pulls (`pull_policy: always`, since `:latest`
+  is a mutable tag). `bronze.yml`/`silver.yml` still build in place on the VM — no separate image
+  to publish for those, since ETL code changes as often as the containers redeploy anyway.
 - **Env comes from Portainer**, per stack — *not* from the repo `.env` (gitignored, absent in the
   GitOps clone). Enter the variables in each stack's "Environment variables" field.
 - **The dashboard must use `network_mode: host`.** It connects to the IPv6-only Supabase host

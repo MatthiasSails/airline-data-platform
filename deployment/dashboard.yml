@@ -8,9 +8,15 @@
 #
 # Env (SUPABASE_DB_HOST, SUPABASE_DB_PASSWORD) is injected by Portainer per stack,
 # not from the repo .env (which is gitignored and absent in the GitOps clone).
+#
+# Image is built and pushed to GHCR by .github/workflows/build-push.yml on every push to
+# main that touches 03-gold/dashboard/ — Portainer only pulls, it doesn't build. pull_policy
+# always is required because :latest is a mutable tag; without it, a redeploy with an
+# already-cached local image would silently keep running the old code.
 services:
   adsb-dashboard:
-    build: ../03-gold/dashboard
+    image: ghcr.io/matthiassails/airline-dashboard:latest
+    pull_policy: always
     container_name: adsb_dashboard
     network_mode: host
     environment:
