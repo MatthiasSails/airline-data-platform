@@ -39,7 +39,8 @@ graph LR
 ```
 
 > adsb.lol started Bronze-only for data-quality reasons ([ADR 009](../adr/009-states-api-silver-model.md))
-> but is now also used as a Silver fallback — see Silver below and [ADR 014](../adr/014-adsb-lol-silver-fallback.md).
+> but is now also used as a Silver fallback, writing to its own `adsb_raw` collection — see Silver
+> below and [ADR 014](../adr/014-adsb-lol-silver-fallback.md).
 > The retrospective OpenSky `/flights/*` model was dropped in favour of the live States feed.
 
 ---

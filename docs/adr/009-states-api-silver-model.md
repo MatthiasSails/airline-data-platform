@@ -1,6 +1,7 @@
 # ADR 009 — Silver Model: OpenSky States as the Central Fact; adsb.lol Bronze-only
 
-**Status:** Accepted
+**Status:** Accepted — partially superseded by [ADR 014](014-adsb-lol-silver-fallback.md) (the
+"adsb.lol not promoted to Silver" clause only; everything else below still holds).
 **Date:** 2026-06-02
 **Refines:** ADR 003 (dual-stream) — changes the OpenSky role and demotes adsb.lol to Bronze.
 **Builds on:** ADR 004 (Mongo landing-zone hub), ADR 007 (Neon Silver warehouse).
