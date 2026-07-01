@@ -74,7 +74,7 @@ Full design and the *why* live in [docs/architecture/](docs/architecture/README.
 ```
 airline-data-platform/
 ├── docs/             # knowledge layer — requirements, ADRs, architecture, data-sources, report
-├── etl/              # the pipeline: bronze.py (ingest) + silver.py (transform) + run_pipeline.sh
+├── etl/              # the pipeline: bronze.py (ingest) + silver.py (transform) + run_*.sh loops
 ├── 03-gold/          # consumption: api/ (FastAPI, planned) + dashboard/ (Streamlit)
 └── deployment/       # Docker Compose stacks (Portainer GitOps)
 ```

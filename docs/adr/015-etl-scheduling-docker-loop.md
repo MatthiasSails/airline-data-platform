@@ -37,7 +37,8 @@ merging (see PR #21 review comment for the full comparison).
 
 The interval was tightened from 45s to a split cadence as part of #23/PR #26: bronze (rate-limited,
 external fetch) runs every 50s; silver (local Mongo → Postgres refresh, no external rate limit) runs
-independently every 10s. See ADR 016 for the container-split rationale.
+independently every 10s. See [deployment/README.md](../../deployment/README.md) for the
+container-split rationale.
 
 ## Rationale
 
