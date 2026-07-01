@@ -84,7 +84,7 @@ graph LR
     PG -->|psycopg2| ST["Streamlit dashboard<br/>03-gold/dashboard<br/>airline-dashboard.matthiaskoehler.com"]
     PG -->|asyncpg, read-only| API["FastAPI<br/>03-gold-dash/api<br/>/health · /aircraft/current"]
     API -->|polls every 45s| DASH["Dash map<br/>03-gold-dash/dashboard"]
-    DASH -->|Nginx reverse proxy| TUN["airlive.matthiaskoehler.com"]
+    DASH -->|Cloudflare Tunnel| TUN["airlive.matthiaskoehler.com"]
 
     style PG fill:#0066CC,color:#fff
     style ST fill:#9933CC,color:#fff
@@ -96,8 +96,8 @@ graph LR
 > **`03-gold/dashboard`** — Streamlit, queries `map1` directly via psycopg2, deployed via
 > `deployment/dashboard.yml` (Portainer GitOps), exposed at `airline-dashboard.matthiaskoehler.com`.
 > **`03-gold-dash/`** — read-only FastAPI service (`api/`, asyncpg/Supavisor session pooler) +
-> Dash frontend (`dashboard/`, polls the API every 45s) behind an Nginx reverse proxy on the same
-> VM, exposed at `airlive.matthiaskoehler.com`. Endpoint scope for both: positions/aircraft/airline
+> Dash frontend (`dashboard/`, polls the API every 45s), exposed at `airlive.matthiaskoehler.com`
+> directly via the Cloudflare Tunnel — no reverse proxy on the VM. Endpoint scope for both: positions/aircraft/airline
 > only — no route or delay analytics, since the live States feed has no origin/destination or
 > scheduled times.
 
@@ -195,25 +195,23 @@ graph LR
     subgraph LOCALONLY["127.0.0.1-only"]
         DASH2["Dash Dashboard<br/>03-gold-dash dashboard"]
     end
-    NGINX["Nginx<br/>native systemd, not a container"]
-    CF["cloudflared"]
+    CF["cloudflared<br/>network_mode: host"]
     EDGE["Cloudflare edge<br/>*.matthiaskoehler.com"]
 
-    DASH2 --> NGINX --> CF
+    DASH2 --> CF
     DASH1 --> CF
     LAND --> CF
     CF -->|outbound-only tunnel,<br/>no inbound ports open| EDGE
 
     style PUBLISHED fill:#0066CC,color:#fff
     style LOCALONLY fill:#9933CC,color:#fff
-    style NGINX fill:#475569,color:#fff
     style CF fill:#475569,color:#fff
     style EDGE fill:#475569,color:#fff
 ```
 
-- **Nginx runs natively on the VM** (systemd service, not a container) and is the only entry point
-  for `03-gold-dash` — reverse-proxies `127.0.0.1:8050` out to `airlive.matthiaskoehler.com`.
-  Installed manually per `03-gold-dash/README.md`, not pulled by GitOps.
+- **No reverse proxy on the VM.** `cloudflared` runs with `network_mode: host`, so it reaches
+  `03-gold-dash dashboard` directly on `127.0.0.1:8050` — same pattern as the other two services,
+  just without a published port.
 - **Cloudflare Tunnel** (`cloudflared`) makes an outbound-only connection to the Cloudflare edge;
   no inbound ports are open on the VM. The edge maps each subdomain (`airline-dashboard.`,
   `airlive.`, `airline.`) to the matching local service.
