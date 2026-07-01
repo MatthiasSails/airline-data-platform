@@ -1,0 +1,14 @@
+[Unit]
+Description=Airline Data Pipeline (bronze -> silver)
+After=network.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/home/ubuntu/airline-data-platform/etl
+ExecStart=/bin/bash /home/ubuntu/airline-data-platform/etl/run_pipeline.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
