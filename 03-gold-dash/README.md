@@ -8,7 +8,6 @@ a `map1` table already populated by an external OpenSky poller in Supabase Postg
 ```
 api/                  FastAPI service (read-only, queries map1)
 dashboard/            Dash app (polls API every 45s, renders dl.Map)
-deploy/nginx.conf     Nginx reverse proxy config (used on the Lightsail VM)
 docker-compose.yml          Production compose file (Lightsail VM)
 docker-compose.local.yml    Local development compose file
 .env.example          Template for the Supabase connection string
@@ -90,29 +89,21 @@ On a fresh Ubuntu Lightsail instance (2 GB RAM / 2 vCPU / 60 GB SSD):
    ```
 
    Both `api` and `dashboard` publish only to `127.0.0.1` — they are not reachable from outside
-   the VM directly; Nginx is the single public entry point.
+   the VM directly. Public access goes through the Cloudflare Tunnel (`cloudflared`, already
+   running on the VM as its own stack), whose ingress config routes
+   `airlive.<domain>` straight to `http://localhost:8050` (the `dashboard` container's published
+   port). No reverse proxy runs on the VM for this service — the tunnel terminates TLS at
+   Cloudflare's edge and connects to the container directly.
 
-4. **Install and configure Nginx** (native host package, not containerized):
+4. **Point the Cloudflare Tunnel at the dashboard**: add/update an ingress rule for your public
+   hostname in the tunnel config (Cloudflare Zero Trust dashboard, or via the `cfd_tunnel`
+   API) with `service: http://localhost:8050`. No Nginx, no Certbot, no extra native package —
+   the VM only needs Docker and the tunnel.
 
-   ```bash
-   sudo apt update && sudo apt install -y nginx
-   sudo cp deploy/nginx.conf /etc/nginx/sites-available/opensky-frankfurt
-   sudo ln -s /etc/nginx/sites-available/opensky-frankfurt /etc/nginx/sites-enabled/
-   sudo rm -f /etc/nginx/sites-enabled/default
-   sudo nginx -t && sudo systemctl reload nginx
-   ```
+5. **Lightsail firewall**: only port 22 (SSH) needs to be open. The Cloudflare Tunnel initiates an
+   outbound connection from the VM, so no inbound port 80/443 is required for this service.
 
-5. **(Optional) TLS via Certbot**, once a domain points at the VM:
-
-   ```bash
-   sudo apt install -y certbot python3-certbot-nginx
-   sudo certbot --nginx -d your-domain.example.com
-   ```
-
-6. **Lightsail firewall**: open only ports 22, 80, and 443 (443 only if TLS is configured) in the
-   Lightsail networking tab.
-
-7. **Verify end-to-end**: visit `http://<vm-ip-or-domain>/` and confirm live aircraft markers
+6. **Verify end-to-end**: visit `https://airlive.<domain>/` and confirm live aircraft markers
    appear, sourced from the existing poller writing into `map1`.
 
 ### Updating a deployment

@@ -11,10 +11,14 @@ own stack. Per-service Dockerfiles live with their service (e.g. [`../03-gold/da
 |---|---|---|---|---|
 | `airline-dashboard` | [`dashboard.yml`](dashboard.yml) | Streamlit live map over Silver (Supabase) | host net, `:8501` | `SUPABASE_DB_HOST`, `SUPABASE_DB_PASSWORD` |
 | `airline-landing` | [`landing.yml`](landing.yml) | static landing page | `:80` | — |
+| `airline-etl-bronze` | [`bronze.yml`](bronze.yml) | fetches OpenSky + adsb.lol into MongoDB, 50s loop ([`../etl/bronze.py`](../etl/bronze.py)) | no published port | via `../.env` |
+| `airline-etl-silver` | [`silver.yml`](silver.yml) | refreshes `map1` (Postgres) from the latest Mongo snapshot, 10s loop ([`../etl/silver.py`](../etl/silver.py)) | no published port | via `../.env` |
 
-Reserved for later (not yet containerized): `airline-etl` → `etl.yml`, the Bronze→Silver
-ETL ([`../02-silver/etl/opensky_to_supabase.py`](../02-silver/etl/opensky_to_supabase.py)).
-It also needs host networking (see below).
+Bronze and silver are split into separate stacks/containers on purpose: bronze is rate-limited by
+upstream APIs and can only run every ~50s, while silver just re-reads the latest Mongo snapshot
+into Postgres with no external rate limit, so it runs on its own faster cadence. Splitting them
+also means a crash in one doesn't take down the other, and each gets its own restart policy and
+healthcheck.
 
 ## Conventions
 
