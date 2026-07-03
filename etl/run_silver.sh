@@ -15,5 +15,5 @@ while true; do
         echo "[$(date)] silver.py failed — see the log lines above, retrying next cycle."
     fi
     echo "[$(date)] Done. Sleeping 10s..."
-    sleep 10
+    sleep 20
 done
