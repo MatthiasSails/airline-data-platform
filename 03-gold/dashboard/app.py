@@ -20,7 +20,7 @@ def _conn():
     )
 
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=5)
 def load_snapshot() -> pd.DataFrame:
     conn = _conn()
     df = pd.read_sql(

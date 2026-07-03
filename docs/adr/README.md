@@ -19,6 +19,7 @@ Each ADR documents one significant decision: the context, the choice, the altern
 | [011](011-layer-named-folders-connector-abstraction-ml.md) | Layer-named folders, data-connector abstraction, ML placement | Accepted | 2026-06-10 |
 | [012](012-github-flow-branch-merge.md) | GitHub Flow — branching & merge (feature branches + squash-merge) | Accepted | 2026-06-23 |
 | [014](014-adsb-lol-silver-fallback.md) | adsb.lol Promoted to Silver as an Operational Fallback (OpenSky VM egress block) | Accepted | 2026-06-30 |
+| [015](015-etl-scheduling-docker-loop.md) | ETL Scheduling Stays a Docker Loop, Not systemd | Accepted | 2026-07-01 |
 
 ## Format
 

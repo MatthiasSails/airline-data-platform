@@ -15,6 +15,11 @@ See [ADR 012](docs/adr/012-github-flow-branch-merge.md) for the full decision (f
   through a PR, reviewed by a second team member.
 - **Squash and merge** is the team's default merge strategy (one commit per PR, linear history).
 - `main` is always deployable. Use `feature/` · `fix/` · `chore/` branches; delete after merge.
+- **Claude: never merge a PR without asking first, even a small, clean, already-tested hotfix.**
+  Being "clearly correct" is not sufficient justification to merge autonomously — ask every time,
+  no exceptions. (Grew out of PR #24: a standalone hotfix got merged on sight because it looked
+  safe, which turned out not to be the right call — the fix belonged inside the larger #23 effort
+  instead, and had to be reverted via PR #25.)
 
 ---
 
@@ -23,7 +28,9 @@ See [ADR 012](docs/adr/012-github-flow-branch-merge.md) for the full decision (f
 **Secrets:**
 - Never commit secrets. `.env` lives at the project root and is gitignored.
 - No real credentials, IPs, hostnames, or other private infra in tracked files — pointers go in
-  `CLAUDE.local.md`.
+  `CLAUDE.local.md`. **This has already leaked twice** (ADR 007 and ADR 014 both had the real VM
+  IPv4/IPv6 and Supabase project ref in prose, fixed 2026-07-02) — when writing or editing any ADR,
+  grep it for real IPs/hostnames/project-refs before committing, don't rely on remembering the rule.
 
 **Coding standards:**
 - Python 3.12+, type hints, `pathlib`, logging instead of `print()`.
@@ -67,7 +74,7 @@ Full design and the *why* live in [docs/architecture/](docs/architecture/README.
 ```
 airline-data-platform/
 ├── docs/             # knowledge layer — requirements, ADRs, architecture, data-sources, report
-├── etl/              # the pipeline: bronze.py (ingest) + silver.py (transform) + run_pipeline.sh
+├── etl/              # the pipeline: bronze.py (ingest) + silver.py (transform) + run_*.sh loops
 ├── 03-gold/          # consumption: api/ (FastAPI, planned) + dashboard/ (Streamlit)
 └── deployment/       # Docker Compose stacks (Portainer GitOps)
 ```

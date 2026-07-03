@@ -16,7 +16,7 @@ dedup/normalization cost for no informational gain.
 
 That reasoning still holds — but a separate, operational problem has since appeared and was not
 contemplated in ADR 009: **OpenSky blocks the production VM's AWS egress IP** (no TCP/ICMP to
-`opensky-network.org` from `63.185.229.117` — confirmed 2026-06-23, whole AWS range filtered, not
+`opensky-network.org` from the VM's static IP — confirmed 2026-06-23, whole AWS range filtered, not
 an Elastic IP / NAT-gateway-fixable issue). On the VM, `etl/bronze.py`'s OpenSky call now fails on
 every run; `states_all` in MongoDB goes stale indefinitely while adsb.lol (no auth, not
 IP-filtered) keeps updating normally.

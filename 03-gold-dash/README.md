@@ -8,11 +8,12 @@ a `map1` table already populated by an external OpenSky poller in Supabase Postg
 ```
 api/                  FastAPI service (read-only, queries map1)
 dashboard/            Dash app (polls API every 45s, renders dl.Map)
-deploy/nginx.conf     Nginx reverse proxy config (used on the Lightsail VM)
-docker-compose.yml          Production compose file (Lightsail VM)
 docker-compose.local.yml    Local development compose file
 .env.example          Template for the Supabase connection string
 ```
+
+Production deployment config lives in [`../deployment/gold-dash.yml`](../deployment/gold-dash.yml)
+(Portainer GitOps stack), not in this directory — see [Deployment](#2-deployment) below.
 
 ## 1. Local setup
 
@@ -65,64 +66,27 @@ python app.py
 
 The dashboard defaults `API_BASE_URL` to `http://127.0.0.1:8000` when not running in Docker.
 
-## 2. Deploying to AWS Lightsail
+## 2. Deployment
 
-On a fresh Ubuntu Lightsail instance (2 GB RAM / 2 vCPU / 60 GB SSD):
+Both containers are a Portainer GitOps stack (`airline-gold-dash`,
+[`../deployment/gold-dash.yml`](../deployment/gold-dash.yml)) — same mechanism as every other
+service, see [`deployment/README.md`](../deployment/README.md) for the shared conventions. Nothing
+manual runs on the VM for this service.
 
-1. **Install Docker Engine** (one-time):
-
-   ```bash
-   curl -fsSL https://get.docker.com | sudo sh
-   sudo usermod -aG docker $USER
-   newgrp docker
-   docker --version && docker compose version
-   ```
-
-2. **Get the repo onto the VM** (e.g. `git clone` or `scp`), then create `.env` from
-   `.env.example` with the real Supabase connection string.
-
-3. **Build and start the app containers:**
-
-   ```bash
-   docker compose build
-   docker compose up -d
-   docker compose ps    # confirm both services are healthy
-   ```
-
-   Both `api` and `dashboard` publish only to `127.0.0.1` — they are not reachable from outside
-   the VM directly; Nginx is the single public entry point.
-
-4. **Install and configure Nginx** (native host package, not containerized):
-
-   ```bash
-   sudo apt update && sudo apt install -y nginx
-   sudo cp deploy/nginx.conf /etc/nginx/sites-available/opensky-frankfurt
-   sudo ln -s /etc/nginx/sites-available/opensky-frankfurt /etc/nginx/sites-enabled/
-   sudo rm -f /etc/nginx/sites-enabled/default
-   sudo nginx -t && sudo systemctl reload nginx
-   ```
-
-5. **(Optional) TLS via Certbot**, once a domain points at the VM:
-
-   ```bash
-   sudo apt install -y certbot python3-certbot-nginx
-   sudo certbot --nginx -d your-domain.example.com
-   ```
-
-6. **Lightsail firewall**: open only ports 22, 80, and 443 (443 only if TLS is configured) in the
-   Lightsail networking tab.
-
-7. **Verify end-to-end**: visit `http://<vm-ip-or-domain>/` and confirm live aircraft markers
-   appear, sourced from the existing poller writing into `map1`.
-
-### Updating a deployment
-
-```bash
-git pull
-docker compose build
-docker compose up -d
-docker image prune -f   # periodic cleanup of old image layers
-```
+- **Images** are built and pushed to GHCR by
+  [`../.github/workflows/build-push.yml`](../.github/workflows/build-push.yml) on every push to
+  `main` that touches `api/` or `dashboard/` — Portainer only pulls (`pull_policy: always`), it
+  never builds from source on the VM.
+- **`DATABASE_URL`** is set in Portainer's stack environment variables, not from a `.env` file —
+  same Supavisor session pooler connection string as local dev (see above). The Direct Connection
+  host still doesn't work here (IPv6-only); this stack stays on the default bridge network for
+  that reason, unlike `dashboard.yml`/`silver.yml` which need `network_mode: host`.
+- **Both `api` and `dashboard` publish only to `127.0.0.1`** — not reachable from outside the VM
+  directly. Public access goes through the Cloudflare Tunnel (`cloudflared`, its own stack,
+  running with `network_mode: host`), whose ingress routes `airlive.<domain>` straight to
+  `http://localhost:8050`. No reverse proxy runs on the VM for this service.
+- **Updating**: push to `main` — CI rebuilds the changed image(s), Portainer picks up the new
+  compose file and image on its next poll (or "Pull and redeploy").
 
 ## 3. Notes
 
