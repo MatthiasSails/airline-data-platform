@@ -1,9 +1,15 @@
-#!/bin/bash
+#!/bin/sh
 # Lightsail user_data — runs once as root on first boot.
+#
+# MUST stay POSIX sh compatible: Lightsail concatenates this into its own
+# init script and runs the whole thing with /bin/sh (dash) — the shebang is
+# ignored and bashisms like `set -o pipefail` abort the script (learned the
+# hard way: first boot of aws-airline-q-1 failed exactly there).
+#
 # Installs Docker only. Deliberately NO secrets in here: user_data is readable
 # via the instance metadata service, so the Portainer agent (which needs
 # AGENT_SECRET) is started afterwards via a single ssh command instead.
-set -euo pipefail
+set -eu
 
 # 1 GiB swapfile — OOM safety net on the 1 GB micro_3_0 bundle (steady-state
 # footprint is ~800 MiB; spikes e.g. during docker pull would otherwise risk
