@@ -17,6 +17,7 @@ def build_layout() -> html.Div:
                 ],
                 className="header",
             ),
+            html.Div("this is dash", className="dash-marker"),
             dl.Map(
                 center=[EDDF_LAT, EDDF_LON],
                 zoom=DEFAULT_ZOOM,
