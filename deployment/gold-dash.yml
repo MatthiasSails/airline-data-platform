@@ -13,9 +13,13 @@
 # DATABASE_URL uses the Supabase Session Pooler (IPv4-compatible), not the IPv6-only Direct
 # Connection host — so this stack stays on the default bridge network, unlike dashboard.yml/
 # silver.yml which need network_mode: host. See 03-gold-dash/README.md.
+#
+# IMAGE_TAG selects the build to run and is what makes this one file serve two
+# environments (build-once, promote-artifact): the prod stack leaves it unset
+# (-> latest), the q stack gets it flipped to pr-<N> by the PR deploy workflow.
 services:
   api:
-    image: ghcr.io/matthiassails/airline-gold-api:latest
+    image: ghcr.io/matthiassails/airline-gold-api:${IMAGE_TAG:-latest}
     pull_policy: always
     container_name: gold_api
     environment:
@@ -33,7 +37,7 @@ services:
       retries: 3
 
   dashboard:
-    image: ghcr.io/matthiassails/airline-gold-dashboard:latest
+    image: ghcr.io/matthiassails/airline-gold-dashboard:${IMAGE_TAG:-latest}
     pull_policy: always
     container_name: gold_dashboard
     environment:
