@@ -190,6 +190,8 @@ jobs:
             "$PORTAINER_URL/api/stacks/$PORTAINER_Q_STACK_ID")
           NEW_ENV=$(echo "$CURRENT" | jq --arg tag "$IMAGE_TAG" \
             '.Env | map(if .name == "IMAGE_TAG" then .value = $tag else . end)')
+          # git/redeploy is PUT, not POST, on Portainer 2.42 — verified against
+          # the live server 2026-07-03 (CLAUDE.local.md previously said POST).
           curl -sf -A "curl/8.0" -H "X-API-Key: $PORTAINER_API_KEY" -H "Content-Type: application/json" \
-            -X POST "$PORTAINER_URL/api/stacks/$PORTAINER_Q_STACK_ID/git/redeploy?endpointId=$PORTAINER_Q_ENDPOINT_ID" \
+            -X PUT "$PORTAINER_URL/api/stacks/$PORTAINER_Q_STACK_ID/git/redeploy?endpointId=$PORTAINER_Q_ENDPOINT_ID" \
             -d "{\"env\": $NEW_ENV, \"pullImage\": true}"
