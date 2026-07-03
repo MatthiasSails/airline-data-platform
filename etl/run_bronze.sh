@@ -16,5 +16,5 @@ while true; do
         echo "[$(date)] bronze.py failed — see the log lines above, retrying next cycle."
     fi
     echo "[$(date)] Done. Sleeping 50s..."
-    sleep 50
+    sleep 30
 done
