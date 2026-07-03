@@ -1,5 +1,12 @@
 name: Build and push images
 
+# Two trigger types, one build-once pipeline (Continuous Delivery, Humble/Farley,
+# ch.5 "Only Build Your Binaries Once", p.113-114):
+#   - push to main   -> tags :latest + :sha-<shortsha>
+#   - pull_request    -> tags :pr-<number> + :sha-<shortsha> (gold-api/gold-dashboard only,
+#                         since those are the two services the Q environment deploys)
+# Same Dockerfile, same build step either way — only the tag (a pointer) differs;
+# the image content is identical to what a later merge would rebuild from the same commit.
 on:
   push:
     branches: [main]
@@ -11,9 +18,15 @@ on:
       - "etl/**"
       - "deployment/Dockerfile"
       - ".github/workflows/build-push.yml"
+  pull_request:
+    paths:
+      - "03-gold-dash/api/**"
+      - "03-gold-dash/dashboard/**"
+      - ".github/workflows/build-push.yml"
 
 jobs:
   dashboard:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -25,13 +38,23 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/matthiassails/airline-dashboard
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=sha-,format=short
       - uses: docker/build-push-action@v6
         with:
           context: ./03-gold/dashboard
           push: true
-          tags: ghcr.io/matthiassails/airline-dashboard:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   landing:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -43,11 +66,20 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/matthiassails/airline-landing
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=sha-,format=short
       - uses: docker/build-push-action@v6
         with:
           context: ./deployment/landing-page
           push: true
-          tags: ghcr.io/matthiassails/airline-landing:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   gold-api:
     runs-on: ubuntu-latest
@@ -61,11 +93,21 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/matthiassails/airline-gold-api
+          tags: |
+            type=raw,value=latest,enable=${{ github.event_name == 'push' }}
+            type=ref,event=pr
+            type=sha,prefix=sha-,format=short
       - uses: docker/build-push-action@v6
         with:
           context: ./03-gold-dash/api
           push: true
-          tags: ghcr.io/matthiassails/airline-gold-api:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   gold-dashboard:
     runs-on: ubuntu-latest
@@ -79,13 +121,24 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/matthiassails/airline-gold-dashboard
+          tags: |
+            type=raw,value=latest,enable=${{ github.event_name == 'push' }}
+            type=ref,event=pr
+            type=sha,prefix=sha-,format=short
       - uses: docker/build-push-action@v6
         with:
           context: ./03-gold-dash/dashboard
           push: true
-          tags: ghcr.io/matthiassails/airline-gold-dashboard:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   etl:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -97,9 +150,46 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/matthiassails/airline-etl
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=sha-,format=short
       - uses: docker/build-push-action@v6
         with:
           context: .
           file: ./deployment/Dockerfile
           push: true
-          tags: ghcr.io/matthiassails/airline-etl:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  # Only fires for PR builds (the two jobs above skip this tag on push, see
+  # type=ref,event=pr). Flips the persistent q-gold-dash stack (Portainer
+  # endpoint 4, stack id from secrets) to the PR's image via git/redeploy,
+  # which updates env vars and re-runs `docker compose up -d` on the Q VM.
+  deploy-q:
+    needs: [gold-api, gold-dashboard]
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Point Q stack at pr-${{ github.event.pull_request.number }}
+        env:
+          PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
+          PORTAINER_API_KEY: ${{ secrets.PORTAINER_API_KEY }}
+          PORTAINER_Q_ENDPOINT_ID: ${{ secrets.PORTAINER_Q_ENDPOINT_ID }}
+          PORTAINER_Q_STACK_ID: ${{ secrets.PORTAINER_Q_STACK_ID }}
+          IMAGE_TAG: pr-${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          # Cloudflare blocks curl's default UA on unfamiliar clients but not
+          # on "curl/x" — see CLAUDE.local.md "Portainer API" caveat.
+          CURRENT=$(curl -sf -A "curl/8.0" -H "X-API-Key: $PORTAINER_API_KEY" \
+            "$PORTAINER_URL/api/stacks/$PORTAINER_Q_STACK_ID")
+          NEW_ENV=$(echo "$CURRENT" | jq --arg tag "$IMAGE_TAG" \
+            '.Env | map(if .name == "IMAGE_TAG" then .value = $tag else . end)')
+          curl -sf -A "curl/8.0" -H "X-API-Key: $PORTAINER_API_KEY" -H "Content-Type: application/json" \
+            -X POST "$PORTAINER_URL/api/stacks/$PORTAINER_Q_STACK_ID/git/redeploy?endpointId=$PORTAINER_Q_ENDPOINT_ID" \
+            -d "{\"env\": $NEW_ENV, \"pullImage\": true}"

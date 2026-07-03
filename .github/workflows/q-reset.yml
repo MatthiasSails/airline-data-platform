@@ -1,0 +1,33 @@
+name: Reset Q environment
+
+# Fires on merge AND on close-without-merge (both raise "closed"; the boolean
+# github.event.pull_request.merged only distinguishes them, we don't need to).
+# Known v1 limitation: this resets the Q stack's IMAGE_TAG, not its compose
+# file — a PR that itself edits deployment/gold-dash.yml only takes effect in
+# Q after merge, since the stack's GitConfig tracks main.
+on:
+  pull_request:
+    types: [closed]
+    paths:
+      - "03-gold-dash/api/**"
+      - "03-gold-dash/dashboard/**"
+
+jobs:
+  reset-q:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reset Q stack to :latest
+        env:
+          PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
+          PORTAINER_API_KEY: ${{ secrets.PORTAINER_API_KEY }}
+          PORTAINER_Q_ENDPOINT_ID: ${{ secrets.PORTAINER_Q_ENDPOINT_ID }}
+          PORTAINER_Q_STACK_ID: ${{ secrets.PORTAINER_Q_STACK_ID }}
+        run: |
+          set -euo pipefail
+          CURRENT=$(curl -sf -A "curl/8.0" -H "X-API-Key: $PORTAINER_API_KEY" \
+            "$PORTAINER_URL/api/stacks/$PORTAINER_Q_STACK_ID")
+          NEW_ENV=$(echo "$CURRENT" | jq \
+            '.Env | map(if .name == "IMAGE_TAG" then .value = "latest" else . end)')
+          curl -sf -A "curl/8.0" -H "X-API-Key: $PORTAINER_API_KEY" -H "Content-Type: application/json" \
+            -X POST "$PORTAINER_URL/api/stacks/$PORTAINER_Q_STACK_ID/git/redeploy?endpointId=$PORTAINER_Q_ENDPOINT_ID" \
+            -d "{\"env\": $NEW_ENV, \"pullImage\": true}"
