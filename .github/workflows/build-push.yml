@@ -2,9 +2,12 @@ name: Build and push images
 
 # Two trigger types, one build-once pipeline (Continuous Delivery, Humble/Farley,
 # ch.5 "Only Build Your Binaries Once", p.113-114):
-#   - push to main   -> tags :latest + :sha-<shortsha>
-#   - pull_request    -> tags :pr-<number> + :sha-<shortsha> (gold-api/gold-dashboard only,
-#                         since those are the two services the Q environment deploys)
+#   - push to main   -> tags :latest + :sha-<shortsha>, all five services
+#   - pull_request    -> tags :pr-<number> + :sha-<shortsha>, all five services (build
+#                         validation only). gold-api/gold-dashboard additionally trigger
+#                         deploy-q below, since those are the two services the Q
+#                         environment actually runs — the other three just prove they
+#                         still build before merge.
 # Same Dockerfile, same build step either way — only the tag (a pointer) differs;
 # the image content is identical to what a later merge would rebuild from the same commit.
 on:
@@ -20,13 +23,16 @@ on:
       - ".github/workflows/build-push.yml"
   pull_request:
     paths:
+      - "03-gold/dashboard/**"
+      - "deployment/landing-page/**"
       - "03-gold-dash/api/**"
       - "03-gold-dash/dashboard/**"
+      - "etl/**"
+      - "deployment/Dockerfile"
       - ".github/workflows/build-push.yml"
 
 jobs:
   dashboard:
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -44,7 +50,8 @@ jobs:
         with:
           images: ghcr.io/matthiassails/airline-dashboard
           tags: |
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ github.event_name == 'push' }}
+            type=ref,event=pr
             type=sha,prefix=sha-,format=short
       - uses: docker/build-push-action@v6
         with:
@@ -54,7 +61,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
   landing:
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -72,7 +78,8 @@ jobs:
         with:
           images: ghcr.io/matthiassails/airline-landing
           tags: |
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ github.event_name == 'push' }}
+            type=ref,event=pr
             type=sha,prefix=sha-,format=short
       - uses: docker/build-push-action@v6
         with:
@@ -138,7 +145,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
   etl:
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -156,7 +162,8 @@ jobs:
         with:
           images: ghcr.io/matthiassails/airline-etl
           tags: |
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ github.event_name == 'push' }}
+            type=ref,event=pr
             type=sha,prefix=sha-,format=short
       - uses: docker/build-push-action@v6
         with:
@@ -166,13 +173,15 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  # Only fires for PR builds (the two jobs above skip this tag on push, see
-  # type=ref,event=pr). Flips the persistent q-gold-dash stack (Portainer
-  # endpoint 4, stack id from secrets) to the PR's image via git/redeploy,
-  # which updates env vars and re-runs `docker compose up -d` on the Q VM.
-  # Deploy logic itself lives in deployment/scripts/set-q-image-tag.sh, not
-  # inline here — it needs to be runnable (and debuggable) from a laptop too,
-  # not just inside a workflow log. See that script for the API details.
+  # Only fires for PR builds, and only needs gold-api/gold-dashboard — those are the
+  # two services the Q environment actually runs (dashboard/landing/etl also build on
+  # PRs now, for validation, but nothing deploys their PR-tagged image anywhere).
+  # Flips the persistent q-gold-dash stack (Portainer endpoint 4, stack id from
+  # secrets) to the PR's image via git/redeploy, which updates env vars and re-runs
+  # `docker compose up -d` on the Q VM. Deploy logic itself lives in
+  # deployment/scripts/set-q-image-tag.sh, not inline here — it needs to be runnable
+  # (and debuggable) from a laptop too, not just inside a workflow log. See that
+  # script for the API details.
   deploy-q:
     needs: [gold-api, gold-dashboard]
     if: github.event_name == 'pull_request'
