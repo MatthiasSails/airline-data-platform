@@ -170,28 +170,19 @@ jobs:
   # type=ref,event=pr). Flips the persistent q-gold-dash stack (Portainer
   # endpoint 4, stack id from secrets) to the PR's image via git/redeploy,
   # which updates env vars and re-runs `docker compose up -d` on the Q VM.
+  # Deploy logic itself lives in deployment/scripts/set-q-image-tag.sh, not
+  # inline here — it needs to be runnable (and debuggable) from a laptop too,
+  # not just inside a workflow log. See that script for the API details.
   deploy-q:
     needs: [gold-api, gold-dashboard]
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Point Q stack at pr-${{ github.event.pull_request.number }}
         env:
           PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
           PORTAINER_API_KEY: ${{ secrets.PORTAINER_API_KEY }}
           PORTAINER_Q_ENDPOINT_ID: ${{ secrets.PORTAINER_Q_ENDPOINT_ID }}
           PORTAINER_Q_STACK_ID: ${{ secrets.PORTAINER_Q_STACK_ID }}
-          IMAGE_TAG: pr-${{ github.event.pull_request.number }}
-        run: |
-          set -euo pipefail
-          # Cloudflare blocks curl's default UA on unfamiliar clients but not
-          # on "curl/x" — see CLAUDE.local.md "Portainer API" caveat.
-          CURRENT=$(curl -sf -A "curl/8.0" -H "X-API-Key: $PORTAINER_API_KEY" \
-            "$PORTAINER_URL/api/stacks/$PORTAINER_Q_STACK_ID")
-          NEW_ENV=$(echo "$CURRENT" | jq --arg tag "$IMAGE_TAG" \
-            '.Env | map(if .name == "IMAGE_TAG" then .value = $tag else . end)')
-          # git/redeploy is PUT, not POST, on Portainer 2.42 — verified against
-          # the live server 2026-07-03 (CLAUDE.local.md previously said POST).
-          curl -sf -A "curl/8.0" -H "X-API-Key: $PORTAINER_API_KEY" -H "Content-Type: application/json" \
-            -X PUT "$PORTAINER_URL/api/stacks/$PORTAINER_Q_STACK_ID/git/redeploy?endpointId=$PORTAINER_Q_ENDPOINT_ID" \
-            -d "{\"env\": $NEW_ENV, \"pullImage\": true}"
+        run: ./deployment/scripts/set-q-image-tag.sh "pr-${{ github.event.pull_request.number }}"
