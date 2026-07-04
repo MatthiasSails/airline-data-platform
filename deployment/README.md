@@ -44,3 +44,31 @@ healthcheck.
   the GitOps-managed container and pulls it into a rogue stack. Deploy via Portainer (or
   "Pull and redeploy"). Manual fallback for local testing only:
   `docker compose -f deployment/<service>.yml --env-file ../.env up -d`.
+
+## Q environment (PR previews)
+
+A second, smaller VM (`infra/q-vm/`, Terraform-managed) runs a **persistent** `q-gold-dash` stack
+that PRs deploy into before merge. One Portainer server (on the prod VM) manages both hosts — the
+Q VM only runs a Portainer *agent*, registered as a second endpoint.
+
+- **Scope is deliberately narrow:** Q has no databases of its own — it reads the same Supabase
+  Postgres as prod, so only the **read-only** gold-dash stack (`gold-dash.yml`) runs there. ETL
+  (bronze/silver) never runs in Q: `silver.py`'s `TRUNCATE map1` would race with prod's own silver
+  loop. In the terminology of *GitOps and Kubernetes* (Yuen et al.), this makes Q closer to a
+  **Stage** environment (real dependencies, test traffic only) than a true QA environment (its own
+  isolated data) — a possible later step, not done here.
+- **`gold-dash.yml` is shared between prod and Q**, not duplicated: the image references use
+  `${IMAGE_TAG:-latest}`. Prod's stack leaves `IMAGE_TAG` unset; Q's stack gets it flipped by CI.
+- **Tagging (build-once, promote-by-tag):** [`../.github/workflows/build-push.yml`](../.github/workflows/build-push.yml)
+  adds an immutable `:sha-<shortsha>` tag to every build. On `main` it also tags `:latest`; on a
+  pull request touching `03-gold-dash/**` it tags `:pr-<number>` instead and a `deploy-q` job
+  points the `q-gold-dash` stack at that tag via the Portainer API. No image is ever rebuilt per
+  environment — see Humble/Farley, *Continuous Delivery*, "Only Build Your Binaries Once" (p. 113–114).
+- **Cleanup:** [`q-reset.yml`](../.github/workflows/q-reset.yml) fires when the PR closes (merged
+  or not) and resets `IMAGE_TAG` back to `latest`.
+- **Access:** `https://q-airlive.matthiaskoehler.com`, via its own Cloudflare Tunnel connector
+  ([`q-cloudflared.yml`](q-cloudflared.yml)) — a tunnel can't route to `localhost` on two different
+  hosts, so Q needed its own, separate from prod's.
+- **Known limitation:** the Q stack's `GitConfig` tracks `main`, so a PR that changes
+  `deployment/gold-dash.yml` itself only takes effect in Q *after* merging — pre-merge previews
+  cover application code, not the compose file or Portainer stack config.
