@@ -28,9 +28,12 @@ See [ADR 012](docs/adr/012-github-flow-branch-merge.md) for the full decision (f
 **Secrets:**
 - Never commit secrets. `.env` lives at the project root and is gitignored.
 - No real credentials, IPs, hostnames, or other private infra in tracked files — pointers go in
-  `CLAUDE.local.md`. **This has already leaked twice** (ADR 007 and ADR 014 both had the real VM
-  IPv4/IPv6 and Supabase project ref in prose, fixed 2026-07-02) — when writing or editing any ADR,
-  grep it for real IPs/hostnames/project-refs before committing, don't rely on remembering the rule.
+  `CLAUDE.local.md`. **This has already leaked three times** (ADR 007 and ADR 014 both had the real
+  VM IPv4/IPv6 and Supabase project ref in prose, fixed 2026-07-02; the Q-VM static IP also made it
+  into a public GitHub Project draft issue body, fixed same-session 2026-07-13) — the check applies
+  to **any publish action, not just commits**: grep ADRs for real IPs/hostnames/project-refs before
+  committing, and re-read draft issues/PR descriptions/comments for the same before posting, don't
+  rely on remembering the rule.
 
 **Coding standards:**
 - Python 3.12+, type hints, `pathlib`, logging instead of `print()`.
