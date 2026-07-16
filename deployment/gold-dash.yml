@@ -24,6 +24,8 @@ services:
     container_name: gold_api
     environment:
       - DATABASE_URL=${DATABASE_URL}
+      # Target table: unset in prod (-> map1); the Q stack sets q_map1.
+      - MAP_TABLE=${MAP_TABLE:-map1}
     networks: [appnet]
     ports:
       - "127.0.0.1:8000:8000"
