@@ -14,6 +14,15 @@ own stack. Per-service Dockerfiles live with their service (e.g. [`../03-gold/da
 | `airline-etl-bronze` | [`bronze.yml`](bronze.yml) | fetches OpenSky + adsb.lol into MongoDB, 50s loop ([`../etl/bronze.py`](../etl/bronze.py)) | no published port | `OPENSKY_CLIENT_ID`, `OPENSKY_CLIENT_SECRET`, `MONGO_URL` |
 | `airline-etl-silver` | [`silver.yml`](silver.yml) | refreshes `map1` (Postgres) from the latest Mongo snapshot, 10s loop ([`../etl/silver.py`](../etl/silver.py)) | no published port | `MONGO_URL`, `SUPABASE_DB_URL`, `SUPABASE_DB_PASSWORD` |
 | `airline-gold-dash` | [`gold-dash.yml`](gold-dash.yml) | read-only FastAPI + Dash over Silver, Supabase session pooler ([`../03-gold-dash/`](../03-gold-dash/)) | bridge, `127.0.0.1:8000`/`:8050` | `DATABASE_URL` |
+| `chaitra-cloudflared` | [`chaitra-cloudflared.yml`](chaitra-cloudflared.yml) | second Cloudflare Tunnel connector, routing a collaborator's own-account domain to the same landing page (`localhost:80`) | host net, no published port | `TUNNEL_TOKEN` |
+
+`chaitra-cloudflared.yml` is a *second* tunnel connector alongside the account's main one. A
+Cloudflare Tunnel's ingress is account-bound — a hostname can only be routed to a domain whose DNS
+zone lives in the same Cloudflare account as the tunnel. A collaborator's domain, managed in *their*
+account, therefore cannot be added as an ingress rule on our tunnel; instead they run their own
+tunnel in their account and this connector — on our prod VM — dials out to it, pointing at the same
+`landing_page` container. Same pattern as [`q-cloudflared.yml`](q-cloudflared.yml), just a different
+account/tunnel.
 
 `gold-dash.yml` holds two services (`api`, `dashboard`) in one stack, not two separate files —
 they share a release cycle and a hard runtime dependency (`dashboard` won't start until `api` is
