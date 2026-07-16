@@ -1,0 +1,26 @@
+# chaitra-cloudflared stack — a second Cloudflare Tunnel connector on the prod VM,
+# for Chaitra's own domain, pointing at the same landing page as
+# airline.matthiaskoehler.com (landing_page container, localhost:80).
+#
+# Why a SECOND connector instead of another ingress rule on airline-tunnel:
+# a Cloudflare Tunnel is account-bound, and a tunnel's public-hostname ingress can
+# only route to a domain whose DNS zone lives in the SAME Cloudflare account as the
+# tunnel. Chaitra's domain is managed in HER own Cloudflare account, so it cannot be
+# added to our airline-tunnel; her domain would have to move into our account (NS
+# change) for that. Instead she runs her own tunnel in her account, and this
+# connector — running on our prod VM — is what dials out to it.
+#
+# network_mode: host so the connector reaches landing_page's localhost:80 binding
+# (same pattern as the prod/Q cloudflared connectors).
+#
+# TUNNEL_TOKEN is injected by Portainer per stack ("Environment variables" field),
+# entered directly by Chaitra — Claude never sees the value. Never in git.
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:2026.6.1
+    container_name: chaitra_cloudflared
+    network_mode: host
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+    restart: unless-stopped
+    logging:
+      driver: local
