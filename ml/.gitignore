@@ -1,0 +1,19 @@
+# Virtual environment
+venv/
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+
+# Raw dataset (third-party, ~18 MB -- see README "Get the Data")
+airlines_delay.csv
+
+# Notebook execution artifact / checkpoints (not the production model)
+models/model_from_notebook.joblib
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
