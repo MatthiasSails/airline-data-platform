@@ -14,6 +14,7 @@ own stack. Per-service Dockerfiles live with their service (e.g. [`../03-gold/da
 | `airline-etl-bronze` | [`bronze.yml`](bronze.yml) | fetches OpenSky + adsb.lol into MongoDB, 50s loop ([`../etl/bronze.py`](../etl/bronze.py)) | no published port | `OPENSKY_CLIENT_ID`, `OPENSKY_CLIENT_SECRET`, `MONGO_URL` |
 | `airline-etl-silver` | [`silver.yml`](silver.yml) | refreshes `map1` (Postgres) from the latest Mongo snapshot, 10s loop ([`../etl/silver.py`](../etl/silver.py)) | no published port | `MONGO_URL`, `SUPABASE_DB_URL`, `SUPABASE_DB_PASSWORD` |
 | `airline-gold-dash` | [`gold-dash.yml`](gold-dash.yml) | read-only FastAPI + Dash over Silver, Supabase session pooler ([`../03-gold-dash/`](../03-gold-dash/)) | bridge, `127.0.0.1:8000`/`:8050` | `DATABASE_URL` |
+| `airline-ml` | [`ml.yml`](ml.yml) | flight-delay prediction FastAPI service, no DB ([`../ml/`](../ml/)) | bridge, `127.0.0.1:8001` | `ML_API_KEY` |
 | `chaitra-cloudflared` | [`chaitra-cloudflared.yml`](chaitra-cloudflared.yml) | second Cloudflare Tunnel connector, routing a collaborator's own-account domain to the same landing page (`localhost:80`) | host net, no published port | `TUNNEL_TOKEN` |
 
 `chaitra-cloudflared.yml` is a *second* tunnel connector alongside the account's main one. A
@@ -38,7 +39,7 @@ healthcheck.
 
 - **Every stack references a pre-built image — none of them build on the VM anymore.**
   [`../.github/workflows/build-push.yml`](../.github/workflows/build-push.yml) builds and pushes to
-  GHCR (`ghcr.io/matthiassails/airline-{dashboard,landing,landing-q,gold-api,gold-dashboard,etl}`) on every
+  GHCR (`ghcr.io/matthiassails/airline-{dashboard,landing,landing-q,gold-api,gold-dashboard,etl,ml}`) on every
   push to `main` that touches the relevant source. Portainer only pulls (`pull_policy: always`,
   since `:latest` is a mutable tag). `bronze.yml` and `silver.yml` both reference the same
   `airline-etl` image — they share an identical Dockerfile/build context and differ only in which
@@ -67,7 +68,7 @@ the Q VM only runs a Portainer *agent*, registered as a second endpoint.
 | `q-dashboard` | [`dashboard.yml`](dashboard.yml) | `airline-dashboard` |
 | `q-gold-dash` | [`gold-dash.yml`](gold-dash.yml) | `airline-gold-dash` |
 | `q-landing` | [`landing-q.yml`](landing-q.yml) | own artifact (see below), not `airline-landing` |
-| `q-ml` | [`ml.yml`](ml.yml) | (no prod stack yet — Q-first rollout) |
+| `q-ml` | [`ml.yml`](ml.yml) | `airline-ml` |
 | `q-cloudflared` | [`q-cloudflared.yml`](q-cloudflared.yml) | (Q's own tunnel connector) |
 
 - **Every compose file but one is shared with prod**, specialised purely by env:
