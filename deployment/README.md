@@ -56,28 +56,50 @@ healthcheck.
 
 ## Q environment (PR previews)
 
-A second, smaller VM (`infra/q-vm/`, Terraform-managed) runs a **persistent** `q-gold-dash` stack
-that PRs deploy into before merge. One Portainer server (on the prod VM) manages both hosts — the
-Q VM only runs a Portainer *agent*, registered as a second endpoint.
+A second, smaller VM (`infra/q-vm/`, Terraform-managed) runs the **whole pipeline** as persistent
+stacks that PRs deploy into before merge. One Portainer server (on the prod VM) manages both hosts —
+the Q VM only runs a Portainer *agent*, registered as a second endpoint.
 
-- **Scope is deliberately narrow:** Q has no databases of its own — it reads the same Supabase
-  Postgres as prod, so only the **read-only** gold-dash stack (`gold-dash.yml`) runs there. ETL
-  (bronze/silver) never runs in Q: `silver.py`'s `TRUNCATE map1` would race with prod's own silver
-  loop. In the terminology of *GitOps and Kubernetes* (Yuen et al.), this makes Q closer to a
-  **Stage** environment (real dependencies, test traffic only) than a true QA environment (its own
-  isolated data) — a possible later step, not done here.
-- **`gold-dash.yml` is shared between prod and Q**, not duplicated: the image references use
-  `${IMAGE_TAG:-latest}`. Prod's stack leaves `IMAGE_TAG` unset; Q's stack gets it flipped by CI.
+| Q stack | Compose file | Mirrors |
+|---|---|---|
+| `q-etl-bronze` | [`bronze.yml`](bronze.yml) | `airline-etl-bronze` |
+| `q-etl-silver` | [`silver.yml`](silver.yml) | `airline-etl-silver` |
+| `q-dashboard` | [`dashboard.yml`](dashboard.yml) | `airline-dashboard` |
+| `q-gold-dash` | [`gold-dash.yml`](gold-dash.yml) | `airline-gold-dash` |
+| `q-cloudflared` | [`q-cloudflared.yml`](q-cloudflared.yml) | (Q's own tunnel connector) |
+
+- **No compose file is duplicated for Q.** Every one is shared with prod and specialised purely by
+  env: `${IMAGE_TAG:-latest}` selects the build, `${MAP_TABLE:-map1}` selects the Postgres table.
+  Prod leaves both unset and gets `latest`/`map1`; Q's stacks set `pr-<N>`/`q_map1`.
+- **Where Q is isolated, and where it isn't:**
+  - **Postgres — isolated.** Q writes and reads its own `q_map1` table (created with
+    `CREATE TABLE q_map1 (LIKE map1 INCLUDING ALL)`), so `silver.py`'s delete-and-reinsert refresh
+    can run in Q without touching prod's `map1`. `MAP_TABLE` is allowlist-validated in code
+    (`map1`/`q_map1` only) because a table name is a SQL identifier and cannot be a bind parameter.
+  - **MongoDB — shared, deliberately.** Q's bronze writes the same `airlines` database and
+    `states_all`/`adsb_raw` collections as prod's. Accepted trade-off: Q's silver therefore reads
+    real prod-shaped data with no extra Atlas cost, but a bronze change tested in Q reaches prod's
+    silver through that shared collection. **Test bronze changes with that in mind** — the
+    `q_map1` isolation protects the Postgres layer only.
+  - Because both silvers read the same Mongo snapshot, `q_map1` and `map1` normally hold the same
+    rows. Q's value is proving a *code* change, not different data.
 - **Tagging (build-once, promote-by-tag):** [`../.github/workflows/build-push.yml`](../.github/workflows/build-push.yml)
   adds an immutable `:sha-<shortsha>` tag to every build. On `main` it also tags `:latest`; on a
-  pull request touching `03-gold-dash/**` it tags `:pr-<number>` instead and a `deploy-q` job
-  points the `q-gold-dash` stack at that tag via the Portainer API. No image is ever rebuilt per
-  environment — see Humble/Farley, *Continuous Delivery*, "Only Build Your Binaries Once" (p. 113–114).
-- **Cleanup:** [`q-reset.yml`](../.github/workflows/q-reset.yml) fires when the PR closes (merged
-  or not) and resets `IMAGE_TAG` back to `latest`.
+  pull request it tags `:pr-<number>` and the `deploy-q` job points every Q stack at that tag via
+  the Portainer API ([`scripts/set-q-image-tag.sh`](scripts/set-q-image-tag.sh), which takes a
+  stack-id list). No image is ever rebuilt per environment — see Humble/Farley, *Continuous
+  Delivery*, "Only Build Your Binaries Once" (p. 113–114).
+- **Cleanup:** [`q-reset.yml`](../.github/workflows/q-reset.yml) resets `IMAGE_TAG` to `latest`
+  after the **main build completes**, not when the PR closes. Resetting on close races the build:
+  until the new `:latest` exists, Q would pull the pre-merge image — and an ETL image built before
+  `MAP_TABLE` existed ignores it and writes prod's `map1`. A PR closed without merging resets
+  immediately, since `main` never moved.
 - **Access:** `https://q-airlive.matthiaskoehler.com`, via its own Cloudflare Tunnel connector
   ([`q-cloudflared.yml`](q-cloudflared.yml)) — a tunnel can't route to `localhost` on two different
   hosts, so Q needed its own, separate from prod's.
-- **Known limitation:** the Q stack's `GitConfig` tracks `main`, so a PR that changes
-  `deployment/gold-dash.yml` itself only takes effect in Q *after* merging — pre-merge previews
-  cover application code, not the compose file or Portainer stack config.
+- **Known limitations:**
+  - The Q stacks' `GitConfig` tracks `main`, so a PR that changes a compose file itself only takes
+    effect in Q *after* merging — pre-merge previews cover application code, not the compose file
+    or Portainer stack config.
+  - Q is one shared stage environment: any merge to `main` resets it to `:latest`, including while
+    another PR is being tested there.
