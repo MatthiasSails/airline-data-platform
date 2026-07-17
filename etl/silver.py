@@ -53,6 +53,21 @@ def map_adsb_doc(doc):
     return rows
 
 
+def fetched_at(doc):
+    """Read a document's fetched_at as an aware datetime, accepting either type.
+
+    bronze.py used to store this as an ISO string and now stores a real BSON date (a TTL
+    index only expires real dates — see issue #28). Both forms therefore coexist until the
+    historical documents are migrated, and the two collections migrate at different times.
+    Comparing them raw would raise TypeError ("can't compare str to datetime") and take the
+    whole silver loop — and with it map1's freshness — down mid-migration.
+    """
+    value = doc["fetched_at"]
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+
+
 try:
     client = MongoClient(os.environ["MONGO_URL"])
     db = client["airlines"]
@@ -62,7 +77,7 @@ try:
     # Freshest snapshot wins — on the VM, OpenSky calls fail silently (egress
     # blocked) so its snapshot goes stale while adsb_raw keeps updating.
     use_adsb = adsb_doc is not None and (
-        opensky_doc is None or adsb_doc["fetched_at"] > opensky_doc["fetched_at"]
+        opensky_doc is None or fetched_at(adsb_doc) > fetched_at(opensky_doc)
     )
 
     if use_adsb:
