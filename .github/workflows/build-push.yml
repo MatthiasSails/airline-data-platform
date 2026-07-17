@@ -2,10 +2,10 @@ name: Build and push images
 
 # Two trigger types, one build-once pipeline (Continuous Delivery, Humble/Farley,
 # ch.5 "Only Build Your Binaries Once", p.113-114):
-#   - push to main   -> tags :latest + :sha-<shortsha>, all five services
-#   - pull_request    -> tags :pr-<number> + :sha-<shortsha>, all five services (build
-#                         validation only). gold-api/gold-dashboard additionally trigger
-#                         deploy-q below, since those are the two services the Q
+#   - push to main   -> tags :latest + :sha-<shortsha>, all six services
+#   - pull_request    -> tags :pr-<number> + :sha-<shortsha>, all six services (build
+#                         validation only). gold-api/gold-dashboard/ml additionally
+#                         trigger deploy-q below, since those are the services the Q
 #                         environment actually runs — the other three just prove they
 #                         still build before merge.
 # Same Dockerfile, same build step either way — only the tag (a pointer) differs;
@@ -19,6 +19,7 @@ on:
       - "03-gold-dash/api/**"
       - "03-gold-dash/dashboard/**"
       - "etl/**"
+      - "ml/**"
       - "deployment/Dockerfile"
       - ".github/workflows/build-push.yml"
   pull_request:
@@ -28,6 +29,7 @@ on:
       - "03-gold-dash/api/**"
       - "03-gold-dash/dashboard/**"
       - "etl/**"
+      - "ml/**"
       - "deployment/Dockerfile"
       - ".github/workflows/build-push.yml"
 
@@ -173,8 +175,36 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
+  ml:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/matthiassails/airline-ml
+          tags: |
+            type=raw,value=latest,enable=${{ github.event_name == 'push' }}
+            type=ref,event=pr
+            type=sha,prefix=sha-,format=short
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./ml
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
   # Only fires for PR builds. Q runs the full pipeline (bronze, silver, both
-  # dashboards), so this waits on every image Q actually runs — a PR whose ETL
+  # dashboards, ml), so this waits on every image Q actually runs — a PR whose ETL
   # image failed to build must not deploy its API half to Q and look green.
   # landing is excluded: Q has no landing stack, it only builds for validation.
   # Flips every Q stack (Portainer endpoint 4, ids from secrets) to the PR's image
@@ -183,7 +213,7 @@ jobs:
   # not inline here — it needs to be runnable (and debuggable) from a laptop too,
   # not just inside a workflow log. See that script for the API details.
   deploy-q:
-    needs: [gold-api, gold-dashboard, etl, dashboard]
+    needs: [gold-api, gold-dashboard, etl, dashboard, ml]
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
