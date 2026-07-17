@@ -67,6 +67,7 @@ the Q VM only runs a Portainer *agent*, registered as a second endpoint.
 | `q-dashboard` | [`dashboard.yml`](dashboard.yml) | `airline-dashboard` |
 | `q-gold-dash` | [`gold-dash.yml`](gold-dash.yml) | `airline-gold-dash` |
 | `q-landing` | [`landing-q.yml`](landing-q.yml) | own artifact (see below), not `airline-landing` |
+| `q-ml` | [`ml.yml`](ml.yml) | (no prod stack yet — Q-first rollout) |
 | `q-cloudflared` | [`q-cloudflared.yml`](q-cloudflared.yml) | (Q's own tunnel connector) |
 
 - **Every compose file but one is shared with prod**, specialised purely by env:
@@ -102,9 +103,9 @@ the Q VM only runs a Portainer *agent*, registered as a second endpoint.
   `MAP_TABLE` existed ignores it and writes prod's `map1`. A PR closed without merging resets
   immediately, since `main` never moved.
 - **Access:** `https://q-airlive.matthiaskoehler.com`, `https://q-airline-dashboard.matthiaskoehler.com`,
-  `https://q-airline.matthiaskoehler.com`, all via Q's own Cloudflare Tunnel connector
-  ([`q-cloudflared.yml`](q-cloudflared.yml)) — a tunnel can't route to `localhost` on two different
-  hosts, so Q needed its own, separate from prod's.
+  `https://q-airline.matthiaskoehler.com`, `https://q-airline-ml.matthiaskoehler.com`, all via Q's own
+  Cloudflare Tunnel connector ([`q-cloudflared.yml`](q-cloudflared.yml)) — a tunnel can't route to
+  `localhost` on two different hosts, so Q needed its own, separate from prod's.
 - **Known limitations:**
   - The Q stacks' `GitConfig` tracks `main`, so a PR that changes a compose file itself only takes
     effect in Q *after* merging — pre-merge previews cover application code, not the compose file

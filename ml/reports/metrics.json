@@ -1,0 +1,24 @@
+{
+  "selection_results": {
+    "LogisticRegression": {
+      "roc_auc": 0.6816723413466776,
+      "f1": 0.5361637218761917
+    },
+    "RandomForestClassifier": {
+      "roc_auc": 0.6540512794862957,
+      "f1": 0.5609693513898788
+    },
+    "HistGradientBoostingClassifier": {
+      "roc_auc": 0.7083940314823594,
+      "f1": 0.5525773864539248
+    }
+  },
+  "test_metrics": {
+    "accuracy": 0.6674247293221931,
+    "precision": 0.6669591926283458,
+    "recall": 0.5061043285238623,
+    "f1": 0.5755032498264656,
+    "roc_auc": 0.7205229760411029,
+    "pr_auc": 0.6809493777130282
+  }
+}

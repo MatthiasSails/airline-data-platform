@@ -1,0 +1,64 @@
+{
+  "model_name": "HistGradientBoostingClassifier",
+  "model_version": "20260717103554",
+  "trained_at_utc": "2026-07-17T10:35:54.159092+00:00",
+  "best_params": {
+    "classifier__min_samples_leaf": "10",
+    "classifier__max_leaf_nodes": "63",
+    "classifier__max_iter": "150",
+    "classifier__learning_rate": "0.2",
+    "classifier__l2_regularization": "10"
+  },
+  "selection_results": {
+    "LogisticRegression": {
+      "roc_auc": 0.6816723413466776,
+      "f1": 0.5361637218761917
+    },
+    "RandomForestClassifier": {
+      "roc_auc": 0.6540512794862957,
+      "f1": 0.5609693513898788
+    },
+    "HistGradientBoostingClassifier": {
+      "roc_auc": 0.7083940314823594,
+      "f1": 0.5525773864539248
+    }
+  },
+  "test_metrics": {
+    "accuracy": 0.6674247293221931,
+    "precision": 0.6669591926283458,
+    "recall": 0.5061043285238623,
+    "f1": 0.5755032498264656,
+    "roc_auc": 0.7205229760411029,
+    "pr_auc": 0.6809493777130282
+  },
+  "feature_importance": {
+    "Airline": 0.1429845283879305,
+    "Time": 0.06789085961845417,
+    "AirportFrom": 0.03032700463631539,
+    "Length": 0.0209179752223152,
+    "DayOfWeek": 0.014258510805401548,
+    "AirportTo": 0.01270271237110796,
+    "Flight": 0.0
+  },
+  "class_labels": {
+    "0": "On-time",
+    "1": "Delayed"
+  },
+  "raw_feature_schema": {
+    "Time": "float (minutes since midnight, 0-1439)",
+    "Length": "float (flight duration in minutes)",
+    "Airline": "string (IATA carrier code)",
+    "AirportFrom": "string (IATA airport code)",
+    "AirportTo": "string (IATA airport code)",
+    "DayOfWeek": "int (1=Monday .. 7=Sunday)"
+  },
+  "dataset_rows": 539382,
+  "train_rows": 377566,
+  "val_rows": 80908,
+  "test_rows": 80908,
+  "library_versions": {
+    "scikit-learn": "1.9.0",
+    "pandas": "3.0.3",
+    "numpy": "2.5.1"
+  }
+}

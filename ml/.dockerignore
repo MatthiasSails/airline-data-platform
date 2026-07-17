@@ -1,0 +1,10 @@
+venv/
+airlines_delay.csv
+reports/
+tests/
+notebooks/
+__pycache__/
+*.pyc
+.git/
+.pytest_cache/
+requirements-dev.txt
