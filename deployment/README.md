@@ -66,6 +66,7 @@ the Q VM only runs a Portainer *agent*, registered as a second endpoint.
 | `q-etl-silver` | [`silver.yml`](silver.yml) | `airline-etl-silver` |
 | `q-dashboard` | [`dashboard.yml`](dashboard.yml) | `airline-dashboard` |
 | `q-gold-dash` | [`gold-dash.yml`](gold-dash.yml) | `airline-gold-dash` |
+| `q-ml` | [`ml.yml`](ml.yml) | (no prod stack yet — Q-first rollout) |
 | `q-cloudflared` | [`q-cloudflared.yml`](q-cloudflared.yml) | (Q's own tunnel connector) |
 
 - **No compose file is duplicated for Q.** Every one is shared with prod and specialised purely by

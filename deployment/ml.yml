@@ -1,0 +1,38 @@
+# airline-ml stack — FastAPI flight-delay prediction service (see ../ml/).
+#
+# Image is built and pushed to GHCR by ../.github/workflows/build-push.yml on every push
+# to main that touches ml/ — Portainer only pulls, it doesn't build.
+#
+# Self-contained: no database connection, just the FastAPI app plus a bundled model
+# artifact (ml/models/model.joblib) baked into the image, so it stays on the default
+# bridge network like gold-dash.yml's api service.
+#
+# IMAGE_TAG selects the build to run and is what makes this one file serve two
+# environments (build-once, promote-artifact): the prod stack (once it exists) would
+# leave it unset (-> latest), the q stack gets it flipped to pr-<N> by the PR deploy
+# workflow.
+#
+# ML_API_KEY gates /model/info, /predict, /predict/batch (checked via X-API-Key
+# header); /health and the Swagger docs (/docs, /redoc, /openapi.json) stay open.
+services:
+  api:
+    image: ghcr.io/matthiassails/airline-ml:${IMAGE_TAG:-latest}
+    pull_policy: always
+    container_name: ml_api
+    environment:
+      - ML_API_KEY=${ML_API_KEY}
+    networks: [appnet]
+    ports:
+      - "127.0.0.1:8001:8000"
+    restart: unless-stopped
+    logging:
+      driver: local
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  appnet:
+    driver: bridge
