@@ -2,7 +2,7 @@
 # main that touches deployment/landing-page/ — Portainer only pulls, it doesn't build.
 services:
   landing-page:
-    image: ghcr.io/matthiassails/airline-landing:latest
+    image: ghcr.io/matthiassails/airline-landing:${IMAGE_TAG:-latest}
     pull_policy: always
     container_name: landing_page
     ports:
