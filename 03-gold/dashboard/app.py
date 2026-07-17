@@ -8,6 +8,13 @@ import streamlit as st
 st.set_page_config(page_title="Airline Live Map", layout="wide")
 st.title("Live Flight Map")
 
+# Env-injected target table so the same image serves prod (map1) and the Q stage
+# environment (q_map1). Allowlist-restricted because it is interpolated as a SQL
+# identifier (table names can't be bind params).
+MAP_TABLE = os.environ.get("MAP_TABLE", "map1")
+if MAP_TABLE not in {"map1", "q_map1"}:
+    raise ValueError(f"MAP_TABLE must be 'map1' or 'q_map1', got {MAP_TABLE!r}")
+
 
 def _conn():
     return psycopg2.connect(
@@ -23,12 +30,13 @@ def _conn():
 @st.cache_data(ttl=5)
 def load_snapshot() -> pd.DataFrame:
     conn = _conn()
+    # MAP_TABLE is allowlist-validated above, so this f-string interpolation is injection-safe.
     df = pd.read_sql(
-        """
+        f"""
         SELECT DISTINCT ON (icao24, callsign)
                icao24, callsign, latitude, longitude, on_ground,
                true_track, vertical_rate, time_position
-        FROM map1
+        FROM {MAP_TABLE}
         ORDER BY icao24, callsign, time_position DESC, id DESC
         """,
         conn,
@@ -41,7 +49,7 @@ def load_snapshot() -> pd.DataFrame:
 df = load_snapshot()
 
 if df.empty:
-    st.warning("No data in map1 — run the ETL first.")
+    st.warning(f"No data in {MAP_TABLE} — run the ETL first.")
     st.stop()
 
 newest_position = df["time_position"].max()

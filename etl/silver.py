@@ -17,6 +17,15 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
+# Target Postgres table for the Silver refresh. Env-injected so the same image
+# serves prod (map1) and the Q stage environment (q_map1) — set MAP_TABLE per
+# Portainer stack. Restricted to a strict allowlist: the value is interpolated
+# as a SQL identifier (table names can't be psycopg2 %s params), so the allowlist
+# is what keeps it from ever becoming an injection vector.
+MAP_TABLE = os.environ.get("MAP_TABLE", "map1")
+if MAP_TABLE not in {"map1", "q_map1"}:
+    raise ValueError(f"MAP_TABLE must be 'map1' or 'q_map1', got {MAP_TABLE!r}")
+
 col_names = ["icao24", "callsign", "time_position", "longitude", "latitude", "on_ground", "true_track", "vertical_rate"]
 cols = [0, 1, 3, 5, 6, 8, 10, 11]
 
@@ -104,9 +113,10 @@ try:
         password=os.environ["SUPABASE_DB_PASSWORD"]
     )
     cur = conn.cursor()
-    cur.execute("DELETE FROM map1")
+    # MAP_TABLE is allowlist-validated above, so this f-string interpolation is injection-safe.
+    cur.execute(f"DELETE FROM {MAP_TABLE}")
     execute_values(cur,
-        "INSERT INTO map1 (icao24, callsign, time_position, longitude, latitude, on_ground, true_track, vertical_rate, created_at) VALUES %s",
+        f"INSERT INTO {MAP_TABLE} (icao24, callsign, time_position, longitude, latitude, on_ground, true_track, vertical_rate, created_at) VALUES %s",
         [[*row, datetime.now(timezone.utc)] for row in rows]
     )
     conn.commit()

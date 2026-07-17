@@ -20,6 +20,11 @@ Each ADR documents one significant decision: the context, the choice, the altern
 | [012](012-github-flow-branch-merge.md) | GitHub Flow — branching & merge (feature branches + squash-merge) | Accepted | 2026-06-23 |
 | [014](014-adsb-lol-silver-fallback.md) | adsb.lol Promoted to Silver as an Operational Fallback (OpenSky VM egress block) | Accepted | 2026-06-30 |
 | [015](015-etl-scheduling-docker-loop.md) | ETL Scheduling Stays a Docker Loop, Not systemd | Accepted | 2026-07-01 |
+| [018](018-mono-repo.md) | Mono-Repo: Application Code, Deployment Config, and Infrastructure in One Repository | Accepted | 2026-07-05 |
+| [019](019-cloudflare-tunnel-ingress.md) | Cloudflare Tunnel as the Only Ingress; No Reverse Proxy, No Inbound Web Ports | Accepted | 2026-07-05 |
+
+> Numbering gaps (013, 016, 017) are ADRs still in local draft state (`*.draft.md`, gitignored) —
+> a draft reserves its number when writing starts and appears here once promoted via its own PR.
 
 ## Format
 

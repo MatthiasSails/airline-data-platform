@@ -1,0 +1,9 @@
+# Terraform state contains real IPs, resource IDs and potentially secrets — never commit.
+*.tfstate
+*.tfstate.*
+.terraform/
+# NOTE: .terraform.lock.hcl is deliberately NOT ignored — it pins provider
+# hashes (like package-lock.json) and should be committed.
+
+# Variable values (real prod IP lives here)
+*.tfvars

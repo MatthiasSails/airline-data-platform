@@ -1,15 +1,16 @@
 from fastapi import APIRouter
 from sqlalchemy import text
 
-from db import async_session
+from db import async_session, MAP_TABLE
 from models import Aircraft
 
 router = APIRouter()
 
+# MAP_TABLE is allowlist-validated in db.py, so this f-string interpolation is injection-safe.
 CURRENT_AIRCRAFT_QUERY = text(
-    """
+    f"""
     SELECT icao24, callsign, longitude, latitude, on_ground, true_track, vertical_rate, updated_at
-    FROM map1
+    FROM {MAP_TABLE}
     WHERE longitude IS NOT NULL AND latitude IS NOT NULL
     """
 )

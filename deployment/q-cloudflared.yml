@@ -1,0 +1,21 @@
+# q-cloudflared stack — Cloudflare Tunnel connector for the Q (stage) VM.
+# Exposes q-airlive.<domain> -> http://localhost:8050 (q gold_dashboard).
+#
+# The tunnel connector dials OUT to Cloudflare — this is why the Q VM needs no
+# inbound 80/443 firewall ports at all. Ingress rules (hostname -> local port)
+# live in Cloudflare's remotely-managed tunnel config, edited via API, NOT here.
+#
+# network_mode: host so the connector reaches the dashboard's 127.0.0.1:8050
+# binding (same pattern as the prod cloudflared).
+#
+# TUNNEL_TOKEN is injected by Portainer per stack ("Environment variables"
+# field); backup copy lives in the macOS Keychain. Never in git.
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:2026.6.1
+    container_name: q_cloudflared
+    network_mode: host
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+    restart: unless-stopped
+    logging:
+      driver: local
