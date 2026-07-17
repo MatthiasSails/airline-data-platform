@@ -6,9 +6,9 @@ Run locally with:
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 
-from .dependencies import model_service
+from .dependencies import model_service, require_api_key
 from .schemas import (
     BatchPredictionRequest,
     BatchPredictionResponse,
@@ -43,7 +43,7 @@ def health():
     return HealthResponse(status="ok", model_loaded=model_service.is_loaded)
 
 
-@app.get("/model/info", response_model=ModelInfoResponse)
+@app.get("/model/info", response_model=ModelInfoResponse, dependencies=[Depends(require_api_key)])
 def model_info():
     _require_model_loaded()
     meta = model_service.metadata
@@ -57,14 +57,14 @@ def model_info():
     )
 
 
-@app.post("/predict", response_model=PredictionResponse)
+@app.post("/predict", response_model=PredictionResponse, dependencies=[Depends(require_api_key)])
 def predict_single(flight: FlightFeatures):
     _require_model_loaded()
     result = model_service.predict([flight.model_dump()])[0]
     return PredictionResponse(**result)
 
 
-@app.post("/predict/batch", response_model=BatchPredictionResponse)
+@app.post("/predict/batch", response_model=BatchPredictionResponse, dependencies=[Depends(require_api_key)])
 def predict_batch(batch: BatchPredictionRequest):
     _require_model_loaded()
     records = [record.model_dump() for record in batch.records]
