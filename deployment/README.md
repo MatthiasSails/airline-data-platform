@@ -66,6 +66,7 @@ the Q VM only runs a Portainer *agent*, registered as a second endpoint.
 | `q-etl-silver` | [`silver.yml`](silver.yml) | `airline-etl-silver` |
 | `q-dashboard` | [`dashboard.yml`](dashboard.yml) | `airline-dashboard` |
 | `q-gold-dash` | [`gold-dash.yml`](gold-dash.yml) | `airline-gold-dash` |
+| `q-landing` | [`landing.yml`](landing.yml) | `airline-landing` |
 | `q-cloudflared` | [`q-cloudflared.yml`](q-cloudflared.yml) | (Q's own tunnel connector) |
 
 - **No compose file is duplicated for Q.** Every one is shared with prod and specialised purely by
@@ -94,7 +95,8 @@ the Q VM only runs a Portainer *agent*, registered as a second endpoint.
   until the new `:latest` exists, Q would pull the pre-merge image — and an ETL image built before
   `MAP_TABLE` existed ignores it and writes prod's `map1`. A PR closed without merging resets
   immediately, since `main` never moved.
-- **Access:** `https://q-airlive.matthiaskoehler.com`, via its own Cloudflare Tunnel connector
+- **Access:** `https://q-airlive.matthiaskoehler.com`, `https://q-airline-dashboard.matthiaskoehler.com`,
+  `https://q-airline.matthiaskoehler.com`, all via Q's own Cloudflare Tunnel connector
   ([`q-cloudflared.yml`](q-cloudflared.yml)) — a tunnel can't route to `localhost` on two different
   hosts, so Q needed its own, separate from prod's.
 - **Known limitations:**
