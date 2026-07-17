@@ -1,0 +1,14 @@
+# Image is built and pushed to GHCR by ../.github/workflows/build-push.yml (job landing-q) on
+# every push to main that touches deployment/landing-page-q/ — Portainer only pulls, it doesn't
+# build. Deliberately a separate image from landing.yml/airline-landing, not the same image reused
+# with runtime templating — Q's landing page has different branding and links at q-* hostnames.
+services:
+  landing-page:
+    image: ghcr.io/matthiassails/airline-landing-q:${IMAGE_TAG:-latest}
+    pull_policy: always
+    container_name: landing_page
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    logging:
+      driver: local

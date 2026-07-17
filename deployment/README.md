@@ -38,7 +38,7 @@ healthcheck.
 
 - **Every stack references a pre-built image — none of them build on the VM anymore.**
   [`../.github/workflows/build-push.yml`](../.github/workflows/build-push.yml) builds and pushes to
-  GHCR (`ghcr.io/matthiassails/airline-{dashboard,landing,gold-api,gold-dashboard,etl}`) on every
+  GHCR (`ghcr.io/matthiassails/airline-{dashboard,landing,landing-q,gold-api,gold-dashboard,etl}`) on every
   push to `main` that touches the relevant source. Portainer only pulls (`pull_policy: always`,
   since `:latest` is a mutable tag). `bronze.yml` and `silver.yml` both reference the same
   `airline-etl` image — they share an identical Dockerfile/build context and differ only in which
@@ -66,12 +66,19 @@ the Q VM only runs a Portainer *agent*, registered as a second endpoint.
 | `q-etl-silver` | [`silver.yml`](silver.yml) | `airline-etl-silver` |
 | `q-dashboard` | [`dashboard.yml`](dashboard.yml) | `airline-dashboard` |
 | `q-gold-dash` | [`gold-dash.yml`](gold-dash.yml) | `airline-gold-dash` |
+| `q-landing` | [`landing-q.yml`](landing-q.yml) | own artifact (see below), not `airline-landing` |
 | `q-ml` | [`ml.yml`](ml.yml) | (no prod stack yet — Q-first rollout) |
 | `q-cloudflared` | [`q-cloudflared.yml`](q-cloudflared.yml) | (Q's own tunnel connector) |
 
-- **No compose file is duplicated for Q.** Every one is shared with prod and specialised purely by
-  env: `${IMAGE_TAG:-latest}` selects the build, `${MAP_TABLE:-map1}` selects the Postgres table.
-  Prod leaves both unset and gets `latest`/`map1`; Q's stacks set `pr-<N>`/`q_map1`.
+- **Every compose file but one is shared with prod**, specialised purely by env:
+  `${IMAGE_TAG:-latest}` selects the build, `${MAP_TABLE:-map1}` selects the Postgres table. Prod
+  leaves both unset and gets `latest`/`map1`; Q's stacks set `pr-<N>`/`q_map1`. **The one
+  exception is `q-landing`:** it runs [`landing-q.yml`](landing-q.yml) → a genuinely separate image
+  (`ghcr.io/matthiassails/airline-landing-q`, built by its own `landing-q` job in
+  [`build-push.yml`](../.github/workflows/build-push.yml)), because the landing page's service links
+  are baked into the HTML at build time — an env var can't retarget them at runtime the way
+  `MAP_TABLE` retargets a query. `landing-q`'s [`index.html`](landing-page-q/index.html) also carries
+  distinct branding (amber "Q" ribbon) so it's visually obvious which environment you're looking at.
 - **Where Q is isolated, and where it isn't:**
   - **Postgres — isolated.** Q writes and reads its own `q_map1` table (created with
     `CREATE TABLE q_map1 (LIKE map1 INCLUDING ALL)`), so `silver.py`'s delete-and-reinsert refresh
@@ -95,9 +102,10 @@ the Q VM only runs a Portainer *agent*, registered as a second endpoint.
   until the new `:latest` exists, Q would pull the pre-merge image — and an ETL image built before
   `MAP_TABLE` existed ignores it and writes prod's `map1`. A PR closed without merging resets
   immediately, since `main` never moved.
-- **Access:** `https://q-airlive.matthiaskoehler.com`, via its own Cloudflare Tunnel connector
-  ([`q-cloudflared.yml`](q-cloudflared.yml)) — a tunnel can't route to `localhost` on two different
-  hosts, so Q needed its own, separate from prod's.
+- **Access:** `https://q-airlive.matthiaskoehler.com`, `https://q-airline-dashboard.matthiaskoehler.com`,
+  `https://q-airline.matthiaskoehler.com`, `https://q-airline-ml.matthiaskoehler.com`, all via Q's own
+  Cloudflare Tunnel connector ([`q-cloudflared.yml`](q-cloudflared.yml)) — a tunnel can't route to
+  `localhost` on two different hosts, so Q needed its own, separate from prod's.
 - **Known limitations:**
   - The Q stacks' `GitConfig` tracks `main`, so a PR that changes a compose file itself only takes
     effect in Q *after* merging — pre-merge previews cover application code, not the compose file

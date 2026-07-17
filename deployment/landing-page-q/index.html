@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Airline Data Platform — Q</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #171310;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 3rem 1.5rem;
+    }
+
+    .q-ribbon {
+      width: 100%;
+      max-width: 860px;
+      text-align: center;
+      background: #f59e0b;
+      color: #171310;
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 0.5rem;
+      border-radius: 8px;
+      margin-bottom: 2rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .logo {
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: #f8fafc;
+    }
+
+    .subtitle {
+      margin-top: 0.6rem;
+      color: #94a3b8;
+      font-size: 1.05rem;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 0.2rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      background: #4a2e0f;
+      color: #fbbf24;
+      border: 1px solid #f59e0b44;
+    }
+
+    .pipeline {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 3rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .layer {
+      background: #262019;
+      border: 1px solid #3f3323;
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      font-size: 0.82rem;
+      color: #cbd5e1;
+    }
+
+    .layer strong { display: block; color: #f1f5f9; font-size: 0.88rem; }
+    .layer.bronze strong { color: #f59e0b; }
+    .layer.silver strong { color: #94a3b8; }
+    .layer.gold strong { color: #fbbf24; }
+
+    .arrow { color: #6b5a3e; font-size: 1.1rem; }
+
+    .services {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.25rem;
+      width: 100%;
+      max-width: 860px;
+      margin-bottom: 3rem;
+    }
+
+    .card {
+      background: #262019;
+      border: 1px solid #3f3323;
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.15s, transform 0.15s;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .card:hover {
+      border-color: #f59e0b;
+      transform: translateY(-2px);
+    }
+
+    .card-icon { font-size: 1.8rem; }
+    .card-title { font-size: 1rem; font-weight: 600; color: #f1f5f9; }
+    .card-desc { font-size: 0.85rem; color: #94a3b8; line-height: 1.5; }
+    .card-url { font-size: 0.75rem; color: #f59e0b; margin-top: auto; padding-top: 0.5rem; }
+
+    .stack {
+      width: 100%;
+      max-width: 860px;
+      background: #262019;
+      border: 1px solid #3f3323;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .stack h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 1rem;
+    }
+
+    .stack-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .stack-item { font-size: 0.85rem; color: #cbd5e1; }
+    .stack-item span { color: #6b5a3e; display: block; font-size: 0.75rem; }
+
+    footer {
+      color: #6b5a3e;
+      font-size: 0.8rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="q-ribbon">Q · Staging environment — mirrors prod, deploys PR previews</div>
+
+  <header>
+    <div class="logo">✈️</div>
+    <h1>Airline Data Platform</h1>
+    <p class="subtitle">Real-time flight data pipeline — ADS-B · OpenSky · Supabase</p>
+    <span class="badge">Q environment · not production</span>
+  </header>
+
+  <div class="pipeline">
+    <div class="layer bronze"><strong>Bronze</strong>MongoDB Atlas<br>Raw Landing Zone (shared w/ prod)</div>
+    <div class="arrow">→</div>
+    <div class="layer silver"><strong>Silver</strong>Supabase Postgres<br>q_map1 (isolated)</div>
+    <div class="arrow">→</div>
+    <div class="layer gold"><strong>Gold</strong>Streamlit + FastAPI/Dash<br>Analytics &amp; Dashboards</div>
+  </div>
+
+  <div class="services">
+    <a class="card" href="https://q-airline-dashboard.matthiaskoehler.com" target="_blank">
+      <span class="card-icon">🗺️</span>
+      <span class="card-title">Live Map — Streamlit</span>
+      <span class="card-desc">Interactive map over Q's isolated Silver layer (Supabase q_map1) — Streamlit app behind Q's own Cloudflare Tunnel.</span>
+      <span class="card-url">q-airline-dashboard.matthiaskoehler.com</span>
+    </a>
+
+    <a class="card" href="https://q-airlive.matthiaskoehler.com" target="_blank">
+      <span class="card-icon">✈️</span>
+      <span class="card-title">Live Traffic — FastAPI + Dash</span>
+      <span class="card-desc">Read-only FastAPI service + Dash map over Q's isolated Silver layer (Supabase q_map1).</span>
+      <span class="card-url">q-airlive.matthiaskoehler.com</span>
+    </a>
+
+    <a class="card" href="https://airline-portainer.matthiaskoehler.com" target="_blank">
+      <span class="card-icon">🐳</span>
+      <span class="card-title">Portainer</span>
+      <span class="card-desc">Same Portainer server as prod manages both VMs — Q is endpoint 4.</span>
+      <span class="card-url">airline-portainer.matthiaskoehler.com</span>
+    </a>
+  </div>
+
+  <div class="stack">
+    <h2>Infrastructure</h2>
+    <div class="stack-grid">
+      <div class="stack-item">AWS Lightsail<span>aws-airline-q-1</span></div>
+      <div class="stack-item">Cloudflare Tunnel<span>own connector, zero-trust ingress</span></div>
+      <div class="stack-item">MongoDB Atlas<span>shared with prod · same collections</span></div>
+      <div class="stack-item">Supabase Postgres<span>own table q_map1 · isolated from prod</span></div>
+      <div class="stack-item">Docker<span>Compose stacks · Portainer agent</span></div>
+      <div class="stack-item">Python 3.12<span>pymongo · psycopg2 · FastAPI · Streamlit</span></div>
+    </div>
+  </div>
+
+  <footer>
+    Airline Data Platform · Q (staging) ·
+    <a href="https://github.com/MatthiasSails/airline-data-platform" style="color:#f59e0b;" target="_blank">GitHub</a>
+    · aws-airline-q-1 · PR previews via GitHub Actions
+  </footer>
+
+</body>
+</html>
