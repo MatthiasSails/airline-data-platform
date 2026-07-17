@@ -14,6 +14,15 @@ own stack. Per-service Dockerfiles live with their service (e.g. [`../03-gold/da
 | `airline-etl-bronze` | [`bronze.yml`](bronze.yml) | fetches OpenSky + adsb.lol into MongoDB, 50s loop ([`../etl/bronze.py`](../etl/bronze.py)) | no published port | `OPENSKY_CLIENT_ID`, `OPENSKY_CLIENT_SECRET`, `MONGO_URL` |
 | `airline-etl-silver` | [`silver.yml`](silver.yml) | refreshes `map1` (Postgres) from the latest Mongo snapshot, 10s loop ([`../etl/silver.py`](../etl/silver.py)) | no published port | `MONGO_URL`, `SUPABASE_DB_URL`, `SUPABASE_DB_PASSWORD` |
 | `airline-gold-dash` | [`gold-dash.yml`](gold-dash.yml) | read-only FastAPI + Dash over Silver, Supabase session pooler ([`../03-gold-dash/`](../03-gold-dash/)) | bridge, `127.0.0.1:8000`/`:8050` | `DATABASE_URL` |
+| `chaitra-cloudflared` | [`chaitra-cloudflared.yml`](chaitra-cloudflared.yml) | second Cloudflare Tunnel connector, routing a collaborator's own-account domain to the same landing page (`localhost:80`) | host net, no published port | `TUNNEL_TOKEN` |
+
+`chaitra-cloudflared.yml` is a *second* tunnel connector alongside the account's main one. A
+Cloudflare Tunnel's ingress is account-bound — a hostname can only be routed to a domain whose DNS
+zone lives in the same Cloudflare account as the tunnel. A collaborator's domain, managed in *their*
+account, therefore cannot be added as an ingress rule on our tunnel; instead they run their own
+tunnel in their account and this connector — on our prod VM — dials out to it, pointing at the same
+`landing_page` container. Same pattern as [`q-cloudflared.yml`](q-cloudflared.yml), just a different
+account/tunnel.
 
 `gold-dash.yml` holds two services (`api`, `dashboard`) in one stack, not two separate files —
 they share a release cycle and a hard runtime dependency (`dashboard` won't start until `api` is
@@ -44,3 +53,53 @@ healthcheck.
   the GitOps-managed container and pulls it into a rogue stack. Deploy via Portainer (or
   "Pull and redeploy"). Manual fallback for local testing only:
   `docker compose -f deployment/<service>.yml --env-file ../.env up -d`.
+
+## Q environment (PR previews)
+
+A second, smaller VM (`infra/q-vm/`, Terraform-managed) runs the **whole pipeline** as persistent
+stacks that PRs deploy into before merge. One Portainer server (on the prod VM) manages both hosts —
+the Q VM only runs a Portainer *agent*, registered as a second endpoint.
+
+| Q stack | Compose file | Mirrors |
+|---|---|---|
+| `q-etl-bronze` | [`bronze.yml`](bronze.yml) | `airline-etl-bronze` |
+| `q-etl-silver` | [`silver.yml`](silver.yml) | `airline-etl-silver` |
+| `q-dashboard` | [`dashboard.yml`](dashboard.yml) | `airline-dashboard` |
+| `q-gold-dash` | [`gold-dash.yml`](gold-dash.yml) | `airline-gold-dash` |
+| `q-cloudflared` | [`q-cloudflared.yml`](q-cloudflared.yml) | (Q's own tunnel connector) |
+
+- **No compose file is duplicated for Q.** Every one is shared with prod and specialised purely by
+  env: `${IMAGE_TAG:-latest}` selects the build, `${MAP_TABLE:-map1}` selects the Postgres table.
+  Prod leaves both unset and gets `latest`/`map1`; Q's stacks set `pr-<N>`/`q_map1`.
+- **Where Q is isolated, and where it isn't:**
+  - **Postgres — isolated.** Q writes and reads its own `q_map1` table (created with
+    `CREATE TABLE q_map1 (LIKE map1 INCLUDING ALL)`), so `silver.py`'s delete-and-reinsert refresh
+    can run in Q without touching prod's `map1`. `MAP_TABLE` is allowlist-validated in code
+    (`map1`/`q_map1` only) because a table name is a SQL identifier and cannot be a bind parameter.
+  - **MongoDB — shared, deliberately.** Q's bronze writes the same `airlines` database and
+    `states_all`/`adsb_raw` collections as prod's. Accepted trade-off: Q's silver therefore reads
+    real prod-shaped data with no extra Atlas cost, but a bronze change tested in Q reaches prod's
+    silver through that shared collection. **Test bronze changes with that in mind** — the
+    `q_map1` isolation protects the Postgres layer only.
+  - Because both silvers read the same Mongo snapshot, `q_map1` and `map1` normally hold the same
+    rows. Q's value is proving a *code* change, not different data.
+- **Tagging (build-once, promote-by-tag):** [`../.github/workflows/build-push.yml`](../.github/workflows/build-push.yml)
+  adds an immutable `:sha-<shortsha>` tag to every build. On `main` it also tags `:latest`; on a
+  pull request it tags `:pr-<number>` and the `deploy-q` job points every Q stack at that tag via
+  the Portainer API ([`scripts/set-q-image-tag.sh`](scripts/set-q-image-tag.sh), which takes a
+  stack-id list). No image is ever rebuilt per environment — see Humble/Farley, *Continuous
+  Delivery*, "Only Build Your Binaries Once" (p. 113–114).
+- **Cleanup:** [`q-reset.yml`](../.github/workflows/q-reset.yml) resets `IMAGE_TAG` to `latest`
+  after the **main build completes**, not when the PR closes. Resetting on close races the build:
+  until the new `:latest` exists, Q would pull the pre-merge image — and an ETL image built before
+  `MAP_TABLE` existed ignores it and writes prod's `map1`. A PR closed without merging resets
+  immediately, since `main` never moved.
+- **Access:** `https://q-airlive.matthiaskoehler.com`, via its own Cloudflare Tunnel connector
+  ([`q-cloudflared.yml`](q-cloudflared.yml)) — a tunnel can't route to `localhost` on two different
+  hosts, so Q needed its own, separate from prod's.
+- **Known limitations:**
+  - The Q stacks' `GitConfig` tracks `main`, so a PR that changes a compose file itself only takes
+    effect in Q *after* merging — pre-merge previews cover application code, not the compose file
+    or Portainer stack config.
+  - Q is one shared stage environment: any merge to `main` resets it to `:latest`, including while
+    another PR is being tested there.

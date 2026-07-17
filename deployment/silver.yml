@@ -11,7 +11,7 @@
 # would fail the deploy outright.
 services:
   silver:
-    image: ghcr.io/matthiassails/airline-etl:latest
+    image: ghcr.io/matthiassails/airline-etl:${IMAGE_TAG:-latest}
     pull_policy: always
     container_name: etl_silver
     # Supabase's Direct Connection endpoint is IPv6-only; the Docker bridge
@@ -21,6 +21,8 @@ services:
       - MONGO_URL=${MONGO_URL}
       - SUPABASE_DB_URL=${SUPABASE_DB_URL}
       - SUPABASE_DB_PASSWORD=${SUPABASE_DB_PASSWORD}
+      # Target table: unset in prod (-> map1); the Q stack sets q_map1.
+      - MAP_TABLE=${MAP_TABLE:-map1}
     command: bash run_silver.sh
     restart: unless-stopped
     logging:

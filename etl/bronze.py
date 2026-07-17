@@ -32,13 +32,24 @@ BBOX = {
 }
 
 # adsb.lol — secondary Bronze-only source (ADR 003/009). No auth required.
-# Center + radius approximating the same Germany-wide BBOX coverage as OpenSky,
-# since adsb.lol takes a lat/lon/dist (NM) circle rather than a bounding box.
+# adsb.lol takes a lat/lon/dist (NM) circle rather than a bounding box, so the circle
+# and the BBOX can only approximate each other.
+#
+# dist was 245 NM — the circle *circumscribing* the BBOX (sqrt(150^2 + 194.8^2)). That
+# guaranteed full BBOX coverage but pulled ~61% more area than the BBOX asks for, and
+# snapshot size scales with aircraft in range: 642 aircraft = 405 KB per document, and at
+# the 50s loop that is ~717 MB/day into a 512 MB Atlas cluster — it filled in under a day
+# and blocked writes (issue #28).
+#
+# 150 NM is the *inscribed* circle: it still spans the full 47-52 latitude band but clips
+# the eastern/western BBOX corners. Measured on a live snapshot: 282 aircraft = 178 KB,
+# ~307 MB/day, which a 24h TTL can hold inside the free tier. Coverage at the lon extremes
+# is the deliberate price — see issue #28.
 ADSB_BASE_URL = "https://api.adsb.lol/v2"
 ADSB_GEO = {
     "lat":  49.5,   # BBOX center latitude
     "lon":  10.0,   # BBOX center longitude
-    "dist": 245,    # NM — covers the BBOX corners
+    "dist": 150,    # NM — inscribed in the BBOX (was 245 = circumscribed); see above
 }
 ADSB_URL = f"{ADSB_BASE_URL}/lat/{ADSB_GEO['lat']}/lon/{ADSB_GEO['lon']}/dist/{ADSB_GEO['dist']}"
 
@@ -119,6 +130,40 @@ def get_db():
 
 
 # =============================================================================
+# RESPONSE TRANSFORMS
+# Applied to a raw API response before it is stored
+# =============================================================================
+def _in_bbox(lat, lon):
+    """True if a position falls inside BBOX. Missing coordinates count as outside."""
+    if lat is None or lon is None:
+        return False
+    return (BBOX["lamin"] <= lat <= BBOX["lamax"]
+            and BBOX["lomin"] <= lon <= BBOX["lomax"])
+
+
+def trim_adsb_to_bbox(data):
+    """Drop aircraft outside BBOX from an adsb.lol response before storing.
+
+    This is a guard, not a size optimisation. At the current dist=150 the circle is
+    inscribed in the BBOX, so this removes no positioned aircraft at all (measured: 0).
+    It earns its place by bounding storage to the BBOX no matter what dist is set to —
+    raise dist back toward the circumscribed 245 and roughly 30% of what comes back is
+    outside the box, which is how adsb_raw grew until Atlas blocked writes (issue #28).
+
+    It does still drop aircraft with no position fix, which silver skips anyway.
+    """
+    ac = data.get("ac")
+    if not isinstance(ac, list):
+        log.warning("adsb response has no 'ac' list — storing unfiltered.")
+        return data
+
+    kept = [a for a in ac if _in_bbox(a.get("lat"), a.get("lon"))]
+    log.info(f"adsb_raw: kept {len(kept)}/{len(ac)} aircraft inside BBOX.")
+    data["ac"] = kept
+    return data
+
+
+# =============================================================================
 # DATABASE WRITER
 # Inserts with full audit fields for data lineage
 # =============================================================================
@@ -130,6 +175,12 @@ def save_to_db(db, collection_name, data, pipeline_run_id):
       - source          : which endpoint the data came from
       - pipeline_run_id : unique ID tying all records from this run together
 
+    fetched_at/load_date are stored as real BSON dates, not ISO strings. A TTL index
+    only ever expires a BSON date — pointed at a string it is created without complaint
+    and then silently never deletes anything, which is how adsb_raw grew until Atlas
+    blocked writes (issue #28). Readers must cope with both types until the historical
+    string documents are migrated.
+
     Uses ordered=False on bulk insert to skip duplicates and continue.
     """
     if not data:
@@ -137,8 +188,8 @@ def save_to_db(db, collection_name, data, pipeline_run_id):
         return
 
     collection = db[collection_name]
-    fetched_at = datetime.now(timezone.utc).isoformat()
-    load_date  = datetime.now(timezone.utc).isoformat()
+    fetched_at = datetime.now(timezone.utc)
+    load_date  = datetime.now(timezone.utc)
 
     try:
         if isinstance(data, list):
@@ -198,7 +249,7 @@ def log_credits(response, name):
 # CORE FETCH FUNCTION
 # Fetches from API then saves to MongoDB
 # =============================================================================
-def fetch_and_store(name, url, db, pipeline_run_id, params=None, headers=None):
+def fetch_and_store(name, url, db, pipeline_run_id, params=None, headers=None, transform=None):
     """
     Fetch data from an API endpoint then:
       1. Validate the response
@@ -213,6 +264,8 @@ def fetch_and_store(name, url, db, pipeline_run_id, params=None, headers=None):
         params          : optional query parameters dict
         headers         : optional request headers; defaults to OpenSky bearer
                            token (pass {} for sources that need no auth, e.g. adsb.lol)
+        transform       : optional callable applied to the validated response before
+                           storing (e.g. trim_adsb_to_bbox)
     """
     log.info(f"Fetching '{name}' — params={params}")
 
@@ -248,6 +301,9 @@ def fetch_and_store(name, url, db, pipeline_run_id, params=None, headers=None):
             log.warning(f"Empty response for '{name}' — nothing to store.")
             return
 
+        if transform is not None:
+            data = transform(data)
+
         save_to_db(db, name, data, pipeline_run_id)
 
     except requests.exceptions.ConnectionError:
@@ -271,14 +327,16 @@ def main():
     db = get_db()
 
     endpoints = [
-        # Bounding box keeps cost at 2 credits instead of 4 for global
-        ("states_all", f"{BASE_URL}/states/all", BBOX, None),
-        # Bronze-only secondary source (ADR 003/009) — no auth, same geo coverage as BBOX
-        ("adsb_raw",   ADSB_URL,                 None, {}),
+        # Bounding box keeps cost at 2 credits instead of 4 for global. The API filters
+        # to the BBOX server-side, so no transform is needed here.
+        ("states_all", f"{BASE_URL}/states/all", BBOX, None, None),
+        # Bronze-only secondary source (ADR 003/009) — no auth. Its circle only
+        # approximates the BBOX, so trim the overspill before storing (issue #28).
+        ("adsb_raw",   ADSB_URL,                 None, {},   trim_adsb_to_bbox),
     ]
 
-    for name, url, params, headers in endpoints:
-        fetch_and_store(name, url, db, pipeline_run_id, params, headers)
+    for name, url, params, headers, transform in endpoints:
+        fetch_and_store(name, url, db, pipeline_run_id, params, headers, transform)
 
     log.info("=" * 60)
     log.info(f"PIPELINE COMPLETE — {pipeline_run_id}")

@@ -1,8 +1,27 @@
 name: Build and push images
 
+# Two trigger types, one build-once pipeline (Continuous Delivery, Humble/Farley,
+# ch.5 "Only Build Your Binaries Once", p.113-114):
+#   - push to main   -> tags :latest + :sha-<shortsha>, all five services
+#   - pull_request    -> tags :pr-<number> + :sha-<shortsha>, all five services (build
+#                         validation only). gold-api/gold-dashboard additionally trigger
+#                         deploy-q below, since those are the two services the Q
+#                         environment actually runs — the other three just prove they
+#                         still build before merge.
+# Same Dockerfile, same build step either way — only the tag (a pointer) differs;
+# the image content is identical to what a later merge would rebuild from the same commit.
 on:
   push:
     branches: [main]
+    paths:
+      - "03-gold/dashboard/**"
+      - "deployment/landing-page/**"
+      - "03-gold-dash/api/**"
+      - "03-gold-dash/dashboard/**"
+      - "etl/**"
+      - "deployment/Dockerfile"
+      - ".github/workflows/build-push.yml"
+  pull_request:
     paths:
       - "03-gold/dashboard/**"
       - "deployment/landing-page/**"
@@ -25,11 +44,21 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/matthiassails/airline-dashboard
+          tags: |
+            type=raw,value=latest,enable=${{ github.event_name == 'push' }}
+            type=ref,event=pr
+            type=sha,prefix=sha-,format=short
       - uses: docker/build-push-action@v6
         with:
           context: ./03-gold/dashboard
           push: true
-          tags: ghcr.io/matthiassails/airline-dashboard:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   landing:
     runs-on: ubuntu-latest
@@ -43,11 +72,21 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/matthiassails/airline-landing
+          tags: |
+            type=raw,value=latest,enable=${{ github.event_name == 'push' }}
+            type=ref,event=pr
+            type=sha,prefix=sha-,format=short
       - uses: docker/build-push-action@v6
         with:
           context: ./deployment/landing-page
           push: true
-          tags: ghcr.io/matthiassails/airline-landing:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   gold-api:
     runs-on: ubuntu-latest
@@ -61,11 +100,21 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/matthiassails/airline-gold-api
+          tags: |
+            type=raw,value=latest,enable=${{ github.event_name == 'push' }}
+            type=ref,event=pr
+            type=sha,prefix=sha-,format=short
       - uses: docker/build-push-action@v6
         with:
           context: ./03-gold-dash/api
           push: true
-          tags: ghcr.io/matthiassails/airline-gold-api:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   gold-dashboard:
     runs-on: ubuntu-latest
@@ -79,11 +128,21 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/matthiassails/airline-gold-dashboard
+          tags: |
+            type=raw,value=latest,enable=${{ github.event_name == 'push' }}
+            type=ref,event=pr
+            type=sha,prefix=sha-,format=short
       - uses: docker/build-push-action@v6
         with:
           context: ./03-gold-dash/dashboard
           push: true
-          tags: ghcr.io/matthiassails/airline-gold-dashboard:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   etl:
     runs-on: ubuntu-latest
@@ -97,9 +156,42 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/matthiassails/airline-etl
+          tags: |
+            type=raw,value=latest,enable=${{ github.event_name == 'push' }}
+            type=ref,event=pr
+            type=sha,prefix=sha-,format=short
       - uses: docker/build-push-action@v6
         with:
           context: .
           file: ./deployment/Dockerfile
           push: true
-          tags: ghcr.io/matthiassails/airline-etl:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  # Only fires for PR builds. Q runs the full pipeline (bronze, silver, both
+  # dashboards), so this waits on every image Q actually runs — a PR whose ETL
+  # image failed to build must not deploy its API half to Q and look green.
+  # landing is excluded: Q has no landing stack, it only builds for validation.
+  # Flips every Q stack (Portainer endpoint 4, ids from secrets) to the PR's image
+  # via git/redeploy, which updates env vars and re-runs `docker compose up -d` on
+  # the Q VM. Deploy logic itself lives in deployment/scripts/set-q-image-tag.sh,
+  # not inline here — it needs to be runnable (and debuggable) from a laptop too,
+  # not just inside a workflow log. See that script for the API details.
+  deploy-q:
+    needs: [gold-api, gold-dashboard, etl, dashboard]
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Point Q stacks at pr-${{ github.event.pull_request.number }}
+        env:
+          PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
+          PORTAINER_API_KEY: ${{ secrets.PORTAINER_API_KEY }}
+          PORTAINER_Q_ENDPOINT_ID: ${{ secrets.PORTAINER_Q_ENDPOINT_ID }}
+          PORTAINER_Q_STACK_IDS: ${{ secrets.PORTAINER_Q_STACK_IDS }}
+        run: ./deployment/scripts/set-q-image-tag.sh "pr-${{ github.event.pull_request.number }}"

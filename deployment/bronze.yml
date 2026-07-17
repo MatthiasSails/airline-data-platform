@@ -13,7 +13,7 @@
 # would fail the deploy outright.
 services:
   bronze:
-    image: ghcr.io/matthiassails/airline-etl:latest
+    image: ghcr.io/matthiassails/airline-etl:${IMAGE_TAG:-latest}
     pull_policy: always
     container_name: etl_bronze
     environment:

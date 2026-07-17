@@ -17,6 +17,15 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
+# Target Postgres table for the Silver refresh. Env-injected so the same image
+# serves prod (map1) and the Q stage environment (q_map1) — set MAP_TABLE per
+# Portainer stack. Restricted to a strict allowlist: the value is interpolated
+# as a SQL identifier (table names can't be psycopg2 %s params), so the allowlist
+# is what keeps it from ever becoming an injection vector.
+MAP_TABLE = os.environ.get("MAP_TABLE", "map1")
+if MAP_TABLE not in {"map1", "q_map1"}:
+    raise ValueError(f"MAP_TABLE must be 'map1' or 'q_map1', got {MAP_TABLE!r}")
+
 col_names = ["icao24", "callsign", "time_position", "longitude", "latitude", "on_ground", "true_track", "vertical_rate"]
 cols = [0, 1, 3, 5, 6, 8, 10, 11]
 
@@ -53,6 +62,21 @@ def map_adsb_doc(doc):
     return rows
 
 
+def fetched_at(doc):
+    """Read a document's fetched_at as an aware datetime, accepting either type.
+
+    bronze.py used to store this as an ISO string and now stores a real BSON date (a TTL
+    index only expires real dates — see issue #28). Both forms therefore coexist until the
+    historical documents are migrated, and the two collections migrate at different times.
+    Comparing them raw would raise TypeError ("can't compare str to datetime") and take the
+    whole silver loop — and with it map1's freshness — down mid-migration.
+    """
+    value = doc["fetched_at"]
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+
+
 try:
     client = MongoClient(os.environ["MONGO_URL"])
     db = client["airlines"]
@@ -62,7 +86,7 @@ try:
     # Freshest snapshot wins — on the VM, OpenSky calls fail silently (egress
     # blocked) so its snapshot goes stale while adsb_raw keeps updating.
     use_adsb = adsb_doc is not None and (
-        opensky_doc is None or adsb_doc["fetched_at"] > opensky_doc["fetched_at"]
+        opensky_doc is None or fetched_at(adsb_doc) > fetched_at(opensky_doc)
     )
 
     if use_adsb:
@@ -89,9 +113,10 @@ try:
         password=os.environ["SUPABASE_DB_PASSWORD"]
     )
     cur = conn.cursor()
-    cur.execute("DELETE FROM map1")
+    # MAP_TABLE is allowlist-validated above, so this f-string interpolation is injection-safe.
+    cur.execute(f"DELETE FROM {MAP_TABLE}")
     execute_values(cur,
-        "INSERT INTO map1 (icao24, callsign, time_position, longitude, latitude, on_ground, true_track, vertical_rate, created_at) VALUES %s",
+        f"INSERT INTO {MAP_TABLE} (icao24, callsign, time_position, longitude, latitude, on_ground, true_track, vertical_rate, created_at) VALUES %s",
         [[*row, datetime.now(timezone.utc)] for row in rows]
     )
     conn.commit()

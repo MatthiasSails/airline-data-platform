@@ -15,13 +15,15 @@
 # already-cached local image would silently keep running the old code.
 services:
   adsb-dashboard:
-    image: ghcr.io/matthiassails/airline-dashboard:latest
+    image: ghcr.io/matthiassails/airline-dashboard:${IMAGE_TAG:-latest}
     pull_policy: always
     container_name: adsb_dashboard
     network_mode: host
     environment:
       - SUPABASE_DB_HOST=${SUPABASE_DB_HOST}
       - SUPABASE_DB_PASSWORD=${SUPABASE_DB_PASSWORD}
+      # Target table: unset in prod (-> map1); the Q stack sets q_map1.
+      - MAP_TABLE=${MAP_TABLE:-map1}
     restart: unless-stopped
     logging:
       driver: local
