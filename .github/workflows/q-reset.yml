@@ -1,26 +1,44 @@
 name: Reset Q environment
 
-# Fires on merge AND on close-without-merge (both raise "closed"; the boolean
-# github.event.pull_request.merged only distinguishes them, we don't need to).
-# Known v1 limitation: this resets the Q stack's IMAGE_TAG, not its compose
-# file — a PR that itself edits deployment/gold-dash.yml only takes effect in
-# Q after merge, since the stack's GitConfig tracks main.
+# Q must never be pointed at a :latest that is older than the code it is meant to
+# run. On merge, the new :latest only exists once the main build finishes, so this
+# waits for "Build and push images" to complete on main (workflow_run) rather than
+# firing on the PR close event — otherwise the Q stacks would pull the PRE-merge
+# image for the couple of minutes the build takes.
+#
+# That gap is not theoretical: an ETL image built before MAP_TABLE existed ignores
+# the variable entirely and writes prod's map1 instead of q_map1, so a reset racing
+# the build would let Q's silver loop clobber the production table.
+#
+# A PR closed WITHOUT merging raises no main build, but is safe to reset straight
+# away: main never changed, so :latest is already the right image.
+#
+# Known limitation: Q is one shared stage environment. Any merge to main resets it
+# to :latest, including while another PR is being tested there.
 on:
+  workflow_run:
+    workflows: ["Build and push images"]
+    types: [completed]
+    branches: [main]
   pull_request:
     types: [closed]
-    paths:
-      - "03-gold-dash/api/**"
-      - "03-gold-dash/dashboard/**"
 
 jobs:
   reset-q:
+    # workflow_run: only after a SUCCESSFUL main build (a failed build leaves the
+    # old :latest in place, so resetting to it would reintroduce the race above).
+    # pull_request: only for close-without-merge — a merge is handled by the
+    # workflow_run path, after its build.
+    if: >-
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == false)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Reset Q stack to :latest
+      - name: Reset Q stacks to :latest
         env:
           PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
           PORTAINER_API_KEY: ${{ secrets.PORTAINER_API_KEY }}
           PORTAINER_Q_ENDPOINT_ID: ${{ secrets.PORTAINER_Q_ENDPOINT_ID }}
-          PORTAINER_Q_STACK_ID: ${{ secrets.PORTAINER_Q_STACK_ID }}
+          PORTAINER_Q_STACK_IDS: ${{ secrets.PORTAINER_Q_STACK_IDS }}
         run: ./deployment/scripts/set-q-image-tag.sh latest

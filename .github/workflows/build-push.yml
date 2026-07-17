@@ -173,25 +173,25 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  # Only fires for PR builds, and only needs gold-api/gold-dashboard — those are the
-  # two services the Q environment actually runs (dashboard/landing/etl also build on
-  # PRs now, for validation, but nothing deploys their PR-tagged image anywhere).
-  # Flips the persistent q-gold-dash stack (Portainer endpoint 4, stack id from
-  # secrets) to the PR's image via git/redeploy, which updates env vars and re-runs
-  # `docker compose up -d` on the Q VM. Deploy logic itself lives in
-  # deployment/scripts/set-q-image-tag.sh, not inline here — it needs to be runnable
-  # (and debuggable) from a laptop too, not just inside a workflow log. See that
-  # script for the API details.
+  # Only fires for PR builds. Q runs the full pipeline (bronze, silver, both
+  # dashboards), so this waits on every image Q actually runs — a PR whose ETL
+  # image failed to build must not deploy its API half to Q and look green.
+  # landing is excluded: Q has no landing stack, it only builds for validation.
+  # Flips every Q stack (Portainer endpoint 4, ids from secrets) to the PR's image
+  # via git/redeploy, which updates env vars and re-runs `docker compose up -d` on
+  # the Q VM. Deploy logic itself lives in deployment/scripts/set-q-image-tag.sh,
+  # not inline here — it needs to be runnable (and debuggable) from a laptop too,
+  # not just inside a workflow log. See that script for the API details.
   deploy-q:
-    needs: [gold-api, gold-dashboard]
+    needs: [gold-api, gold-dashboard, etl, dashboard]
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Point Q stack at pr-${{ github.event.pull_request.number }}
+      - name: Point Q stacks at pr-${{ github.event.pull_request.number }}
         env:
           PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
           PORTAINER_API_KEY: ${{ secrets.PORTAINER_API_KEY }}
           PORTAINER_Q_ENDPOINT_ID: ${{ secrets.PORTAINER_Q_ENDPOINT_ID }}
-          PORTAINER_Q_STACK_ID: ${{ secrets.PORTAINER_Q_STACK_ID }}
+          PORTAINER_Q_STACK_IDS: ${{ secrets.PORTAINER_Q_STACK_IDS }}
         run: ./deployment/scripts/set-q-image-tag.sh "pr-${{ github.event.pull_request.number }}"
