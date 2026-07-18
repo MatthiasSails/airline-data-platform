@@ -53,6 +53,14 @@ ADSB_GEO = {
 }
 ADSB_URL = f"{ADSB_BASE_URL}/lat/{ADSB_GEO['lat']}/lon/{ADSB_GEO['lon']}/dist/{ADSB_GEO['dist']}"
 
+# Retention: both raw collections expire documents via a TTL index on fetched_at.
+# 12h, not 24h — the MB/day estimates behind issue #28 were all measured at the daily
+# traffic trough (06:35-06:55 UTC); don't raise this without measuring a full real day
+# first. Changing the value on a live cluster is a collMod, no data loss, no redeploy.
+TTL_INDEX_NAME  = "ttl_fetched_at_12h"
+TTL_SECONDS     = 43200  # 12h
+TTL_COLLECTIONS = ("states_all", "adsb_raw")
+
 # =============================================================================
 # LOGGING SETUP
 # =============================================================================
@@ -127,6 +135,35 @@ def get_db():
     except mongo_errors.ServerSelectionTimeoutError as e:
         log.error(f"Could not connect to MongoDB: {e}")
         raise
+
+
+def ensure_ttl_indexes(db):
+    """Make sure each raw collection expires its documents via a TTL index.
+
+    The index originally existed only as hand-applied Atlas configuration (issue #28);
+    creating it here makes the retention reproducible from code alone. Idempotent —
+    if the index already exists with the same options this is a server-side no-op.
+
+    If it exists with a *different* expireAfterSeconds (tuned via collMod directly on
+    the cluster, which needs no redeploy), the cluster value wins: log and leave it,
+    so a manual tuning never turns into a crash loop here.
+
+    A TTL index only ever expires BSON dates — pointed at a string field it is created
+    without complaint and silently never deletes anything, which is how adsb_raw grew
+    until Atlas blocked writes (issue #28). save_to_db stores fetched_at as a real date.
+    """
+    for name in TTL_COLLECTIONS:
+        coll = db[name]
+        existing = coll.index_information().get(TTL_INDEX_NAME)
+        if existing is None:
+            coll.create_index("fetched_at", name=TTL_INDEX_NAME, expireAfterSeconds=TTL_SECONDS)
+            log.info(f"{name}: created TTL index {TTL_INDEX_NAME} (expireAfterSeconds={TTL_SECONDS}).")
+        elif existing.get("expireAfterSeconds") != TTL_SECONDS:
+            log.warning(
+                f"{name}: TTL index {TTL_INDEX_NAME} has expireAfterSeconds="
+                f"{existing.get('expireAfterSeconds')}, code default is {TTL_SECONDS} — "
+                "keeping the cluster value (collMod tuning is authoritative)."
+            )
 
 
 # =============================================================================
@@ -325,6 +362,7 @@ def main():
     log.info("=" * 60)
 
     db = get_db()
+    ensure_ttl_indexes(db)
 
     endpoints = [
         # Bounding box keeps cost at 2 credits instead of 4 for global. The API filters

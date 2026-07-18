@@ -38,6 +38,19 @@ MONGO_URI_RW=mongodb+srv://airline-collector-rw:<PASSWORD>@<cluster>.mongodb.net
 
 ---
 
+## Retention
+
+Both raw collections (`states_all`, `adsb_raw`) expire documents via a **TTL index**
+`ttl_fetched_at_12h` (`expireAfterSeconds=43200`) on the BSON-date `fetched_at` field —
+without it the M0 cluster's 512 MB fills within a day and Atlas blocks **all** writes
+cluster-wide (issue #28). The index is defined in code: `bronze.py` (`ensure_ttl_indexes`)
+creates it idempotently at every pipeline start, so a fresh cluster gets the retention
+automatically. Tuning the window on a live cluster is a `collMod` (no data loss, no
+redeploy); `bronze.py` detects a diverging value and keeps the cluster's — it never
+overwrites manual tuning.
+
+---
+
 ## Notes
 
 - **IP allowlist:** Atlas is open to `0.0.0.0/0` — security relies on SCRAM auth. Tighten to specific
