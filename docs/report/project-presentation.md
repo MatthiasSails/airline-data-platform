@@ -60,7 +60,7 @@ Reference context: Bartosz Konieczny, Data Engineering Design Patterns, ch. 2, P
 |---|---|---|
 | ![PostgreSQL](logos/postgresql.svg) PostgreSQL | ![OpenSky](logos/opensky.png) OpenSky | ![AWS](logos/aws.svg) AWS |
 | ![MongoDB](logos/mongodb.svg) MongoDB | ![adsb.lol](logos/adsb-lol.png) adsb.lol | ![Amazon EC2](logos/ec2.svg) EC2 |
-| ![MongoDB Atlas](logos/mongodb-atlas.svg) MongoDB Atlas | ![ADS-B](logos/ads-b.svg) ADS-B | ![Amazon Lightsail](logos/lightsail.svg) Lightsail |
+| ![MongoDB Atlas](logos/mongodb-atlas.svg) MongoDB Atlas | ![ADS-B](logos/ads-b.svg) ADS-B | ![Amazon Lightsail](logos/lightsail.jpg) Lightsail |
 | ![psycopg2](logos/psycopg2.png) psycopg2 | ![Kaggle](logos/kaggle.svg) Kaggle | ![Amazon Redshift](logos/redshift.svg) Redshift |
 | ![Supabase](logos/supabase.svg) Supabase | ![Cloudflare](logos/cloudflare.png) Cloudflare | ![Docker](logos/docker.svg) Docker |
 |  | ![GitHub Flow](logos/github.svg) GitHub Flow | ![Portainer](logos/portainer.png) Portainer |
