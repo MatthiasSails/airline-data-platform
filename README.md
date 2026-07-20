@@ -14,6 +14,14 @@ The platform is built under real-world constraints: no premium API access, a par
 
 ---
 
+## Live
+
+- **Production landing page** — [airline.matthiaskoehler.com](https://airline.matthiaskoehler.com) · gateway to the live map, live-traffic view, and the flight-delay prediction API.
+- **Q (staging / PR preview)** — [q-airline.matthiaskoehler.com](https://q-airline.matthiaskoehler.com) · the stage environment that mirrors prod and deploys pull-request previews.
+- **Project presentation** — [interactive slide deck](https://matthiassails.github.io/airline-data-platform/report/project-presentation.dc.html) · engineering overview (architecture, databases, CI/CD, ML) published via GitHub Pages.
+
+---
+
 ## Team
 
 | | Role |
