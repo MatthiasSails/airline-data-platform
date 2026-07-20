@@ -142,7 +142,23 @@
       <div style="font-size:var(--type-small); line-height:1.42; color:var(--grey);">Organized by <strong style="color:var(--ink);">ML-workflow function</strong> for a single analyst, and it commits data into the repo. Here it would collapse Bronze and Silver into one <code>make_dataset.py</code> and version-control data we deliberately keep in managed stores.</div>
     </div>
   </div>
-  <div style="background:var(--cyan-tint); padding:20px 30px; font-size:var(--type-small); color:var(--ink);"><strong>Not ignored —</strong> <span style="color:var(--grey);">ADR 011 records the decision and keeps a mapping table from the course template to this layout.</span></div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:26px; border-top:2px solid var(--hair); padding-top:22px;">
+    <div style="display:flex; flex-direction:column; gap:11px;">
+      <div style="font-size:20px; letter-spacing:0.1em; text-transform:uppercase; color:var(--cyan-deep); font-weight:700;">docs/ — the knowledge layer</div>
+      <div style="display:flex; gap:7px; flex-wrap:wrap; font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:19px;">
+        <span style="background:var(--cyan-tint); padding:4px 10px;">adr/</span>
+        <span style="background:var(--cyan-tint); padding:4px 10px;">architecture/</span>
+        <span style="background:var(--cyan-tint); padding:4px 10px;">requirements/</span>
+        <span style="background:var(--cyan-tint); padding:4px 10px;">data-sources/</span>
+        <span style="background:var(--cyan-tint); padding:4px 10px;">report/</span>
+      </div>
+      <div style="font-size:22px; line-height:1.4; color:var(--grey);">The project's <em>why</em>, kept out of the code — decisions, architecture, and requirements in one place.</div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:11px;">
+      <div style="font-size:20px; letter-spacing:0.1em; text-transform:uppercase; color:var(--cyan-deep); font-weight:700;">ADR — Architecture Decision Record</div>
+      <div style="font-size:22px; line-height:1.4; color:var(--grey);">One numbered, immutable file per decision — <strong style="color:var(--ink);">Context → Decision → Consequences</strong>. 16 recorded; this repo layout, with the Cookiecutter mapping, is <strong style="color:var(--ink);">ADR 011</strong>.</div>
+    </div>
+  </div>
 </section>
 
 <section data-label="Two databases" data-screen-label="05" data-speaker-notes="Polyglot persistence used deliberately: flexible capture first in MongoDB, relational consumption second in Postgres. Each database has a distinct operational role." style="background:var(--paper); color:var(--ink); padding:var(--pad-top) var(--pad-x) var(--pad-bottom); display:flex; flex-direction:column; gap:var(--gap-title); font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
