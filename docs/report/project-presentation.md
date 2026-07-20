@@ -5,7 +5,7 @@
 Infrastructure · DevOps · GitOps · Databases
 
 <!--
-Slide 1 of 11
+Slide 1 of 12
 Visual direction: Minimal title slide. Use a full-width, darkened crop of the dashboard screenshot
 from ../images/dashboard-screenshot.jpg if the chosen slide tool supports background images.
 -->
@@ -21,7 +21,7 @@ from ../images/dashboard-screenshot.jpg if the chosen slide tool supports backgr
 **Engineering objective:** automate the path from external API to deployable data product while keeping every operational layer explicit.
 
 <!--
-Slide 2 of 11
+Slide 2 of 12
 Source notes: ../../README.md; ../requirements/scope.md; ../architecture/README.md.
 Narrative job: Establish why infrastructure and delivery choices matter before introducing technology.
 -->
@@ -47,7 +47,7 @@ flowchart LR
 - Source failover happens in data logic, not in environment-specific infrastructure.
 
 <!--
-Slide 3 of 11
+Slide 3 of 12
 Source notes: ../architecture/README.md; ../../etl/bronze.py; ../../etl/silver.py.
 Reference context: Bartosz Konieczny, Data Engineering Design Patterns, ch. 2, PDF pp. 21–24.
 -->
@@ -67,7 +67,7 @@ Reference context: Bartosz Konieczny, Data Engineering Design Patterns, ch. 2, P
 |  | ![GitOps](logos/gitops.svg) GitOps |  |
 
 <!--
-Slide 4 of 11
+Slide 4 of 12
 Source notes: logos/readme.md.
 -->
 
@@ -86,7 +86,7 @@ Source notes: logos/readme.md.
 **The design uses polyglot persistence deliberately:** flexible capture first, relational consumption second.
 
 <!--
-Slide 5 of 11
+Slide 5 of 12
 Source notes: ../architecture/README.md; ../mongodb-access.md; ../../etl/bronze.py;
 ../../deployment/README.md.
 Reference context: Vlad Khononov, Learning Domain-Driven Design, ch. 8, pp. 125–129
@@ -126,9 +126,27 @@ flowchart TB
 - Production and Q use separate compute and tunnels; one Portainer server manages both hosts.
 
 <!--
-Slide 6 of 11
+Slide 6 of 12
 Source notes: ../architecture/README.md; ../../deployment/README.md;
 ../../infra/q-vm/main.tf; ../adr/019-cloudflare-tunnel-ingress.md.
+-->
+
+---
+
+# Production and Q run on separate Lightsail instances
+
+![Sanitized AWS Lightsail console showing separate Q and production instances](images/lightsail-instances.png)
+
+- **Real isolation:** Production and Q are separate compute, not naming conventions.
+- **Right-sized stages:** The preview environment stays smaller while production gets more storage.
+- **Same operating model:** Both hosts run the same container-based deployment pattern.
+
+*Public network details were intentionally removed from the screenshot.*
+
+<!--
+Slide 7 of 12
+Source notes: Project-owned AWS Lightsail console screenshot, sanitized for publication;
+../architecture/README.md; ../../deployment/README.md.
 -->
 
 ---
@@ -148,7 +166,7 @@ flowchart LR
 **This boundary separates infrastructure lifecycle, trust bootstrap, and application lifecycle.**
 
 <!--
-Slide 7 of 11
+Slide 8 of 12
 Source notes: ../../infra/q-vm/README.md; ../../infra/q-vm/main.tf;
 ../../infra/q-vm/user_data.sh; ../../infra/q-vm/versions.tf.
 Reference context: Yevgeniy Brikman, Terraform: Up & Running, 3rd ed., ch. 1,
@@ -167,7 +185,7 @@ PDF pp. 51–54.
 **Docker Compose is sufficient here:** the platform gains repeatable operations without introducing Kubernetes overhead.
 
 <!--
-Slide 8 of 11
+Slide 9 of 12
 Source notes: ../../deployment/README.md; ../../deployment/bronze.yml;
 ../../deployment/silver.yml; ../../deployment/gold-dash.yml; ../adr/015-etl-scheduling-docker-loop.md.
 -->
@@ -186,7 +204,7 @@ Source notes: ../../deployment/README.md; ../../deployment/bronze.yml;
 - Path filters prevent unrelated changes from triggering container builds.
 
 <!--
-Slide 9 of 11
+Slide 10 of 12
 Source notes: ../adr/012-github-flow-branch-merge.md; ../adr/018-mono-repo.md;
 ../../CLAUDE.md; ../../.github/workflows/build-push.yml.
 -->
@@ -213,7 +231,7 @@ flowchart LR
 **The same build process produces immutable commit tags; environment selection is configuration.**
 
 <!--
-Slide 10 of 11
+Slide 11 of 12
 Source notes: ../../.github/workflows/build-push.yml; ../../.github/workflows/q-reset.yml;
 ../../deployment/scripts/set-q-image-tag.sh; ../../deployment/README.md.
 Reference context: Jez Humble and David Farley, Continuous Delivery, ch. 5,
@@ -239,7 +257,7 @@ Reference context: Jez Humble and David Farley, Continuous Delivery, ch. 5,
 **Takeaway:** a small team can apply serious DevOps and GitOps principles without over-engineering the platform.
 
 <!--
-Slide 11 of 11
+Slide 12 of 12
 Source notes: ../../deployment/README.md; ../adr/019-cloudflare-tunnel-ingress.md;
 ../../infra/q-vm/README.md; ../../.github/workflows/build-push.yml.
 Narrative job: Resolve the opening by showing both the achieved operating model and its honest limits.
