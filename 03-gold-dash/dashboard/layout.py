@@ -4,7 +4,7 @@ from dash import dcc, html
 EDDF_LAT = 50.0379
 EDDF_LON = 8.5622
 DEFAULT_ZOOM = 11
-POLL_INTERVAL_MS = 45_000
+POLL_INTERVAL_MS = 2_000
 
 
 def build_layout() -> html.Div:
