@@ -22,5 +22,6 @@ These assets are used as referential vendor and service marks in the project pre
 | `psycopg2.png` | [Psycopg](https://www.psycopg.org/) | Official Psycopg project mark used for psycopg2 |
 | `redshift.svg` | [AWS Architecture Icons](https://aws.amazon.com/architecture/icons/) | Amazon Redshift service icon, Q2 2026 package |
 | `supabase.svg` | [Supabase Brand Assets](https://supabase.com/brand-assets) | Official gradient logo mark |
+| `terraform.svg` | [HashiCorp Terraform repository](https://github.com/hashicorp/vscode-terraform/blob/038947a5a264dedf26543bea809c9447df6035be/assets/icons/terraform.svg) and [HashiCorp product-logo guidelines](https://www.hashicorp.com/en/brand/hcp-product-logos) | Official purple Terraform product mark, commit-pinned SVG |
 
 The downloaded brand kits are intentionally not stored in the repository; only the assets used by the presentation are tracked.
