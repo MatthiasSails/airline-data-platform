@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  :root {
+    --cyan: #0098c0;
+    --cyan-deep: #007a9c;
+    --cyan-tint: #d8eef5;
+    --cyan-tint2: #eaf6fa;
+    --cyan-mid: #7fc9dd;
+    --ink: #1b1b1b;
+    --paper: #ffffff;
+    --grey: #3d3d3d;
+    --grey-light: #6d6d6d;
+    --hair: #e4e4e4;
+    --hair-dark: #cfcfcf;
+    --red: #e2231a;
+    --yellow: #ffcf00;
+    --pink: #f2a7b6;
+    --type-title: 58px;
+    --type-big: 92px;
+    --type-subtitle: 38px;
+    --type-body: 30px;
+    --type-small: 25px;
+    --type-label: 24px;
+    --pad-top: 84px;
+    --pad-bottom: 76px;
+    --pad-x: 104px;
+    --gap-title: 40px;
+    --gap-item: 22px;
+  }
+  * { -webkit-font-smoothing: antialiased; box-sizing: border-box; }
+  body { margin: 0; }
+</style>
+</helmet>
+<x-import component-from-global-scope="deck-stage" from="./deck-stage.js" width="1920" height="1080" hint-size="100%,100%">
+
+<section data-label="Title" data-screen-label="01" data-speaker-notes="Open by framing this as a production-minded platform: a small team applying serious infrastructure discipline to live flight data. Bookend the deck with the cyan brand slide." style="background:var(--cyan); color:#fff; padding:0; display:block; overflow:hidden; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <div style="position:relative; z-index:1; height:100%; display:flex; flex-direction:column; justify-content:space-between; padding:var(--pad-top) var(--pad-x) var(--pad-bottom);">
+    <div style="font-size:var(--type-label); letter-spacing:0.14em; text-transform:uppercase; font-weight:500; color:rgba(255,255,255,0.9);">Infrastructure · DevOps · GitOps · Databases</div>
+    <h1 style="margin:0; font-size:var(--type-big); font-weight:700; line-height:1.0; letter-spacing:-0.02em; text-transform:uppercase; max-width:15ch;">Airline <span style="color:var(--ink);">Data</span> Engineering Platform</h1>
+    <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+      <p style="margin:0; font-size:var(--type-subtitle); font-weight:400; color:rgba(255,255,255,0.92); max-width:26ch;">A production-minded flight-data pipeline</p>
+      <div style="text-align:right; line-height:1.3;"><div style="font-size:26px; font-weight:700; letter-spacing:0.04em;">Airline Data Platform</div><div style="font-size:var(--type-label); font-weight:400; color:rgba(255,255,255,0.85);">Engineering Overview 2026</div></div>
+    </div>
+  </div>
+</section>
+
+<section data-label="Constraints" data-screen-label="02" data-speaker-notes="Establish why infrastructure and delivery choices matter before introducing technology. The constraints are real: unreliable external APIs, no premium tooling, a small team." style="background:var(--paper); color:var(--ink); padding:var(--pad-top) var(--pad-x) var(--pad-bottom); display:flex; flex-direction:column; gap:var(--gap-title); font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <div style="display:flex; flex-direction:column; gap:14px;">
+    <div style="font-size:var(--type-label); letter-spacing:0.14em; text-transform:uppercase; font-weight:700; color:var(--cyan);">The problem</div>
+    <h2 style="margin:0; font-size:var(--type-title); font-weight:700; line-height:1.08; letter-spacing:-0.01em; max-width:26ch;">Real constraints shaped the platform</h2>
+  </div>
+  <div style="display:flex; gap:48px; flex:1;">
+    <div style="flex:1.5; display:flex; gap:44px;">
+      <div style="flex:1; display:flex; flex-direction:column; gap:22px; font-size:var(--type-small); line-height:1.42; color:var(--grey);">
+        <p style="margin:0;">Live aircraft data arrives from two external ADS-B APIs with different reliability and rate limits.</p>
+        <p style="margin:0;">The team works across multiple environments without premium data services or a large operations platform.</p>
+      </div>
+      <div style="flex:1; display:flex; flex-direction:column; gap:22px; font-size:var(--type-small); line-height:1.42; color:var(--grey);">
+        <p style="margin:0;">The system must preserve raw input, publish a dependable live view, and remain understandable to a small team.</p>
+        <p style="margin:0; color:var(--ink); font-weight:600;">Infrastructure and delivery choices are the story here — not any single technology.</p>
+      </div>
+    </div>
+    <div style="flex:1; background:var(--cyan-tint); padding:36px 38px; display:flex; flex-direction:column; gap:18px;">
+      <div style="font-size:26px; font-weight:700; color:var(--cyan-deep);">Engineering objective</div>
+      <div style="width:44px; height:5px; background:var(--cyan);"></div>
+      <p style="margin:0; font-size:var(--type-small); line-height:1.44; color:var(--grey);">Automate the path from external API to deployable data product while keeping every operational layer explicit.</p>
+    </div>
+  </div>
+</section>
+
+<section data-label="Medallion pipeline" data-screen-label="03" data-speaker-notes="The medallion architecture separates capture, transformation and consumption. Bronze keeps source-shaped snapshots; Silver builds a stable relational contract; Gold apps read the same curated table. Source failover lives in data logic, not infrastructure." style="background:var(--paper); color:var(--ink); padding:var(--pad-top) var(--pad-x) var(--pad-bottom); display:flex; flex-direction:column; gap:var(--gap-title); font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <div style="display:flex; flex-direction:column; gap:12px;">
+    <div style="font-size:var(--type-label); letter-spacing:0.14em; text-transform:uppercase; font-weight:700; color:var(--cyan);">Architecture</div>
+    <h2 style="margin:0; font-size:var(--type-title); font-weight:700; line-height:1.08; letter-spacing:-0.01em; max-width:34ch;">A medallion pipeline separates capture, transformation, and consumption</h2>
+  </div>
+  <div style="display:flex; align-items:stretch; gap:16px;">
+    <div style="flex:1; display:flex; flex-direction:column; gap:10px;">
+      <div style="font-size:20px; letter-spacing:0.12em; text-transform:uppercase; color:var(--grey-light); font-weight:700;">Sources</div>
+      <div style="border:2px solid var(--hair-dark); padding:16px 18px; font-size:var(--type-small); font-weight:600;">OpenSky API</div>
+      <div style="border:2px solid var(--hair-dark); padding:16px 18px; font-size:var(--type-small); font-weight:600;">adsb.lol API</div>
+    </div>
+    <div style="display:flex; align-items:center; font-size:30px; color:var(--cyan); font-weight:700; padding-bottom:4px;">→</div>
+    <div style="flex:1.05; display:flex; flex-direction:column; gap:10px;">
+      <div style="font-size:20px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink); font-weight:700;">Bronze</div>
+      <div style="border:2px solid var(--ink); background:#f4f4f4; padding:22px 18px; flex:1; display:flex; flex-direction:column; gap:6px; justify-content:center;"><span style="font-size:var(--type-small); font-weight:700;">MongoDB Atlas</span><span style="font-size:20px; color:var(--grey-light);">raw snapshots</span></div>
+    </div>
+    <div style="display:flex; align-items:center; font-size:30px; color:var(--cyan); font-weight:700; padding-bottom:4px;">→</div>
+    <div style="flex:1.05; display:flex; flex-direction:column; gap:10px;">
+      <div style="font-size:20px; letter-spacing:0.12em; text-transform:uppercase; color:var(--grey-light); font-weight:700;">Silver</div>
+      <div style="border:2px solid var(--hair-dark); background:#f4f4f4; padding:22px 18px; flex:1; display:flex; flex-direction:column; gap:6px; justify-content:center;"><span style="font-size:var(--type-small); font-weight:700;">ETL transform</span><span style="font-size:20px; color:var(--grey-light);">freshest source wins</span></div>
+    </div>
+    <div style="display:flex; align-items:center; font-size:30px; color:var(--cyan); font-weight:700; padding-bottom:4px;">→</div>
+    <div style="flex:1.1; display:flex; flex-direction:column; gap:10px;">
+      <div style="font-size:20px; letter-spacing:0.12em; text-transform:uppercase; color:var(--cyan-deep); font-weight:700;">Gold</div>
+      <div style="background:var(--cyan); color:#fff; padding:16px 18px; flex:1; display:flex; flex-direction:column; gap:10px; justify-content:center;">
+        <span style="font-size:var(--type-small); font-weight:700;">Supabase Postgres <span style="font-size:20px; font-weight:400; color:rgba(255,255,255,0.85);">map1</span></span>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; font-size:20px;"><span style="background:rgba(255,255,255,0.22); padding:5px 11px; font-weight:600;">Streamlit</span><span style="background:rgba(255,255,255,0.22); padding:5px 11px; font-weight:600;">FastAPI → Dash</span></div>
+        <div style="display:flex; align-items:center; gap:9px; font-size:20px; padding-top:9px; border-top:1px solid rgba(255,255,255,0.28);"><span style="background:rgba(255,255,255,0.22); padding:5px 11px; font-weight:600;">Delay-prediction API</span><span style="color:rgba(255,255,255,0.82);">self-contained model · Swagger</span></div>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:auto; display:grid; grid-template-columns:repeat(3,1fr); gap:40px; border-top:2px solid var(--hair); padding-top:26px; font-size:var(--type-small); line-height:1.38; color:var(--grey);">
+    <div>Bronze retains source-shaped snapshots; Silver creates a stable relational contract.</div>
+    <div>Gold applications remain independent while reading the same curated table.</div>
+    <div>Source failover happens in data logic, not in environment-specific infrastructure.</div>
+  </div>
+</section>
+
+<section data-label="Technology landscape" data-screen-label="04" data-speaker-notes="Pause on recognition, not explanation. The wall shows the complete technology vocabulary used across sources, data stores, compute, and delivery. Experienced data engineers should be able to scan it in seconds." style="background:var(--paper); color:var(--ink); padding:var(--pad-top) var(--pad-x) var(--pad-bottom); display:flex; flex-direction:column; gap:30px; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <div style="display:flex; flex-direction:column; gap:12px;">
+    <div style="font-size:var(--type-label); letter-spacing:0.14em; text-transform:uppercase; font-weight:700; color:var(--cyan);">Technology landscape</div>
+    <h2 style="margin:0; font-size:var(--type-title); font-weight:700; line-height:1.08; letter-spacing:-0.01em; max-width:34ch;">The complete platform stack, recognizable at a glance</h2>
+  </div>
+  <div style="display:grid; grid-template-columns:repeat(6,1fr); grid-template-rows:repeat(3,1fr); column-gap:24px; row-gap:16px; flex:1; min-height:0;">
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;"><img src="logos/postgresql.svg" alt="PostgreSQL" style="width:142px; height:96px; object-fit:contain;"><span style="font-size:20px; font-weight:700;">PostgreSQL</span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;"><img src="logos/mongodb.svg" alt="MongoDB" style="width:142px; height:96px; object-fit:contain;"><span style="font-size:20px; font-weight:700;">MongoDB</span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;"><img src="logos/mongodb-atlas.svg" alt="MongoDB Atlas" style="width:142px; height:96px; object-fit:contain;"><span style="font-size:20px; font-weight:700;">MongoDB Atlas</span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;"><img src="logos/psycopg2.png" alt="psycopg2" style="width:142px; height:96px; object-fit:contain;"><span style="font-size:20px; font-weight:700;">psycopg2</span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;"><img src="logos/supabase.svg" alt="Supabase" style="width:142px; height:96px; object-fit:contain;"><span style="font-size:20px; font-weight:700;">Supabase</span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;"><img src="logos/redshift.svg" alt="Amazon Redshift" style="width:142px; height:96px; object-fit:contain;"><span style="font-size:20px; font-weight:700;">Redshift</span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;"><img src="logos/opensky.png" alt="OpenSky Network" style="width:170px; height:96px; object-fit:contain;"><span style="font-size:20px; font-weight:700;">OpenSky</span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;"><img src="logos/adsb-lol.png" alt="adsb.lol" style="width:142px; height:96px; object-fit:contain;"><span style="font-size:20px; font-weight:700;">adsb.lol</span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;"><img src="logos/ads-b.svg" alt="ADS-B" style="width:142px; height:96px; object-fit:contain; filter:invert(42%) sepia(86%) saturate(1178%) hue-rotate(143deg) brightness(89%) contrast(101%);"><span style="font-size:20px; font-weight:700;">ADS-B</span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;"><img src="logos/kaggle.svg" alt="Kaggle" style="width:142px; height:96px; object-fit:contain;"><span style="font-size:20px; font-weight:700;">Kaggle</span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;"><img src="logos/aws.svg" alt="AWS" style="width:142px; height:96px; object-fit:contain;"><span style="font-size:20px; font-weight:700;">AWS</span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;"><img src="logos/ec2.svg" alt="Amazon EC2" style="width:142px; height:96px; object-fit:contain;"><span style="font-size:20px; font-weight:700;">EC2</span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;"><img src="logos/lightsail.jpg" alt="Amazon Lightsail" style="width:190px; height:96px; object-fit:contain;"><span style="font-size:20px; font-weight:700;">Lightsail</span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;"><img src="logos/docker.svg" alt="Docker" style="width:190px; height:96px; object-fit:contain;"><span style="font-size:20px; font-weight:700;">Docker</span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;"><img src="logos/portainer.png" alt="Portainer" style="width:142px; height:96px; object-fit:contain;"><span style="font-size:20px; font-weight:700;">Portainer</span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;"><img src="logos/cloudflare.png" alt="Cloudflare" style="width:142px; height:96px; object-fit:contain;"><span style="font-size:20px; font-weight:700;">Cloudflare</span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;"><img src="logos/github.svg" alt="GitHub Flow" style="width:190px; height:96px; object-fit:contain;"><span style="font-size:20px; font-weight:700;">GitHub Flow</span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;"><img src="logos/gitops.svg" alt="GitOps" style="width:142px; height:96px; object-fit:contain;"><span style="font-size:20px; font-weight:700;">GitOps</span></div>
+  </div>
+</section>
+
+<section data-label="Repo structure" data-screen-label="05" data-speaker-notes="Explain why the repo does not follow the DataScientest Cookiecutter Data Science template. Cookiecutter organizes code by ML-workflow function for a single analyst and commits data into the repo. This project is a data platform: pipeline plus serving apps plus infrastructure, so it uses medallion-named layer folders, keeps data in managed stores, and lives as one mono-repo. ADR 011 records the decision and keeps a mapping table back to the course template." style="background:var(--paper); color:var(--ink); padding:var(--pad-top) var(--pad-x) var(--pad-bottom); display:flex; flex-direction:column; gap:var(--gap-title); font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <div style="display:flex; flex-direction:column; gap:12px;">
+    <div style="font-size:var(--type-label); letter-spacing:0.14em; text-transform:uppercase; font-weight:700; color:var(--cyan);">Repository structure</div>
+    <h2 style="margin:0; font-size:var(--type-title); font-weight:700; line-height:1.08; letter-spacing:-0.01em; max-width:32ch;">A data platform, not a Cookiecutter scaffold</h2>
+  </div>
+  <div style="display:flex; gap:22px; align-items:stretch; flex:1;">
+    <div style="flex:1; background:var(--cyan-tint); padding:26px 28px; display:flex; flex-direction:column; gap:16px;">
+      <div style="font-size:20px; letter-spacing:0.1em; text-transform:uppercase; color:var(--cyan-deep); font-weight:700;">Our layout — medallion + mono-repo</div>
+      <div style="font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:19px; line-height:1.55; color:var(--ink); background:#fff; padding:16px 18px;">
+        etl/ <span style="color:var(--grey-light);">— Bronze + Silver</span><br>
+        03-gold/ · 03-gold-dash/ <span style="color:var(--grey-light);">— serving apps</span><br>
+        ml/ <span style="color:var(--grey-light);">— delay-prediction API</span><br>
+        deployment/ · infra/ <span style="color:var(--grey-light);">— Compose · Terraform</span><br>
+        docs/ <span style="color:var(--grey-light);">— ADRs · architecture</span>
+      </div>
+      <div style="font-size:var(--type-small); line-height:1.42; color:var(--grey);">Data flows into layer folders; code and workloads live in un-numbered folders. <strong style="color:var(--ink);">No <code>data/</code> directory in the repo</strong> — raw and curated data live in MongoDB Atlas and Supabase.</div>
+    </div>
+    <div style="flex:1; border:2px solid var(--hair-dark); padding:26px 28px; display:flex; flex-direction:column; gap:16px;">
+      <div style="font-size:20px; letter-spacing:0.1em; text-transform:uppercase; color:var(--grey-light); font-weight:700;">Cookiecutter Data Science — why not</div>
+      <div style="font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:19px; line-height:1.55; color:var(--grey); background:#f5f5f5; padding:16px 18px;">
+        src/data/ · src/features/<br>
+        src/models/ · src/visualization/<br>
+        data/{raw, interim, processed}
+      </div>
+      <div style="font-size:var(--type-small); line-height:1.42; color:var(--grey);">Organized by <strong style="color:var(--ink);">ML-workflow function</strong> for a single analyst, and it commits data into the repo. Here it would collapse Bronze and Silver into one <code>make_dataset.py</code> and version-control data we deliberately keep in managed stores.</div>
+    </div>
+  </div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:26px; border-top:2px solid var(--hair); padding-top:22px;">
+    <div style="display:flex; flex-direction:column; gap:11px;">
+      <div style="font-size:20px; letter-spacing:0.1em; text-transform:uppercase; color:var(--cyan-deep); font-weight:700;">docs/ — the knowledge layer</div>
+      <div style="display:flex; gap:7px; flex-wrap:wrap; font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:19px;">
+        <span style="background:var(--cyan-tint); padding:4px 10px;">adr/</span>
+        <span style="background:var(--cyan-tint); padding:4px 10px;">architecture/</span>
+        <span style="background:var(--cyan-tint); padding:4px 10px;">requirements/</span>
+        <span style="background:var(--cyan-tint); padding:4px 10px;">data-sources/</span>
+        <span style="background:var(--cyan-tint); padding:4px 10px;">report/</span>
+      </div>
+      <div style="font-size:22px; line-height:1.4; color:var(--grey);">The project's <em>why</em>, kept out of the code — decisions, architecture, and requirements in one place.</div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:11px;">
+      <div style="font-size:20px; letter-spacing:0.1em; text-transform:uppercase; color:var(--cyan-deep); font-weight:700;">ADR — Architecture Decision Record</div>
+      <div style="font-size:22px; line-height:1.4; color:var(--grey);">One numbered, immutable file per decision — <strong style="color:var(--ink);">Context → Decision → Consequences</strong>. 16 recorded; this repo layout, with the Cookiecutter mapping, is <strong style="color:var(--ink);">ADR 011</strong>.</div>
+    </div>
+  </div>
+</section>
+
+<section data-label="Two databases" data-screen-label="06" data-speaker-notes="Polyglot persistence used deliberately: flexible capture first in MongoDB, relational consumption second in Postgres. Each database has a distinct operational role." style="background:var(--paper); color:var(--ink); padding:var(--pad-top) var(--pad-x) var(--pad-bottom); display:flex; flex-direction:column; gap:var(--gap-title); font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <div style="display:flex; flex-direction:column; gap:12px;">
+    <div style="font-size:var(--type-label); letter-spacing:0.14em; text-transform:uppercase; font-weight:700; color:var(--cyan);">Polyglot persistence</div>
+    <h2 style="margin:0; font-size:var(--type-title); font-weight:700; line-height:1.08; letter-spacing:-0.01em; max-width:30ch;">Each database serves a different operational purpose</h2>
+  </div>
+  <table style="width:100%; border-collapse:collapse; font-size:var(--type-small); line-height:1.3;">
+    <thead>
+      <tr>
+        <th style="text-align:left; padding:14px 20px; width:22%;"></th>
+        <th style="text-align:left; padding:18px 22px; width:39%; background:var(--ink); color:#fff; font-size:var(--type-body); font-weight:700;">MongoDB Atlas <span style="font-size:20px; font-weight:400; color:var(--cyan-mid);">Bronze</span></th>
+        <th style="text-align:left; padding:18px 22px; width:39%; background:var(--cyan); color:#fff; font-size:var(--type-body); font-weight:700;">Supabase Postgres <span style="font-size:20px; font-weight:400; color:rgba(255,255,255,0.85);">Silver</span></th>
+      </tr>
+    </thead>
+    <tbody style="color:var(--grey);">
+      <tr>
+        <td style="padding:15px 20px; font-weight:700; color:var(--ink);">Data shape</td>
+        <td style="padding:15px 22px; background:#f5f5f5; border-bottom:2px solid #fff;">Raw, source-oriented snapshots</td>
+        <td style="padding:15px 22px; background:var(--cyan-tint2); border-bottom:2px solid #fff;">Flat, query-ready map1 table</td>
+      </tr>
+      <tr>
+        <td style="padding:15px 20px; font-weight:700; color:var(--ink);">Write path</td>
+        <td style="padding:15px 22px; background:#f5f5f5; border-bottom:2px solid #fff;">Bronze collectors</td>
+        <td style="padding:15px 22px; background:var(--cyan-tint2); border-bottom:2px solid #fff;">Silver ETL</td>
+      </tr>
+      <tr>
+        <td style="padding:15px 20px; font-weight:700; color:var(--ink);">Read path</td>
+        <td style="padding:15px 22px; background:#f5f5f5; border-bottom:2px solid #fff;">Silver ETL</td>
+        <td style="padding:15px 22px; background:var(--cyan-tint2); border-bottom:2px solid #fff;">Dashboards and FastAPI</td>
+      </tr>
+      <tr>
+        <td style="padding:15px 20px; font-weight:700; color:var(--ink);">Resilience role</td>
+        <td style="padding:15px 22px; background:#f5f5f5; border-bottom:2px solid #fff;">Keeps both sources; freshest snapshot wins</td>
+        <td style="padding:15px 22px; background:var(--cyan-tint2); border-bottom:2px solid #fff;">Stable serving contract for consumers</td>
+      </tr>
+      <tr>
+        <td style="padding:15px 20px; font-weight:700; color:var(--ink);">Lifecycle control</td>
+        <td style="padding:15px 22px; background:#f5f5f5;">12-hour TTL index created idempotently in code</td>
+        <td style="padding:15px 22px; background:var(--cyan-tint2);">Q environment uses isolated q_map1</td>
+      </tr>
+    </tbody>
+  </table>
+  <div style="margin-top:auto; background:var(--cyan-tint); padding:22px 30px; display:flex; align-items:center; gap:16px; font-size:var(--type-small);"><span style="width:12px; height:12px; background:var(--cyan); flex-shrink:0;"></span><span style="color:var(--ink);"><strong>Polyglot persistence, deliberately —</strong> <span style="color:var(--grey);">flexible capture first, relational consumption second.</span></span></div>
+</section>
+
+<section data-label="Managed vs compute" data-screen-label="07" data-speaker-notes="Managed cloud services reduce operations; dedicated Lightsail VMs keep compute observable. Cloudflare Tunnel gives outbound-only ingress, so the VMs expose no public web ports. Production and Q run separately, managed by one Portainer server." style="background:var(--paper); color:var(--ink); padding:var(--pad-top) var(--pad-x) var(--pad-bottom); display:flex; flex-direction:column; gap:var(--gap-title); font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <div style="display:flex; flex-direction:column; gap:12px;">
+    <div style="font-size:var(--type-label); letter-spacing:0.14em; text-transform:uppercase; font-weight:700; color:var(--cyan);">Compute topology</div>
+    <h2 style="margin:0; font-size:50px; font-weight:700; line-height:1.1; letter-spacing:-0.01em; max-width:36ch;">Managed data services reduce operations; dedicated VMs keep compute observable</h2>
+  </div>
+  <div style="display:flex; gap:22px; align-items:stretch; flex:1; min-height:0;">
+    <div style="flex:1.05; background:var(--cyan-tint); padding:22px 24px; display:flex; flex-direction:column; gap:14px;">
+      <div style="font-size:20px; letter-spacing:0.12em; text-transform:uppercase; color:var(--cyan-deep); font-weight:700;">Managed cloud services</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:12px; flex:1; min-height:0;">
+        <div style="background:#fff; padding:14px 16px; display:grid; grid-template-columns:112px 1fr; align-items:center; gap:14px;"><img src="logos/mongodb-atlas.svg" alt="MongoDB Atlas" style="width:108px; height:82px; object-fit:contain;"><div style="display:flex; flex-direction:column; gap:5px;"><div style="font-size:25px; font-weight:700;">MongoDB Atlas</div><div style="font-size:19px; color:var(--grey-light);">Bronze · raw snapshots</div></div></div>
+        <div style="background:#fff; padding:14px 16px; display:grid; grid-template-columns:112px 1fr; align-items:center; gap:14px;"><img src="logos/supabase.svg" alt="Supabase" style="width:96px; height:82px; object-fit:contain;"><div style="display:flex; flex-direction:column; gap:5px;"><div style="font-size:25px; font-weight:700;">Supabase Postgres</div><div style="font-size:19px; color:var(--grey-light);">Silver · serving layer</div></div></div>
+        <div style="background:#fff; padding:14px 16px; display:grid; grid-template-columns:142px 1fr; align-items:center; gap:12px;"><img src="logos/github.svg" alt="GitHub" style="width:138px; height:76px; object-fit:contain;"><div style="display:flex; flex-direction:column; gap:5px;"><div style="font-size:25px; font-weight:700;">GitHub + GHCR</div><div style="font-size:19px; color:var(--grey-light);">source & images</div></div></div>
+        <div style="background:#fff; padding:14px 16px; display:grid; grid-template-columns:142px 1fr; align-items:center; gap:12px;"><img src="logos/cloudflare.png" alt="Cloudflare" style="width:138px; height:76px; object-fit:contain;"><div style="display:flex; flex-direction:column; gap:5px;"><div style="font-size:25px; font-weight:700;">Cloudflare edge</div><div style="font-size:19px; color:var(--grey-light);">TLS & ingress</div></div></div>
+      </div>
+      <div style="background:#fff; border:2px dashed var(--cyan-mid); padding:12px 16px; display:grid; grid-template-columns:82px 1fr; align-items:center; gap:16px;"><img src="logos/redshift.svg" alt="Amazon Redshift" style="width:78px; height:70px; object-fit:contain;"><div style="display:flex; flex-direction:column; gap:5px;"><div style="display:flex; align-items:center; gap:10px;"><span style="font-size:23px; font-weight:700;">Amazon Redshift Serverless</span><span style="font-size:15px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#b45309; background:#fde68a; padding:2px 8px; border-radius:3px;">Planned</span></div><div style="font-size:18px; color:var(--grey-light);">Historical analytical warehouse · fed incrementally from Bronze</div></div></div>
+    </div>
+    <div style="display:flex; align-items:center; font-size:30px; color:var(--cyan); font-weight:700;">↔</div>
+    <div style="flex:0.9; background:var(--cyan); color:#fff; padding:22px 26px; display:flex; flex-direction:column; gap:14px;">
+      <div style="font-size:20px; letter-spacing:0.12em; text-transform:uppercase; color:rgba(255,255,255,0.9); font-weight:700;">Lightsail compute</div>
+      <div style="background:#fff; min-height:122px; padding:12px 20px; display:flex; align-items:center; justify-content:center; gap:26px;"><img src="logos/aws.svg" alt="AWS" style="width:150px; height:96px; object-fit:contain;"><span style="height:76px; width:1px; background:var(--hair-dark);"></span><img src="logos/lightsail.jpg" alt="Amazon Lightsail" style="width:248px; height:104px; object-fit:contain;"></div>
+      <div style="background:#fff; color:var(--ink); padding:12px 18px; display:grid; grid-template-columns:1fr 250px; align-items:center; gap:18px;"><div style="display:flex; flex-direction:column; gap:4px;"><div style="font-size:23px; font-weight:700;">Container runtime & operations</div><div style="font-size:18px; color:var(--grey-light);">one image lifecycle · one management plane</div></div><div style="display:flex; align-items:center; justify-content:flex-end; gap:20px;"><img src="logos/docker.svg" alt="Docker" style="width:156px; height:62px; object-fit:contain;"><img src="logos/portainer.png" alt="Portainer" style="width:68px; height:68px; object-fit:contain;"></div></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; flex:1; min-height:0;">
+        <div style="background:rgba(255,255,255,0.17); padding:18px 18px; display:flex; flex-direction:column; justify-content:center; gap:6px;"><div style="font-size:26px; font-weight:700;">Production VM</div><div style="font-size:19px; color:rgba(255,255,255,0.88);">production stack + tunnel</div></div>
+        <div style="background:rgba(255,255,255,0.17); padding:18px 18px; display:flex; flex-direction:column; justify-content:center; gap:6px;"><div style="font-size:26px; font-weight:700;">Q stage VM</div><div style="font-size:19px; color:rgba(255,255,255,0.88);">isolated preview + agent</div></div>
+      </div>
+    </div>
+  </div>
+  <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:36px; border-top:2px solid var(--hair); padding-top:24px; font-size:var(--type-small); line-height:1.34; color:var(--grey);">
+    <div>Application services run as containers; databases stay managed.</div>
+    <div>Cloudflare Tunnel creates outbound-only ingress, so the VMs expose no public web ports.</div>
+    <div>Production and Q use separate compute and tunnels; one Portainer server manages both hosts.</div>
+  </div>
+</section>
+
+<section data-label="Lightsail instances" data-screen-label="08" data-speaker-notes="This is direct evidence from the AWS Lightsail console. Production and Q are separate instances with intentionally different capacity. Network details were removed from the public presentation screenshot." style="background:var(--paper); color:var(--ink); padding:var(--pad-top) var(--pad-x) var(--pad-bottom); display:flex; flex-direction:column; gap:30px; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <div style="display:flex; flex-direction:column; gap:12px;">
+    <div style="font-size:var(--type-label); letter-spacing:0.14em; text-transform:uppercase; font-weight:700; color:var(--cyan);">AWS compute evidence</div>
+    <h2 style="margin:0; font-size:50px; font-weight:700; line-height:1.08; letter-spacing:-0.01em; max-width:31ch;">Production and Q run on separate Lightsail instances</h2>
+  </div>
+  <div style="display:grid; grid-template-columns:minmax(0,1.72fr) minmax(360px,0.72fr); gap:26px; flex:1; min-height:0;">
+    <div style="background:#fff; border:2px solid var(--hair); padding:18px; display:flex; align-items:center; justify-content:center; box-shadow:0 14px 34px rgba(18,37,51,0.10);">
+      <img src="images/lightsail-instances.png" alt="Sanitized AWS Lightsail console showing separate Q and production instances" style="display:block; width:100%; height:100%; object-fit:contain; object-position:center;">
+    </div>
+    <div style="background:var(--cyan); color:#fff; padding:28px 30px; display:flex; flex-direction:column; gap:24px;">
+      <div style="background:#fff; min-height:150px; padding:18px 26px; display:flex; align-items:center; justify-content:center;">
+        <img src="logos/aws.svg" alt="AWS" style="width:260px; height:124px; object-fit:contain;">
+      </div>
+      <div style="display:flex; flex-direction:column; gap:22px;">
+        <div style="border-top:1px solid rgba(255,255,255,0.36); padding-top:16px;"><div style="font-size:25px; font-weight:700;">Real isolation</div><div style="margin-top:5px; font-size:19px; line-height:1.35; color:rgba(255,255,255,0.88);">Production and Q are separate compute, not naming conventions.</div></div>
+        <div style="border-top:1px solid rgba(255,255,255,0.36); padding-top:16px;"><div style="font-size:25px; font-weight:700;">Right-sized stages</div><div style="margin-top:5px; font-size:19px; line-height:1.35; color:rgba(255,255,255,0.88);">The preview environment stays smaller while production gets more storage.</div></div>
+        <div style="border-top:1px solid rgba(255,255,255,0.36); padding-top:16px;"><div style="font-size:25px; font-weight:700;">Same operating model</div><div style="margin-top:5px; font-size:19px; line-height:1.35; color:rgba(255,255,255,0.88);">Both hosts run the same container-based deployment pattern.</div></div>
+      </div>
+      <div style="margin-top:auto; font-size:16px; line-height:1.35; color:rgba(255,255,255,0.72);">Public network details intentionally removed.</div>
+    </div>
+  </div>
+</section>
+
+<section data-label="IaC boundary" data-screen-label="09" data-speaker-notes="Infrastructure as Code stops at a deliberate boundary: Terraform provisions the VM, firewall and address; first-boot installs Docker without secrets; Portainer GitOps then converges applications from version-controlled Compose files." style="background:var(--paper); color:var(--ink); padding:var(--pad-top) var(--pad-x) var(--pad-bottom); display:flex; flex-direction:column; gap:var(--gap-title); font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <div style="display:flex; flex-direction:column; gap:12px;">
+    <div style="font-size:var(--type-label); letter-spacing:0.14em; text-transform:uppercase; font-weight:700; color:var(--cyan);">Provisioning</div>
+    <h2 style="margin:0; font-size:var(--type-title); font-weight:700; line-height:1.08; letter-spacing:-0.01em; max-width:30ch;">Infrastructure as Code stops at a deliberate boundary</h2>
+  </div>
+  <div style="display:flex; align-items:stretch; gap:14px;">
+    <div style="flex:1; background:var(--cyan); color:#fff; padding:26px 28px; display:flex; flex-direction:column; gap:12px;">
+      <div style="font-size:20px; letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.85); font-weight:700;">01 · Terraform</div>
+      <div style="font-size:var(--type-body); font-weight:700;">Provision</div>
+      <div style="font-size:20px; color:rgba(255,255,255,0.9); line-height:1.4;">VM · static IP · firewall</div>
+    </div>
+    <div style="display:flex; align-items:center; font-size:30px; color:var(--cyan); font-weight:700;">→</div>
+    <div style="flex:1; background:var(--cyan); color:#fff; padding:26px 28px; display:flex; flex-direction:column; gap:12px;">
+      <div style="font-size:20px; letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.85); font-weight:700;">02 · Bootstrap</div>
+      <div style="font-size:var(--type-body); font-weight:700;">Trust</div>
+      <div style="font-size:20px; color:rgba(255,255,255,0.9); line-height:1.4;">Docker · Portainer agent</div>
+    </div>
+    <div style="display:flex; align-items:center; font-size:30px; color:var(--cyan); font-weight:700;">→</div>
+    <div style="flex:1; background:var(--cyan); color:#fff; padding:26px 28px; display:flex; flex-direction:column; gap:12px;">
+      <div style="font-size:20px; letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.85); font-weight:700;">03 · Portainer GitOps</div>
+      <div style="font-size:var(--type-body); font-weight:700;">Converge</div>
+      <div style="font-size:20px; color:rgba(255,255,255,0.9); line-height:1.4;">application & tunnel stacks</div>
+    </div>
+  </div>
+  <div style="display:flex; flex-direction:column; gap:16px; max-width:78ch; font-size:var(--type-small); line-height:1.38; color:var(--grey);">
+    <div style="display:flex; gap:16px;"><span style="color:var(--cyan); font-weight:700;">—</span><span>Terraform provisions the Q VM, attaches a stable address, and replaces default firewall rules with least-privilege access.</span></div>
+    <div style="display:flex; gap:16px;"><span style="color:var(--cyan); font-weight:700;">—</span><span>First-boot automation installs Docker but never embeds secrets in instance metadata.</span></div>
+    <div style="display:flex; gap:16px;"><span style="color:var(--cyan); font-weight:700;">—</span><span>The Portainer agent is bootstrapped once; applications then converge from version-controlled Compose files.</span></div>
+  </div>
+  <div style="margin-top:auto; background:var(--cyan-tint); padding:22px 30px; font-size:var(--type-small); color:var(--ink);"><strong>This boundary separates</strong> <span style="color:var(--grey);">infrastructure lifecycle, trust bootstrap, and application lifecycle.</span></div>
+</section>
+
+<section data-label="Containers" data-screen-label="10" data-speaker-notes="Containers encode lifecycle and failure boundaries. Bronze and Silver share one image but run as separate stacks and cadences. FastAPI and Dash deploy together because of a hard runtime dependency. Docker Compose is sufficient — no Kubernetes overhead." style="background:var(--paper); color:var(--ink); padding:var(--pad-top) var(--pad-x) var(--pad-bottom); display:flex; flex-direction:column; gap:var(--gap-title); font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <div style="display:flex; flex-direction:column; gap:12px;">
+    <div style="font-size:var(--type-label); letter-spacing:0.14em; text-transform:uppercase; font-weight:700; color:var(--cyan);">Runtime</div>
+    <h2 style="margin:0; font-size:var(--type-title); font-weight:700; line-height:1.08; letter-spacing:-0.01em; max-width:28ch;">Containers encode lifecycle and failure boundaries</h2>
+  </div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; flex:1;">
+    <div style="background:var(--cyan-tint2); padding:28px 30px; display:flex; flex-direction:column; gap:12px; border-top:4px solid var(--cyan);">
+      <div style="font-size:20px; letter-spacing:0.08em; text-transform:uppercase; color:var(--cyan-deep); font-weight:700;">Shared image, separate stacks</div>
+      <div style="font-size:var(--type-small); line-height:1.42; color:var(--grey);">Bronze and Silver share one ETL image but run as separate stacks, commands, cadences, and health domains.</div>
+    </div>
+    <div style="background:var(--cyan-tint2); padding:28px 30px; display:flex; flex-direction:column; gap:12px; border-top:4px solid var(--cyan);">
+      <div style="font-size:20px; letter-spacing:0.08em; text-transform:uppercase; color:var(--cyan-deep); font-weight:700;">Cadence</div>
+      <div style="font-size:var(--type-small); line-height:1.42; color:var(--grey);">Bronze respects external limits with a 50-second loop; Silver refreshes from MongoDB every 10 seconds.</div>
+    </div>
+    <div style="background:var(--cyan-tint2); padding:28px 30px; display:flex; flex-direction:column; gap:12px; border-top:4px solid var(--cyan);">
+      <div style="font-size:20px; letter-spacing:0.08em; text-transform:uppercase; color:var(--cyan-deep); font-weight:700;">Coupled by dependency</div>
+      <div style="font-size:var(--type-small); line-height:1.42; color:var(--grey);">FastAPI and Dash deploy together because the dashboard has a hard runtime dependency on the API.</div>
+    </div>
+    <div style="background:var(--cyan-tint2); padding:28px 30px; display:flex; flex-direction:column; gap:12px; border-top:4px solid var(--cyan);">
+      <div style="font-size:20px; letter-spacing:0.08em; text-transform:uppercase; color:var(--cyan-deep); font-weight:700;">Operational contract</div>
+      <div style="font-size:var(--type-small); line-height:1.42; color:var(--grey);">Health checks, restart policies, local logging, and pull_policy: always define the operational contract.</div>
+    </div>
+  </div>
+  <div style="background:var(--cyan-tint); padding:22px 30px; font-size:var(--type-small); color:var(--ink);"><strong>Docker Compose is sufficient here —</strong> <span style="color:var(--grey);">repeatable operations without introducing Kubernetes overhead.</span></div>
+</section>
+
+<section data-label="GitHub Flow" data-screen-label="11" data-speaker-notes="GitHub Flow keeps main reviewable and deployable. Short-lived branches, mandatory review, Q validation, squash-merge to one commit. The mono-repo keeps code, Compose, Terraform and ADRs in one audit trail." style="background:var(--paper); color:var(--ink); padding:var(--pad-top) var(--pad-x) var(--pad-bottom); display:flex; flex-direction:column; gap:var(--gap-title); font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <div style="display:flex; flex-direction:column; gap:12px;">
+    <div style="font-size:var(--type-label); letter-spacing:0.14em; text-transform:uppercase; font-weight:700; color:var(--cyan);">Delivery</div>
+    <h2 style="margin:0; font-size:var(--type-title); font-weight:700; line-height:1.08; letter-spacing:-0.01em; max-width:32ch;">GitHub Flow keeps main reviewable and deployable</h2>
+  </div>
+  <div style="display:flex; flex-direction:column; flex:1; justify-content:center; gap:0;">
+    <div style="display:flex; gap:26px; align-items:baseline; padding:16px 0; border-bottom:1px solid var(--hair);"><span style="font-size:44px; color:var(--cyan); font-weight:700; min-width:70px; line-height:1;">01</span><span style="font-size:var(--type-body); color:var(--ink); line-height:1.3;">Create a short-lived <strong>feature/</strong>, <strong>fix/</strong>, or <strong>chore/</strong> branch.</span></div>
+    <div style="display:flex; gap:26px; align-items:baseline; padding:16px 0; border-bottom:1px solid var(--hair);"><span style="font-size:44px; color:var(--cyan); font-weight:700; min-width:70px; line-height:1;">02</span><span style="font-size:var(--type-body); color:var(--ink); line-height:1.3;">Open a pull request; a second team member reviews the change.</span></div>
+    <div style="display:flex; gap:26px; align-items:baseline; padding:16px 0; border-bottom:1px solid var(--hair);"><span style="font-size:44px; color:var(--cyan); font-weight:700; min-width:70px; line-height:1;">03</span><span style="font-size:var(--type-body); color:var(--ink); line-height:1.3;">Build deployable images and exercise the change in Q.</span></div>
+    <div style="display:flex; gap:26px; align-items:baseline; padding:16px 0; border-bottom:1px solid var(--hair);"><span style="font-size:44px; color:var(--cyan); font-weight:700; min-width:70px; line-height:1;">04</span><span style="font-size:var(--type-body); color:var(--ink); line-height:1.3;">Squash and merge: one pull request becomes one commit on main.</span></div>
+    <div style="display:flex; gap:26px; align-items:baseline; padding:16px 0;"><span style="font-size:44px; color:var(--cyan); font-weight:700; min-width:70px; line-height:1;">05</span><span style="font-size:var(--type-body); color:var(--ink); line-height:1.3;">Delete the branch; main remains the production source of truth.</span></div>
+  </div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:40px; border-top:2px solid var(--hair); padding-top:24px; font-size:var(--type-small); line-height:1.34; color:var(--grey);">
+    <div>The mono-repo keeps application code, Compose configuration, Terraform, and ADRs in one audit trail.</div>
+    <div>Path filters prevent unrelated changes from triggering container builds.</div>
+  </div>
+</section>
+
+<section data-label="PR to production" data-screen-label="12" data-speaker-notes="One artifact moves from pull request to production. Images are built once in CI and pulled by the VMs; production never compiles code. PR tags make the full Q pipeline previewable before merge. The Q reset waits for a successful main build." style="background:var(--paper); color:var(--ink); padding:var(--pad-top) var(--pad-x) var(--pad-bottom); display:flex; flex-direction:column; gap:var(--gap-title); font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <div style="display:flex; flex-direction:column; gap:12px;">
+    <div style="font-size:var(--type-label); letter-spacing:0.14em; text-transform:uppercase; font-weight:700; color:var(--cyan);">Build once, deploy many</div>
+    <h2 style="margin:0; font-size:var(--type-title); font-weight:700; line-height:1.08; letter-spacing:-0.01em; max-width:28ch;">One artifact moves from pull request to production</h2>
+  </div>
+  <div style="display:flex; flex-direction:column; gap:16px;">
+    <div style="display:flex; align-items:stretch; gap:10px;">
+      <div style="flex:1; border:2px solid var(--hair-dark); padding:16px 16px; text-align:center; display:flex; flex-direction:column; justify-content:center;"><div style="font-size:var(--type-small); font-weight:700;">Pull request</div></div>
+      <span style="display:flex; align-items:center; color:var(--cyan); font-size:24px; font-weight:700;">→</span>
+      <div style="flex:1; border:2px solid var(--hair-dark); padding:14px 16px; text-align:center;"><div style="font-size:var(--type-small); font-weight:700;">GitHub Actions</div><div style="font-size:20px; color:var(--grey-light);">build images</div></div>
+      <span style="display:flex; align-items:center; color:var(--cyan); font-size:24px; font-weight:700;">→</span>
+      <div style="flex:1; border:2px solid var(--hair-dark); padding:14px 16px; text-align:center;"><div style="font-size:var(--type-small); font-weight:700;">GHCR</div><div style="font-size:20px; color:var(--grey-light);">pr-N + sha tags</div></div>
+      <span style="display:flex; align-items:center; color:var(--cyan); font-size:24px; font-weight:700;">→</span>
+      <div style="flex:1; background:var(--cyan); color:#fff; padding:14px 16px; text-align:center;"><div style="font-size:var(--type-small); font-weight:700;">Deploy to Q</div><div style="font-size:20px; color:rgba(255,255,255,0.85);">Portainer API</div></div>
+    </div>
+    <div style="display:flex; justify-content:center; align-items:center; gap:12px; color:var(--grey-light); font-size:var(--type-small);"><span style="color:var(--cyan); font-size:24px;">↓</span> review and merge</div>
+    <div style="display:flex; align-items:stretch; gap:10px;">
+      <div style="flex:1; border:2px solid var(--hair-dark); padding:14px 16px; text-align:center;"><div style="font-size:var(--type-small); font-weight:700;">main build</div><div style="font-size:20px; color:var(--grey-light);">latest + sha tags</div></div>
+      <span style="display:flex; align-items:center; color:var(--cyan); font-size:24px; font-weight:700;">→</span>
+      <div style="flex:1; background:var(--ink); color:#fff; padding:14px 16px; text-align:center;"><div style="font-size:var(--type-small); font-weight:700;">Production redeploy</div><div style="font-size:20px; color:var(--cyan-mid);">Portainer GitOps · pull</div></div>
+      <span style="display:flex; align-items:center; color:var(--cyan); font-size:24px; font-weight:700;">→</span>
+      <div style="flex:1; border:2px solid var(--hair-dark); padding:14px 16px; text-align:center; display:flex; flex-direction:column; justify-content:center;"><div style="font-size:var(--type-small); font-weight:700;">Reset Q to latest</div></div>
+    </div>
+  </div>
+  <div style="margin-top:auto; display:flex; flex-direction:column; gap:14px;">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:40px; border-top:2px solid var(--hair); padding-top:22px; font-size:var(--type-small); line-height:1.34; color:var(--grey);">
+      <div>Images are built in CI and pulled by the VMs; production never compiles application code.</div>
+      <div>PR tags make the full Q pipeline previewable before merge; the Q reset waits for a successful main build.</div>
+    </div>
+    <div style="background:var(--cyan-tint); padding:20px 30px; font-size:var(--type-small); color:var(--ink);"><strong>Same build, immutable tags —</strong> <span style="color:var(--grey);">environment selection is configuration.</span></div>
+  </div>
+</section>
+
+<section data-label="Takeaway" data-screen-label="13" data-speaker-notes="Resolve the opening: show both the achieved operating model and its honest limits. The takeaway — a small team can apply serious DevOps and GitOps principles without over-engineering the platform." style="background:var(--ink); color:#fff; padding:0; display:block; overflow:hidden; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <div style="position:relative; z-index:1; height:100%; display:flex; flex-direction:column; gap:var(--gap-title); padding:var(--pad-top) var(--pad-x) var(--pad-bottom);">
+    <h2 style="margin:0; font-size:64px; font-weight:700; line-height:1.04; letter-spacing:-0.01em; text-transform:uppercase; max-width:24ch;">Production habits matter more than platform size</h2>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:56px; flex:1;">
+      <div style="display:flex; flex-direction:column; gap:18px;">
+        <div style="font-size:20px; letter-spacing:0.12em; text-transform:uppercase; color:var(--cyan-mid); font-weight:700;">What the project demonstrates</div>
+        <div style="display:flex; flex-direction:column; gap:14px; font-size:var(--type-small); line-height:1.4; color:rgba(255,255,255,0.85);">
+          <div style="display:flex; gap:14px;"><span style="color:var(--cyan-mid); font-weight:700;">—</span><span>Reproducible infrastructure and deployment configuration live beside the code.</span></div>
+          <div style="display:flex; gap:14px;"><span style="color:var(--cyan-mid); font-weight:700;">—</span><span>Managed databases, container lifecycle boundaries, and outbound-only ingress reduce operational risk.</span></div>
+          <div style="display:flex; gap:14px;"><span style="color:var(--cyan-mid); font-weight:700;">—</span><span>Pull requests become running integration environments before they become production changes.</span></div>
+          <div style="display:flex; gap:14px;"><span style="color:var(--cyan-mid); font-weight:700;">—</span><span>A trained flight-delay model ships as its own key-gated Swagger API through the same pipeline.</span></div>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:18px;">
+        <div style="font-size:20px; letter-spacing:0.12em; text-transform:uppercase; color:var(--cyan-mid); font-weight:700;">Known boundaries guide next steps</div>
+        <div style="display:flex; flex-direction:column; gap:14px; font-size:var(--type-small); line-height:1.4; color:rgba(255,255,255,0.85);">
+          <div style="display:flex; gap:14px;"><span style="color:var(--cyan-mid); font-weight:700;">—</span><span>Q isolates Postgres through q_map1, but deliberately shares MongoDB with production.</span></div>
+          <div style="display:flex; gap:14px;"><span style="color:var(--cyan-mid); font-weight:700;">—</span><span>Cloudflare ingress rules and the Portainer-agent bootstrap are not yet managed as code.</span></div>
+          <div style="display:flex; gap:14px;"><span style="color:var(--cyan-mid); font-weight:700;">—</span><span>Automated build validation exists; broader test and policy gates are the next delivery layer.</span></div>
+        </div>
+      </div>
+    </div>
+    <div style="background:var(--cyan); padding:24px 32px; font-size:28px; line-height:1.3;"><strong>Takeaway —</strong> a small team can apply serious DevOps and GitOps principles without over-engineering the platform.</div>
+  </div>
+</section>
+
+</x-import>
+</x-dc>
+</body>
+</html>
