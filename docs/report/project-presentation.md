@@ -1,40 +1,48 @@
-# Project presentation - infrastructure, DevOps, and operations segment
+# Project presentation - development, infrastructure, DevOps, and operations segment
 
 ## Scope, goal, and highlights
 
 **Audience:** the jury for the final DataScientest data-engineering project defense. The audience
 has seen the business problem and data pipeline before this segment; this part must prove that the
-pipeline is deployable, reviewable, secure by design, and operable by a three-person team.
+team can plan, develop, review, deploy, secure, and operate that pipeline as one coherent system.
 
 **Format:** one presenter, exactly **5 minutes**, as one segment of the team's three-presenter
 defense. Use **5 slides** at 16:9. This document is a content and visual specification, not the
 finished deck.
 
-**Scope:** infrastructure, AWS Lightsail, Terraform, AWS CLI/operator access, managed databases,
-containerization, GitHub Flow, GitHub Actions, CI/CD, Portainer, Git-driven operations, Cloudflare
-Tunnel and its remote API configuration, security/SecOps, and day-two operations. The data science,
-ML, and detailed transformation logic belong to the other presenters except where a database or
-deployment boundary needs context.
+**Scope:** the **development model** and **operating model** around the data platform: lightweight
+project management in the public GitHub Project; issues, branches, pull requests, reviews, and
+ADRs; infrastructure, AWS Lightsail, Terraform, AWS CLI/operator access, managed databases,
+containerization, GitHub Actions, CI/CD, Portainer, Git-driven operations, Cloudflare Tunnel and
+its remote API configuration, security/SecOps, and day-two operations. The data science, ML, and
+detailed transformation logic belong to the other presenters except where a database or deployment
+boundary needs context.
 
-**Goal:** defend the operating model through project evidence. The section should answer five jury
-questions:
+**Goal:** defend the development and operating model through project evidence. The section should
+answer five jury questions:
 
-1. Where does the system run, and why are the databases managed separately from compute?
-2. Which tool owns infrastructure, artifacts, and runtime state?
-3. What happens between a pull request and production?
-4. Which security controls reduce exposure and credential risk?
+1. How does a three-person team turn an idea into visible, owned, reviewable work?
+2. What is the shared source of truth from planning through production?
+3. What happens between a pull request and a running Q or production deployment?
+4. Which infrastructure and security boundaries reduce drift, exposure, and credential risk?
 5. What operates reliably today, and which gaps are honestly acknowledged?
 
 **Highlights to land:**
 
+- **Everything as Code — One Source of Truth:** GitHub is the shared system of record. The Project
+  plans work; issues, pull requests, and ADRs explain decisions; the repository stores versioned
+  code and configuration; and `main` defines the deployable production state.
+- The public GitHub Project is the team's lightweight development-control surface: Kanban for flow,
+  Roadmap for timing, and linked issues/pull requests for traceability from intent to implementation.
 - MongoDB Atlas preserves heterogeneous raw snapshots; Supabase Postgres exposes the stable
   relational serving contract.
 - Production and Q use separate AWS Lightsail compute. The Q VM, static IP, and firewall are
   reproducible with Terraform; the production VM predates that IaC.
 - GitHub Actions builds container images in CI and publishes them to GHCR. Nothing is compiled on
   the VMs.
-- Pull requests become running Q previews through the Portainer API; production follows the
-  `main` branch through Portainer's Git polling. These are related but distinct delivery paths.
+- Application-code pull requests matching the workflow path filters become running Q previews
+  through the Portainer API; production follows `main` through Portainer's Git polling. Compose,
+  Portainer, documentation, and infrastructure-only changes are not previewed by that workflow.
 - Cloudflare Tunnel removes inbound HTTP/HTTPS ports and TLS operations from the VMs. Secrets stay
   outside Git and outside Lightsail user data.
 - The project applies serious operating principles without adding Kubernetes to a small,
@@ -42,8 +50,8 @@ questions:
 
 **One-sentence storyline:**
 
-> We turned a live-data script into an operated data product by separating data, infrastructure,
-> artifacts, runtime reconciliation, and public ingress into explicit control boundaries.
+> Everything as Code — One Source of Truth: one visible path connects the idea, the reviewed
+> change, the deployable state, and the running data product.
 
 ### Curriculum alignment
 
@@ -65,16 +73,18 @@ That distinction should be explicit rather than hidden behind a technology logo 
 
 | Slide | Time | Narrative job |
 |---|---:|---|
-| 1. Operating model | 0:00-0:45 | Orient the jury: managed data, separate compute, protected ingress |
-| 2. Control boundaries | 0:45-1:40 | Explain what Terraform, GitHub Actions, Portainer, and the AWS CLI each do |
-| 3. Delivery flow | 1:40-2:55 | Show PR review, CI, Q deployment, merge, and production as one flow |
-| 4. Security/SecOps | 2:55-4:00 | Connect network, secrets, identity, and data controls to concrete evidence |
-| 5. Operations and limits | 4:00-5:00 | Prove day-two operation, acknowledge gaps, and finish with the takeaway |
+| 1. Development + operating model | 0:00-0:35 | Establish the slogan and the single path from idea to running system |
+| 2. Lightweight project management | 0:35-1:30 | Show how the public GitHub Project makes work, ownership, timing, and evidence visible |
+| 3. Delivery flow | 1:30-2:40 | Show application-code PR, CI, Q deployment, review, merge, and production as one flow |
+| 4. Control boundaries + SecOps | 2:40-3:45 | Connect Terraform, AWS, containers, Portainer, Cloudflare, and security controls |
+| 5. Operations and limits | 3:45-4:45 | Prove day-two operation, acknowledge gaps, and finish with the takeaway |
+| Transitions and contingency | 0:15 | Absorb slide changes, one breath, and the handoff to the next presenter |
 | **Total** | **5:00** | |
 
 Five slides are preferable to the previous twelve-slide infrastructure deck. At normal defense
 pace, twelve slides force tool enumeration; five slides leave enough time to explain decisions,
-trade-offs, and evidence.
+trade-offs, and evidence. Rehearse **4:45 of spoken content**, not five minutes of uninterrupted
+copy; the remaining 15 seconds are an intentional delivery buffer.
 
 ## Accuracy rules for the presenter and deck builder
 
@@ -89,176 +99,208 @@ Do not make the following claims:
 
 | Avoid this claim | Accurate wording |
 |---|---|
+| "Everything is code." | **Everything as Code** is the operating principle: work, decisions, code, and deployable configuration are versioned or linked in GitHub. Secrets, live telemetry, manual trust bootstrap, and some remote configuration remain outside Git. |
+| "One Source of Truth means one file contains everything." | GitHub is the shared system of record: the Project tracks work, issues/PRs/ADRs preserve context, and `main` defines deployable state. Each concern still has an explicit owner. |
+| "The Project board proves formal Scrum." | It is deliberately lightweight project management: Kanban flow, a roadmap, ownership fields, and links between work items and implementation. Do not invent ceremonies or metrics that are not evidenced. |
+| "Every historical merge has a submitted approval." | ADR 012 defines second-person review as team policy, and PR #9 demonstrates requested changes followed by approval. Do not generalize that evidence to every historical PR. |
 | "All infrastructure is Terraform-managed." | Terraform manages the Q Lightsail VM, static IP, and firewall; production was created manually. |
 | "One exact image moves from PR to production." | Images are built in CI and never on a VM, but the current workflow rebuilds after merge instead of promoting the tested PR digest. |
-| "Q deployment is pure GitOps." | Q is API-triggered CD through Portainer; production has the pull-based, Git-driven path from `main`. |
+| "Q deployment is pure GitOps." | Q is API-triggered CD through Portainer; production has the pull-based, Git-driven configuration path from `main`. |
 | "GitHub Actions runs the full test suite." | Current CI validates and publishes container builds; lint, unit-test, and security-scan gates are the next layer. |
 | "Q is fully isolated." | Compute and Postgres are separated; Q deliberately shares the production MongoDB collections. |
 | "The VMs have zero open ports." | They have zero inbound **web** ports. SSH remains; Q also exposes the Portainer-agent port only to the production VM. |
 | "Cloudflare configuration is infrastructure as code." | Tunnel routing is remotely managed through Cloudflare's API/dashboard and is currently outside Git/Terraform. |
-| "AWS CLI deploys the application." | The AWS CLI is operator tooling for authenticated inspection; Terraform calls the AWS API for Q provisioning, and Portainer deploys applications. |
+| "AWS CLI deploys the application." | The AWS CLI can provide authenticated operator inspection; Terraform calls the AWS API for Q provisioning, and Portainer deploys applications. |
 | "MongoDB TTL is created by the ingestion code." | The code stores BSON timestamps suitable for TTL, but the current repository does not create a TTL index. Do not put a TTL duration on a slide. |
 
-## Slide 1 - A production-minded operating model for a small data platform
+## Slide 1 - Everything as Code — One Source of Truth
 
-**Time:** 45 seconds
+**Time:** 35 seconds
 
-**Purpose:** bridge from the data pipeline section into infrastructure. The jury should understand
-the entire deployment topology before hearing tool details.
+**Purpose:** frame this segment as one combined development and operating model. The jury should
+understand the organizing principle before seeing any individual tool.
 
 ### Exact on-slide text
 
-**Eyebrow:** `INFRASTRUCTURE · DEVOPS · OPERATIONS`
+**Eyebrow:** `OUR WORKING PRINCIPLE · DEVELOPMENT MODEL + OPERATING MODEL`
 
-**Title:** `A production-minded operating model for a small data platform`
+**Title:** `Everything as Code — One Source of Truth`
 
-**Architecture labels:**
+**Subtitle:** `From idea to running data product`
 
-- `MongoDB Atlas` / `Bronze · raw snapshots`
-- `Supabase Postgres` / `Silver · map1 serving contract`
-- `AWS Lightsail` / `Production VM · Q VM`
-- `Docker + Portainer` / `Application runtime`
-- `Cloudflare Tunnel` / `Outbound-only public ingress`
+**Development band:**
 
-**Bottom proof points:**
+```text
+GitHub Project → issue → branch → application-code PR → Q preview → review → main
+```
 
-- `2 managed databases`
-- `2 separate compute stages`
-- `0 inbound web ports`
+**Operations band:**
 
-Do not add prose paragraphs. The labels and three proof points are the complete on-slide copy.
+```text
+selected PR → Actions/GHCR → Q via Portainer API
+main → Actions → GHCR:latest
+production ← main config via Portainer · GHCR:latest via Docker
+```
+
+**Infrastructure/edge rail:** `Terraform → Q infrastructure · Cloudflare Tunnel → edge`
+
+**Data rail:** `MongoDB Atlas · Bronze → ETL → Supabase Postgres · Silver`
+
+**Footer:** `Plan · review · provision · package · deploy · operate`
+
+Do not add a vendor-logo row or a definition paragraph. The slogan, the two linked bands, and the
+data rail are the complete argument.
 
 ### Visual specification
 
-Create one left-to-right topology with three zones:
+Create one continuous lifecycle with `main` as the visual hinge:
 
 ```text
-MANAGED DATA                    COMPUTE                         EDGE
-MongoDB Atlas -> Postgres      Production VM | Q VM           Cloudflare
-Bronze raw     -> Silver       Docker + Portainer             Tunnel -> users
+DEVELOPMENT MODEL                                  OPERATING MODEL
+Project -> Issue -> app PR -> CI/Q -> Review -> MAIN -> CI artifact + polled config
+              GitHub system of record               \-> production pulls latest -> Operate
+
+RUNNING PRODUCT: Atlas Bronze -> Postgres Silver -> API/Dashboard -> Cloudflare edge
 ```
 
-- Make the two Lightsail instances visually separate, not two labels inside one server.
-- Show data connections from both VMs to the managed databases, but do not draw every container.
-- Use a tunnel arrow from each VM to Cloudflare pointing outward; no inbound 80/443 arrow.
-- The sanitized project screenshot
-  [`lightsail-instances.png`](images/lightsail-instances.png) may be used as a small evidence inset.
-  It is stronger evidence than the legacy superhero artwork.
-- Use `mongodb.svg` with the word `Atlas`; `mongodb-atlas.svg` has excessive whitespace in its
-  current view box and will reproduce too small unless cropped.
+- Put a bracket labelled `GitHub system of record` around Project, issue, PR, ADRs, repository, and
+  `main`. This means connected authority, not one giant file or database.
+- Give `main` a stronger shape or color: it is the bridge from reviewed development work to the
+  deployable production state.
+- Keep the runtime rail compact: managed databases, two Lightsail environments, containers, and
+  outbound Cloudflare Tunnel. Detailed topology belongs on slide 4.
+- Add one tiny boundary note below the bracket: `Secrets and live telemetry stay outside Git`.
+- Use arrows for information flow; do not imply that Terraform deploys the containers or that
+  GitHub stores the live database state.
 
-**Recommended assets:** `mongodb.svg`, `postgresql.svg` plus `supabase.svg`, `aws.svg`,
-`cloudflare.png`. Use at most four visible vendor marks; text labels carry the rest.
+**Recommended assets:** `github.svg` as the only dominant mark. Use small `mongodb.svg`,
+`postgresql.svg`, `aws.svg`, and `cloudflare.png` marks only if the lifecycle remains readable.
 
 ### Speaker beats
 
-1. The databases are managed services because data durability and database operations are not the
-   team's differentiator.
-2. MongoDB accepts source-shaped raw data; Postgres gives consumers a predictable relational
-   contract.
-3. Compute is deliberately visible and reproducible: separate production and Q Lightsail VMs run
-   the containers, while Cloudflare provides public ingress without VM web ports.
+1. "Everything as Code" is the team's working principle: plans, decisions, code, infrastructure,
+   container definitions, and delivery workflows should be visible, reviewable, and reproducible.
+2. "One Source of Truth" means one connected GitHub system of record: the Project shows intended
+   work, issues and PRs preserve context, the repository stores the implementation, and `main`
+   represents deployable production state.
+3. This connects development and operations without a handoff gap: a matching application-code PR is
+   built and previewed on Q before approval; after merge, `main` defines the production path.
 
 ### Evidence and references
 
-- Project: [`docs/architecture/README.md`](../architecture/README.md),
-  [`deployment/README.md`](../../deployment/README.md),
-  [`infra/q-vm/main.tf`](../../infra/q-vm/main.tf).
-- Book grounding: *Designing Data-Intensive Applications*, 2nd ed. (Martin Kleppmann), ch. 3
-  "Data Models and Query Languages," pp. 81-83 (PDF 105-107): schema-on-read fits heterogeneous
-  externally controlled records; schemas are valuable for a stable, uniform contract.
+- Project: [public GitHub Project](https://github.com/users/MatthiasSails/projects/1),
+  [ADR 012](../adr/012-github-flow-branch-merge.md),
+  [`docs/architecture/README.md`](../architecture/README.md),
+  [`deployment/README.md`](../../deployment/README.md).
+- Book grounding: *The DevOps Handbook* (Gene Kim et al.), ch. 8, PDF 163-164 (printed-page
+  mapping unavailable in the local index):
+  relevant development and operations work should share a visible board so the whole path to
+  production can be seen.
 
-## Slide 2 - Three control planes keep responsibilities explicit
+## Slide 2 - From idea to reviewed change
 
 **Time:** 55 seconds
 
-**Purpose:** explain infrastructure, CI, containerization, Git-driven operations, and operator
-tooling without presenting them as interchangeable buzzwords.
+**Purpose:** defend the team's deliberately small development model. This is project management as
+an engineering control: visible priorities, explicit ownership, and evidence that work reached the
+repository through review.
 
 ### Exact on-slide text
 
-**Title:** `Three control planes keep responsibilities explicit`
+**Title:** `From idea to reviewed change`
 
-| `1 · PROVISION` | `2 · PACKAGE` | `3 · RUN` |
-|---|---|---|
-| `Terraform` | `GitHub Actions` | `Portainer + Compose` |
-| `Q VM · static IP · firewall` | `Build images · publish to GHCR` | `Pull · configure · restart · observe` |
-| `AWS provider API` | `pr-N · sha-* · latest` | `One stack = one lifecycle boundary` |
+**Proof ribbon:** `Public GitHub Project · Kanban + Roadmap`
 
-**Footer:** `Provision → bootstrap trust → reconcile applications`
+**Evidence chips:**
 
-**Small operator callout:** `AWS CLI: authenticated inspection, not the deployment engine`
+- `TRACE · Issue #15 → linked PR #20 → Done`
+- `REVIEW · PR #9 → changes requested → approved → merged`
+
+**Footer:** `Visible work → linked change → reviewed merge`
+
+Do not add a second process diagram. Explain `issue → owner → branch → PR → review → merge`
+verbally while the evidence is visible.
 
 ### Visual specification
 
-Use three equal vertical cards connected by a thin arrow. Each card gets one dominant noun and one
-simple icon. Under the Terraform card, draw a narrow dotted side path labelled `manual bootstrap`
-to the Portainer card.
+Use a real, sanitized capture of the public
+[Airline Project](https://github.com/users/MatthiasSails/projects/1) as the central evidence visual,
+not a generic Kanban illustration. Keep the composition to two zones: the board and a compact
+trace/review evidence stack.
 
-- Terraform card: show only **Q**. Do not put the production VM inside the Terraform boundary.
-- Bootstrap callout: `Docker from user data; Portainer agent after boot over SSH`.
-- Package card: show a container image moving into GHCR, not source code moving to a VM.
-- Runtime card: show separate Bronze and Silver stack tiles to demonstrate independent cadence and
-  failure boundaries; do not draw all services.
-- Use a small lock beside the bootstrap path: `AGENT_SECRET never enters user data`.
+- Show the four board columns `Ideas`, `Todo`, `In Progress`, and `Done` on the left. Keep
+  `Roadmap` as a small view tab or label; do not add a second full screenshot.
+- On the right, stack two small evidence crops. First, use the public history of
+  [issue #15](https://github.com/MatthiasSails/airline-data-platform/issues/15): assignment and
+  `Todo → In Progress → Done`, linked to merged
+  [PR #20](https://github.com/MatthiasSails/airline-data-platform/pull/20). A thin arrow should end
+  at `main`. Summarize the item as `fallback source`; do not reproduce its typo-bearing title.
+- The second crop should show only the review events from
+  [PR #9](https://github.com/MatthiasSails/airline-data-platform/pull/9): `changes requested`, then
+  `approved`, then `merged`. Crop out the PR body and infrastructure/access details.
+- The Project and example issue were accessible while signed out on **2026-07-21**. Recapture the
+  board immediately before export, but omit volatile item counts from the argument.
+- Crop browser chrome and omit account controls. Do not expose issue text containing infrastructure
+  identifiers, secrets, or other private operational details even if an item is publicly visible.
 
-**Recommended assets:** `aws.svg`, `github.svg`, `docker.svg`, `portainer.png`. A Terraform logo is
-not currently present in `logos/`; use a restrained text tile for this draft or add the official
-HashiCorp asset before producing the final deck. Do not substitute `ec2.svg` for Lightsail.
+**Recommended asset:** `github.svg` as a small platform identifier. The board itself is the visual.
 
 ### Speaker beats
 
-1. Terraform owns three AWS resources for Q: the Lightsail instance, its stable address, and the
-   least-privilege firewall. The AWS provider calls the service API; the named AWS profile also
-   supports operator checks through the CLI without credentials in Git.
-2. First boot installs Docker only. A secret-bearing Portainer agent is bootstrapped afterward
-   because Lightsail user data is readable from instance metadata.
-3. Portainer then owns the application lifecycle from versioned Compose files. Bronze and Silver
-   remain separate because they have different rates, health domains, and restart behavior.
+1. This is intentionally not a heavyweight project-management framework. One public Project gives
+   the three-person team a shared Kanban view for flow and a Roadmap view for timing.
+2. An idea becomes a draft or issue, gains a status and owner, and then moves into a short-lived
+   feature branch. That makes work visible before code exists.
+3. Two public histories make the controls concrete: issue #15 shows assignment, board movement,
+   and a linked merged PR; PR #9 shows review feedback, a correction cycle, approval, and merge.
+   ADR 012 turns that second-person review into team policy.
+4. Development and operations work live on the same board. Infrastructure, CI, security, database,
+   and deployment items are therefore part of product delivery rather than hidden side work.
 
 ### Evidence and references
 
-- Project: [`infra/q-vm/README.md`](../../infra/q-vm/README.md),
-  [`infra/q-vm/versions.tf`](../../infra/q-vm/versions.tf),
-  [`infra/q-vm/user_data.sh`](../../infra/q-vm/user_data.sh),
-  [`deployment/bronze.yml`](../../deployment/bronze.yml),
-  [`deployment/silver.yml`](../../deployment/silver.yml).
-- Book grounding: *Terraform: Up & Running*, 3rd ed. (Yevgeniy Brikman), ch. 1 "Why
-  Terraform," PDF 51-54 (the library has no reliable printed-page map): declarative configuration
-  belongs in version control and providers communicate with cloud APIs.
-- Official verification: [HashiCorp - What is Infrastructure as Code with Terraform?](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/infrastructure-as-code),
-  [AWS - Lightsail instance metadata and user data](https://docs.aws.amazon.com/lightsail/latest/userguide/amazon-lightsail-instance-metadata.html).
+- Project: [public GitHub Project](https://github.com/users/MatthiasSails/projects/1),
+  [issue #15](https://github.com/MatthiasSails/airline-data-platform/issues/15), and
+  [merged PR #20](https://github.com/MatthiasSails/airline-data-platform/pull/20) for traceability;
+  [PR #9](https://github.com/MatthiasSails/airline-data-platform/pull/9) for submitted review
+  evidence. Inspected signed out on 2026-07-21; [ADR 012](../adr/012-github-flow-branch-merge.md).
+- Official verification: [GitHub - About Projects](https://docs.github.com/en/issues/planning-and-tracking-with-projects/learning-about-projects/about-projects),
+  [GitHub - Linking a pull request to an issue](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue).
+- Book grounding: *The DevOps Handbook* (Gene Kim et al.), ch. 2, PDF 55-56, and ch. 8,
+  PDF 163-164 (printed-page mapping unavailable in the local index): visual boards make queues and
+  blocked work visible; shared boards also prevent operations work from disappearing outside the
+  product value stream.
 
-## Slide 3 - Pull requests become running Q previews
+## Slide 3 - Application-code PRs become running Q previews
 
-**Time:** 75 seconds
+**Time:** 70 seconds
 
 **Purpose:** this is the hero slide. Explain GitHub Flow, GitHub Actions, CI, CD, GHCR, Q, and the
-production pull path as one sequence, while using the terms precisely.
+production pull path as one sequence, while making the workflow path-filter boundary explicit.
 
 ### Exact on-slide text
 
-**Title:** `Pull requests become running Q previews`
+**Title:** `Application-code PRs become running Q previews`
 
 **Flow labels:**
 
 ```text
 feature branch
-  → pull request + review
+  → pull request matching application paths
   → GitHub Actions build
   → GHCR: pr-N + sha-*
   → Portainer API deploys Q
-  → review the running system
+  → review the running system + approve
   → squash merge
   → main build: latest + sha-*
-  → production pulls from main
+  → Portainer polls main; production pulls GHCR:latest
 ```
 
 **Three legend labels:**
 
 - `CI · build and publish container images`
 - `CD · API-triggered Q deployment`
-- `GIT-DRIVEN OPS · production pulls main configuration`
+- `GIT-DRIVEN OPS · Portainer polls main configuration`
 
 **Bottom callout:** `The VMs pull images; they never build application code.`
 
@@ -268,13 +310,16 @@ Use one horizontal pipeline with three colored bands behind the relevant stages:
 the production pull path. Split the flow after GHCR into two environment lanes:
 
 - **Q lane:** `pr-N` image tag → Portainer API → Q Compose stacks → `q_map1`.
-- **Production lane after merge:** `latest`/`sha-*` → Portainer Git polling → production stacks →
-  `map1`.
+- **Production lane after merge:** `latest` → Portainer Git polling → production stacks → `map1`.
+  Keep `sha-*` beside GHCR as a traceability tag, not as the current production deployment input.
 
-Add two small honesty annotations, not a large limitations box:
+Add three small honesty annotations, not a large limitations box:
 
 - `Q MongoDB is shared with production` beside the Q data lane.
-- `Current pipeline rebuilds after merge` beside the production image.
+- `Rebuild after merge; no sequenced production deploy job` beside the production image.
+- `Workflow filters: selected application/Dockerfile/build-workflow paths` beside the PR trigger.
+  Compose, Portainer, documentation, and Terraform-only changes do not receive a pre-merge Q
+  preview.
 
 The GitHub Flow image in `docs/images/` is not suitable as the primary visual: it only explains
 branch review and omits artifacts, Q, and deployment. Build a project-specific flow instead.
@@ -284,12 +329,16 @@ icon as a legend marker for the pull path, not as a blanket label over the whole
 
 ### Speaker beats
 
-1. A pull request triggers the same container build definitions used on `main`; GHCR receives a PR
-   tag for convenience and a commit-derived tag for traceability.
+1. An application-code pull request matching the workflow paths triggers the same container build
+   definitions used on `main`; GHCR receives a PR tag for convenience and a commit-derived tag for
+   traceability.
 2. Only after every Q image has built does the workflow call the Portainer API to change Q's
-   `IMAGE_TAG`. Q reuses production Compose definitions and selects `q_map1` by configuration.
-3. Review therefore includes a running integration environment before merge. After merge,
-   production follows `main` through Portainer's pull path.
+   `IMAGE_TAG`. Q reuses almost all production Compose definitions and selects `q_map1` by
+   configuration; its landing page is the deliberate exception.
+3. The running integration environment is available before approval, so human review can include
+   Q. After merge, Actions publishes GHCR `latest`, while Portainer independently polls Compose
+   configuration from `main`; production pulls `latest`. `sha-*` remains available for
+   traceability.
 4. Be exact about maturity: the workflow currently proves container builds, not the complete unit,
    lint, and security-test pyramid; and it rebuilds on `main` instead of promoting the exact tested
    PR digest.
@@ -309,71 +358,86 @@ icon as a legend marker for the pull path, not as a blanket label over the whole
 - Official verification: [OpenGitOps principles](https://opengitops.dev/blog/1.0-announcement/),
   [GitHub - Publishing Docker images](https://docs.github.com/en/actions/tutorials/publish-packages/publish-docker-images).
 
-## Slide 4 - Security comes from reducing trust and exposure
+## Slide 4 - Code-defined boundaries reduce operational risk
 
 **Time:** 65 seconds
 
-**Purpose:** turn the architecture into a SecOps story. Show implemented controls first, then two
-material gaps. Avoid generic cybersecurity claims.
+**Purpose:** make infrastructure ownership and SecOps one causal story. Each tool controls a
+specific boundary; the boundaries make drift, exposure, and secret movement easier to reason about.
 
 ### Exact on-slide text
 
-**Title:** `Security comes from reducing trust and exposure`
+**Title:** `Code-defined boundaries reduce operational risk`
 
-**Implemented controls:**
+| `PROVISION` | `RUN` | `EDGE` |
+|---|---|---|
+| `Terraform + AWS API` | `Portainer + Compose` | `Cloudflare Tunnel` |
+| `Q VM · static IP · firewall` | `Pull GHCR images · configure · restart · observe` | `Outbound-only ingress · API/dashboard rules` |
 
-- `NETWORK` / `Cloudflare Tunnel · no inbound 80/443`
-- `SECRETS` / `GitHub + Portainer secrets · never in Git or user data`
-- `IDENTITY` / `Scoped workflow permissions · key-based SSH · DB roles`
-- `DATA` / `map1/q_map1 allowlist · read-only serving API`
+**Security strip:** `No secrets in Git/user data · zero inbound web ports · scoped image-build permissions`
 
-**Known exposure:**
+**Operator note:** `AWS CLI = authenticated inspection capability, not deployment engine`
 
-- `Atlas network access currently permits all source IPs`
-- `Cloudflare hostname rules live outside Git/Terraform`
-
-**Next hardening:** `Narrow Atlas access · manage Cloudflare as code · scan and attest images`
+**Known gaps:** `Production VM + Cloudflare routing outside IaC · Atlas permits all source IPs`
 
 ### Visual specification
 
-Use a shield-shaped or four-layer defense-in-depth visual on the left and a narrow amber
-`Known exposure` panel on the right. The slide must show cause and effect:
+Use three connected control-boundary cards across the upper two-thirds and a narrow security strip
+below them. The arrows must reflect the actual ownership sequence:
 
-- Cloudflare edge → outbound tunnel → loopback/local service.
-- Q firewall: `22/tcp SSH`; `9001/tcp only from production VM`; no 80/443.
-- Secret sources point into runtime configuration, never into repository or Lightsail metadata.
-- Cloudflare routing is labelled `remote API/dashboard config`, followed by a dotted arrow to
-  `future Terraform Cloudflare provider`.
+```text
+Terraform --AWS API--> Q Lightsail --manual trust bootstrap--> Portainer/Compose
+GHCR --image handoff from slide 3--> Q + production containers
+Q + production cloudflared --outbound tunnel--> Cloudflare edge --> users
+```
 
-Do not show real hostnames, IP addresses, account IDs, project references, token names with values,
-or screenshots of secret/configuration pages.
+- Draw Terraform around **Q only**: instance, static IP, and firewall. Put the pre-existing
+  production VM beside, not inside, that boundary.
+- Show `host bootstrap: swap + Docker; no secrets` in Lightsail user data and a dotted `post-boot
+  SSH` path for the secret-bearing Portainer agent. This is a deliberate security boundary, not
+  missing automation.
+- Place the AWS CLI outside the delivery arrows as an operator lens into the AWS API.
+- Show Cloudflare's hostname routes as `remote API/dashboard state`. Do not label current
+  Cloudflare configuration as IaC.
+- Use one amber exception panel for `Atlas 0.0.0.0/0` and the configuration outside IaC, but never
+  show real IPs, hostnames, account IDs, project references, or secrets.
 
-**Recommended assets:** `cloudflare.png`, `aws.svg`, `github.svg`. Use icons for locks, keys, and
-firewalls rather than additional vendor logos.
+**Recommended assets:** `aws.svg`, `docker.svg`, `portainer.png`, `cloudflare.png`; use small
+`mongodb.svg` and `postgresql.svg` marks only if there is room. A Terraform text tile is preferable
+until the official logo asset is added. Do not substitute `ec2.svg` for Lightsail.
 
 ### Speaker beats
 
-1. The largest network control is architectural: `cloudflared` dials out, so the public services do
-   not require inbound HTTP/HTTPS firewall rules or certificates on the VM.
-2. Infrastructure variables, Terraform state, application credentials, tunnel tokens, and
-   Portainer API keys remain outside Git. User data deliberately contains no secret.
-3. Least privilege appears in multiple layers: restricted Portainer-agent access, scoped GitHub
-   package permissions, read-only serving access, and allowlisted SQL table identifiers.
-4. The honest gaps are equally important: Atlas currently permits every source IP at the network
-   layer, and Cloudflare routing is remote configuration that can drift from Git.
+1. Terraform owns the reproducible Q infrastructure through the AWS provider API. The same
+   credential profile gives the AWS CLI an authenticated operator-inspection path, but the CLI is
+   not the deployment engine. Production predates this IaC boundary.
+2. Slide 3 established packaging: GitHub Actions owns builds and GHCR owns artifacts. At this
+   boundary, Portainer and versioned Compose files own the runtime lifecycle; a VM only pulls.
+3. Secrets remain outside Git and Lightsail user data. The Portainer agent is installed after boot
+   because user data is readable through instance metadata.
+4. Cloudflare Tunnel removes inbound HTTP/HTTPS rules and VM-side TLS operations. The material
+   exceptions remain visible: Cloudflare routing is remote state, and Atlas network access is still
+   broad.
 
 ### Evidence and references
 
-- Project: [ADR 019](../adr/019-cloudflare-tunnel-ingress.md),
+- Project: [`infra/q-vm/README.md`](../../infra/q-vm/README.md),
   [`infra/q-vm/main.tf`](../../infra/q-vm/main.tf),
-  [`docs/mongodb-access.md`](../mongodb-access.md),
-  [`03-gold-dash/api/db.py`](../../03-gold-dash/api/db.py),
-  [`deployment/q-cloudflared.yml`](../../deployment/q-cloudflared.yml).
+  [`infra/q-vm/versions.tf`](../../infra/q-vm/versions.tf),
+  [`infra/q-vm/user_data.sh`](../../infra/q-vm/user_data.sh),
+  [`deployment/bronze.yml`](../../deployment/bronze.yml),
+  [`deployment/silver.yml`](../../deployment/silver.yml), [ADR 019](../adr/019-cloudflare-tunnel-ingress.md),
+  [`docs/mongodb-access.md`](../mongodb-access.md).
+- Book grounding: *Terraform: Up & Running*, 3rd ed. (Yevgeniy Brikman), ch. 1 "Why Terraform,"
+  PDF 51-54 (printed-page mapping unavailable): declarative configuration belongs in version
+  control and providers communicate with cloud APIs.
 - Book grounding: *Building Secure and Reliable Systems* (Heather Adkins et al.), ch. 5 "Design
   for Least Privilege," pp. 62-65 (PDF 98-101): network location alone is not trust, and access
   should be limited to the smallest functional interface.
-- Official verification: [Cloudflare Tunnel](https://developers.cloudflare.com/tunnel/),
-  [AWS - Control instance traffic with Lightsail firewalls](https://docs.aws.amazon.com/lightsail/latest/userguide/understanding-firewall-and-port-mappings-in-amazon-lightsail.html).
+- Official verification: [HashiCorp - Infrastructure as Code with Terraform](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/infrastructure-as-code),
+  [AWS - Lightsail instance metadata and user data](https://docs.aws.amazon.com/lightsail/latest/userguide/amazon-lightsail-instance-metadata.html),
+  [AWS - Lightsail firewalls and ports](https://docs.aws.amazon.com/lightsail/latest/userguide/understanding-firewall-and-port-mappings-in-amazon-lightsail.html),
+  [Cloudflare Tunnel](https://developers.cloudflare.com/tunnel/).
 
 ## Slide 5 - Operational proof today, hardening path tomorrow
 
@@ -398,13 +462,15 @@ operations platform before the project needs one.`
 
 **Final takeaway:**
 
-> Serious operating principles, intentionally small platform.
+> Everything as Code — One Source of Truth.
 
 ### Visual specification
 
 Use a clean two-column maturity board. The left column is dark blue/green and concrete; the right
 column is light/amber and clearly future work. Add a small heartbeat line behind the left heading.
-Do not use vendor logos on this slide.
+A subtle feedback arrow returns the right-hand gaps to a `GitHub Project` card labelled
+`visible work`, closing the loop from operations back into development. Do not use vendor logos on
+this slide.
 
 Prioritize the four right-column items in the order shown. Do not add a generic backlog, cost
 estimates, or technologies that have no direct relationship to an identified gap.
@@ -417,8 +483,9 @@ estimates, or technologies that have no direct relationship to an identified gap
    one failure does not terminate both loops.
 3. Health checks and local logs are not centralized observability. The next course-aligned step is
    metrics, alerting, and log aggregation, preceded by automated quality and supply-chain gates.
-4. Close with the architectural judgment: a three-person project can adopt reproducibility,
-   review, least privilege, and operational feedback without pretending that it needs Kubernetes.
+4. Operational gaps return to the same visible Project instead of becoming hidden work. Close with
+   the architectural judgment: a three-person project can adopt reproducibility, review, least
+   privilege, and feedback without pretending that it needs Kubernetes.
 
 ### Evidence and references
 
@@ -438,11 +505,13 @@ estimates, or technologies that have no direct relationship to an identified gap
 
 - Use a consistent 16:9 grid, one dominant visual per slide, and no more than 30-35 words of body
   copy outside diagrams/callouts.
-- Titles should be assertions, not topic labels: `Three control planes keep responsibilities
-  explicit`, not `DevOps tools`.
+- Titles should be assertions, not topic labels: `Code-defined boundaries reduce operational risk`,
+  not `DevOps tools`.
 - Use project evidence in visuals: repository paths, image tags, environment labels, and the
-  sanitized Lightsail screenshot. Never use real infrastructure identifiers.
+  public Project board or sanitized Lightsail screenshot. Never use real infrastructure
+  identifiers.
 - Color-code concepts consistently:
+  - project planning and reviewed change: purple;
   - managed data: green;
   - AWS compute/IaC: orange;
   - CI/artifacts: navy;
@@ -460,7 +529,7 @@ estimates, or technologies that have no direct relationship to an identified gap
 | `lightsail.jpg` | Optional | Recognizable but legacy artwork; prefer the sanitized console screenshot as evidence |
 | `ec2.svg` | No | The deployed compute is Lightsail, not EC2 |
 | `docker.svg` | Yes | Clear wordmark; use on the control-boundary slide |
-| `github.svg` | Yes | Use for GitHub Flow/Actions/GHCR as one platform mark |
+| `github.svg` | Yes | Use for the Project, GitHub Flow, Actions, and GHCR as one platform mark |
 | `gitops.svg` | Limited | Use only beside the pull-based production path |
 | `cloudflare.png` | Yes | Suitable for the edge/security slide |
 | `portainer.png` | Yes | Suitable resolution for a small control-plane mark |
@@ -478,6 +547,10 @@ when the final visuals are produced; until then, a text tile is preferable to an
 ### Primary project sources
 
 - [`README.md`](../../README.md)
+- [Public GitHub Project - Airline Project](https://github.com/users/MatthiasSails/projects/1)
+- [Issue #15](https://github.com/MatthiasSails/airline-data-platform/issues/15) and
+  [merged PR #20](https://github.com/MatthiasSails/airline-data-platform/pull/20) for board-to-change
+  traceability; [PR #9](https://github.com/MatthiasSails/airline-data-platform/pull/9) for review evidence
 - [`docs/architecture/README.md`](../architecture/README.md)
 - [`deployment/README.md`](../../deployment/README.md)
 - [`.github/workflows/build-push.yml`](../../.github/workflows/build-push.yml)
@@ -493,6 +566,8 @@ when the final visuals are produced; until then, a text tile is preferable to an
 
 ### Books consulted through the local engineering library
 
+- Kim, Gene, et al. *The DevOps Handbook*, ch. 2, PDF 55-56, and ch. 8, PDF 163-164
+  (printed-page mapping unavailable in the local index).
 - Kleppmann, Martin. *Designing Data-Intensive Applications*, 2nd ed., ch. 3 "Data Models and
   Query Languages," pp. 81-83 (PDF 105-107).
 - Brikman, Yevgeniy. *Terraform: Up & Running*, 3rd ed., ch. 1 "Why Terraform," PDF 51-54
@@ -509,6 +584,8 @@ when the final visuals are produced; until then, a text tile is preferable to an
 ### Official external references checked
 
 - [OpenGitOps principles](https://opengitops.dev/blog/1.0-announcement/)
+- [GitHub - About Projects](https://docs.github.com/en/issues/planning-and-tracking-with-projects/learning-about-projects/about-projects)
+- [GitHub - Linking a pull request to an issue](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue)
 - [GitHub Actions - Publishing Docker images](https://docs.github.com/en/actions/tutorials/publish-packages/publish-docker-images)
 - [HashiCorp - Infrastructure as Code with Terraform](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/infrastructure-as-code)
 - [AWS Lightsail - Instance metadata and user data](https://docs.aws.amazon.com/lightsail/latest/userguide/amazon-lightsail-instance-metadata.html)
@@ -519,11 +596,13 @@ when the final visuals are produced; until then, a text tile is preferable to an
 ## Final rehearsal checks
 
 - Speak the section in **4:45-5:00**; target roughly 600-650 spoken words.
-- The first 30 seconds must contain the platform topology, not a list of tools.
+- The first 30 seconds must establish the shared development/operations lifecycle, not list tools.
+- Capture the public Project while signed out immediately before export, omit volatile item counts,
+  and crop out browser/account controls.
 - Spend the most time on slide 3; it contains the end-to-end engineering proof.
 - Say `zero inbound web ports`, never `zero open ports`.
 - Say `API-triggered Q CD` and `pull-based production path`; do not flatten both into one GitOps
   label.
 - State one implemented security control and one known risk without defensiveness.
 - Do not expose private infrastructure details in diagrams, screenshots, speaker notes, or links.
-- Finish exactly on the takeaway: `Serious operating principles, intentionally small platform.`
+- Finish exactly on the takeaway: `Everything as Code — One Source of Truth.`
