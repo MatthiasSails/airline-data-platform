@@ -115,9 +115,10 @@ try:
     cur = conn.cursor()
     # MAP_TABLE is allowlist-validated above, so this f-string interpolation is injection-safe.
     cur.execute(f"DELETE FROM {MAP_TABLE}")
+    snapshot_fetched_at = fetched_at(adsb_doc if use_adsb else opensky_doc)
     execute_values(cur,
-        f"INSERT INTO {MAP_TABLE} (icao24, callsign, time_position, longitude, latitude, on_ground, true_track, vertical_rate, created_at) VALUES %s",
-        [[*row, datetime.now(timezone.utc)] for row in rows]
+        f"INSERT INTO {MAP_TABLE} (icao24, callsign, time_position, longitude, latitude, on_ground, true_track, vertical_rate, created_at, updated_at) VALUES %s",
+        [[*row, datetime.now(timezone.utc), snapshot_fetched_at] for row in rows]
     )
     conn.commit()
     cur.close()
