@@ -42,6 +42,12 @@ ADSB_GEO = {
 }
 ADSB_URL = f"{ADSB_BASE_URL}/lat/{ADSB_GEO['lat']}/lon/{ADSB_GEO['lon']}/dist/{ADSB_GEO['dist']}"
 
+# Retention: both raw collections expire documents via a TTL index on fetched_at.
+# Changing the value on a live cluster is a collMod, no data loss, no redeploy.
+TTL_INDEX_NAME  = "ttl_fetched_at_12h"
+TTL_SECONDS     = 1200  # 20 min
+TTL_COLLECTIONS = ("states_all", "adsb_raw")
+
 # =============================================================================
 # LOGGING SETUP
 # =============================================================================
