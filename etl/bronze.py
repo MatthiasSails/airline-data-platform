@@ -54,11 +54,12 @@ ADSB_GEO = {
 ADSB_URL = f"{ADSB_BASE_URL}/lat/{ADSB_GEO['lat']}/lon/{ADSB_GEO['lon']}/dist/{ADSB_GEO['dist']}"
 
 # Retention: both raw collections expire documents via a TTL index on fetched_at.
-# 12h, not 24h — the MB/day estimates behind issue #28 were all measured at the daily
-# traffic trough (06:35-06:55 UTC); don't raise this without measuring a full real day
-# first. Changing the value on a live cluster is a collMod, no data loss, no redeploy.
+# Lowered 12h -> 6h after a fetch-rate increase pushed the cluster back toward quota
+# despite the TTL (issue #28 follow-up). Index name kept as ttl_fetched_at_12h to match
+# the live cluster index — renaming would need a drop+recreate with a TTL-protection gap.
+# Changing the value on a live cluster is a collMod, no data loss, no redeploy.
 TTL_INDEX_NAME  = "ttl_fetched_at_12h"
-TTL_SECONDS     = 43200  # 12h
+TTL_SECONDS     = 21600  # 6h
 TTL_COLLECTIONS = ("states_all", "adsb_raw")
 
 # =============================================================================
