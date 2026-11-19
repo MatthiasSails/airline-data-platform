@@ -21,6 +21,20 @@ END           = 1778623200
 AIRPORT       = "EDDF"
 ICAO24        = "3c675a"
 
+# OpenSky is unreachable from the AWS deployment VM: the whole AWS range is filtered at
+# the network level, so every call ends in a connection error rather than an API refusal
+# (known since 2026-06-23). Each attempt still burns the full request timeout and logs an
+# ERROR, which buries the adsb.lol lines that do carry information. Measured 2026-11-19:
+# 69 of 69 runs failed this way.
+#
+# Set OPENSKY_ENABLED=false (Portainer stack env) wherever OpenSky cannot be reached. The
+# default stays true so a host that *can* reach it — a non-AWS fetch host, a laptop — keeps
+# the source without a code change. Silver already handles a missing OpenSky snapshot and
+# falls back to adsb.lol.
+OPENSKY_ENABLED = os.getenv("OPENSKY_ENABLED", "true").strip().lower() not in (
+    "false", "0", "no",
+)
+
 RUN_TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 
 # Bounding box around Germany/Frankfurt (~50 sq° → 2 credits vs 4 for global)
@@ -52,6 +66,13 @@ ADSB_GEO = {
     "dist": 150,    # NM — inscribed in the BBOX (was 245 = circumscribed); see above
 }
 ADSB_URL = f"{ADSB_BASE_URL}/lat/{ADSB_GEO['lat']}/lon/{ADSB_GEO['lon']}/dist/{ADSB_GEO['dist']}"
+
+# adsb.lol quota: 500 requests/day per client IP, advertised on every response as
+# `x-ratelimit-limit: 500, 500;w=86400`. That caps how fresh the data can ever be at
+# ~173s between samples, independent of the loop interval — see etl/run_bronze.sh, which
+# owns the cadence. Over quota the API answers 429 with `x-envoy-ratelimited: true` and
+# `x-ratelimit-remaining: 0`; log_credits below surfaces those headers so an exhausted
+# quota is visible in the logs instead of looking like a generic rate-limit hiccup.
 
 # Retention: both raw collections expire documents via a TTL index on fetched_at.
 # 12h is the measured value from the issue #28 work and is what the live cluster runs;
@@ -274,15 +295,43 @@ def save_to_db(db, collection_name, data, pipeline_run_id):
 # CREDIT MONITOR
 # =============================================================================
 def log_credits(response, name):
-    """Read and log rate limit headers from OpenSky response."""
-    remaining   = response.headers.get("X-Rate-Limit-Remaining")
-    retry_after = response.headers.get("X-Rate-Limit-Retry-After-Seconds")
+    """Log whatever quota headers the source sent.
 
-    if remaining:
-        log.info(f"[{name}] Credits remaining: {remaining}")
+    The two sources advertise their quota under different names, and only looking for
+    OpenSky's spelling is why an exhausted adsb.lol quota showed up in the logs as
+    "retry after unknowns" for months:
+
+      OpenSky   X-Rate-Limit-Remaining / X-Rate-Limit-Retry-After-Seconds (credits)
+      adsb.lol  X-RateLimit-Remaining / X-RateLimit-Reset / X-Envoy-RateLimited
+                (requests, 500 per day per IP)
+
+    Header lookup is case-insensitive in requests, but the hyphenation differs, so both
+    spellings have to be asked for explicitly.
+    """
+    # OpenSky: credit budget.
+    credits_left = response.headers.get("X-Rate-Limit-Remaining")
+    retry_after  = response.headers.get("X-Rate-Limit-Retry-After-Seconds")
+
+    # adsb.lol: request budget. `reset` is seconds until the window rolls over.
+    requests_left = response.headers.get("X-RateLimit-Remaining")
+    limit         = response.headers.get("X-RateLimit-Limit")
+    reset         = response.headers.get("X-RateLimit-Reset")
+
+    if credits_left:
+        log.info(f"[{name}] Credits remaining: {credits_left}")
 
     if retry_after:
         log.warning(f"[{name}] Rate limited — retry after: {retry_after}s")
+
+    if requests_left is not None:
+        # The limit header carries the full IETF structured value ("500, 500;w=86400");
+        # the leading number is the quota itself, the rest describes the window.
+        quota = limit.split(",")[0].strip() if limit else "?"
+        msg = f"[{name}] Quota: {requests_left} of {quota} requests left"
+        if reset:
+            msg += f", window resets in {reset}s"
+        # 0 remaining is the state that stops ingestion outright — say so loudly.
+        (log.warning if requests_left.strip() == "0" else log.info)(msg)
 
 
 # =============================================================================
@@ -322,8 +371,14 @@ def fetch_and_store(name, url, db, pipeline_run_id, params=None, headers=None, t
             return
 
         if r.status_code == 429:
-            retry = r.headers.get("X-Rate-Limit-Retry-After-Seconds", "unknown")
-            log.warning(f"429 Rate Limited for '{name}' — retry after {retry}s.")
+            # Each source names this differently; try both before giving up on a number.
+            retry = (
+                r.headers.get("X-Rate-Limit-Retry-After-Seconds")
+                or r.headers.get("X-RateLimit-Reset")
+                or r.headers.get("Retry-After")
+            )
+            when = f"retry in {retry}s" if retry else "no retry hint sent"
+            log.warning(f"429 Rate Limited for '{name}' — {when}.")
             return
 
         # Raises HTTPError for all other 4xx/5xx
@@ -368,13 +423,22 @@ def main():
     ensure_ttl_indexes(db)
 
     endpoints = [
-        # Bounding box keeps cost at 2 credits instead of 4 for global. The API filters
-        # to the BBOX server-side, so no transform is needed here.
-        ("states_all", f"{BASE_URL}/states/all", BBOX, None, None),
         # Bronze-only secondary source (ADR 003/009) — no auth. Its circle only
         # approximates the BBOX, so trim the overspill before storing (issue #28).
-        ("adsb_raw",   ADSB_URL,                 None, {},   trim_adsb_to_bbox),
+        ("adsb_raw", ADSB_URL, None, {}, trim_adsb_to_bbox),
     ]
+
+    if OPENSKY_ENABLED:
+        # Bounding box keeps cost at 2 credits instead of 4 for global. The API filters
+        # to the BBOX server-side, so no transform is needed here. Listed first so its
+        # snapshot is the one silver prefers when both sources are available.
+        endpoints.insert(
+            0, ("states_all", f"{BASE_URL}/states/all", BBOX, None, None)
+        )
+    else:
+        # Skipping the endpoint also skips the token request — TokenManager is lazy, so
+        # OPENSKY_CLIENT_ID/SECRET are not required when the source is switched off.
+        log.info("OpenSky disabled via OPENSKY_ENABLED — fetching adsb.lol only.")
 
     for name, url, params, headers, transform in endpoints:
         fetch_and_store(name, url, db, pipeline_run_id, params, headers, transform)
