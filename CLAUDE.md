@@ -9,17 +9,33 @@ what's specific to airline-data-platform. Private infra pointers (VM, hosts, key
 
 ## Git workflow
 
-See [ADR 012](docs/adr/012-github-flow-branch-merge.md) for the full decision (feature branches + squash-merge).
+See [ADR 012](docs/adr/012-github-flow-branch-merge.md) for branching and merge strategy, and
+[ADR 020](docs/adr/020-solo-maintainer-review-gate.md) for why the second reviewer is gone.
 
 - **Feature branch + Pull Request required — never push directly to `main`.** Every change goes
-  through a PR, reviewed by a second team member.
-- **Squash and merge** is the team's default merge strategy (one commit per PR, linear history).
-- `main` is always deployable. Use `feature/` · `fix/` · `chore/` branches; delete after merge.
-- **Claude: never merge a PR without asking first, even a small, clean, already-tested hotfix.**
-  Being "clearly correct" is not sufficient justification to merge autonomously — ask every time,
-  no exceptions. (Grew out of PR #24: a standalone hotfix got merged on sight because it looked
-  safe, which turned out not to be the right call — the fix belonged inside the larger #23 effort
-  instead, and had to be reverted via PR #25.)
+  through a PR. Use `feature/` · `fix/` · `chore/` branches; `main` is always deployable.
+- **The gate is CI, not a second person** (ADR 020, 2026-11-19). This repository has one
+  maintainer; the peer review ADR 012 asked for had not happened since PR #9 in June. A red check
+  still blocks: investigate it, or state explicitly in the PR why it is unrelated (`deploy-q`
+  fails whenever the Q environment is off) before merging.
+- **Read the full diff before merging.** Self-review is a deliberate step, not a side effect of
+  having written the change. CI builds images; it runs no lint and no tests, so it cannot judge
+  consequences — PR #42 was five green lines that would have taken the Atlas cluster down in
+  about 1.6 hours.
+- **A PR does not outlive the session that opened it.** Merge it or close it in the same session
+  unless it is deliberately parked as a draft. The previous "ask every time, no exceptions" rule
+  produced the opposite: five PRs open for up to four months, two of them dangerous.
+- **Claude: one short ask before merging** ("checks green, squash-merge?") — not a review round. A
+  merge to `main` reaches production through Portainer's 5-minute poll, so it stays a conscious
+  act. Never merge on your own initiative.
+- **Merge mechanics are enforced in the repository settings**, so there is nothing to choose:
+  squash is the only merge method (merge commits and rebase are disabled), the remote branch is
+  deleted automatically, and the squash commit takes the **PR title and PR body** verbatim —
+  so a stale PR description becomes a stale commit message on `main`. Auto-merge is available for
+  "merge when checks pass".
+- **After merging something that must reach production, force the deploy** — Portainer's poll
+  races the image build and silently keeps the old image when it wins. See
+  `deployment/scripts/README.md`.
 
 ---
 
@@ -34,6 +50,13 @@ See [ADR 012](docs/adr/012-github-flow-branch-merge.md) for the full decision (f
   to **any publish action, not just commits**: grep ADRs for real IPs/hostnames/project-refs before
   committing, and re-read draft issues/PR descriptions/comments for the same before posting, don't
   rely on remembering the rule.
+- **Scripts and tooling are tracked files too** — near-miss 2026-11-19: `deployment/scripts/
+  portainerctl.py` was written with the Portainer hostname as a module constant, which would have
+  published an internal hostname to a public repository. Operational endpoints belong in an
+  environment variable (`PORTAINER_URL`), with the value in `CLAUDE.local.md`. Grep every new or
+  changed file before committing, not just prose — for bare IPv4 addresses, `ghp_`, `supabase.co`,
+  `mongodb.net`, and the private domain named in `CLAUDE.local.md`. (Spelling that domain out
+  here would be the same mistake this bullet is about.)
 
 **Coding standards:**
 - Python 3.12+, type hints, `pathlib`, logging instead of `print()`.
