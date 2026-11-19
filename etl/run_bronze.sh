@@ -24,6 +24,7 @@ SLEEP_SECONDS="${BRONZE_SLEEP_SECONDS:-170}"
 # hangs. Caveat: bronze.py exits 0 even when individual fetches fail (per-source
 # errors are caught and logged inside) — only total failures (Mongo/env) exit non-zero.
 # That healthcheck window must stay larger than this sleep plus one run duration.
+echo "[$(date)] bronze loop starting, image built from commit ${GIT_SHA:-unknown}"
 while true; do
     echo "[$(date)] Running bronze..."
     if python3 bronze.py; then

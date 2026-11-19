@@ -166,10 +166,12 @@ def cmd_logs(args, token):
         line = line.strip()
         if not line:
             continue
+        # Filter first, so "withheld" counts only lines that matched --grep. Counting
+        # across the whole log read as a hidden match when there was none.
+        if args.grep and args.grep.lower() not in line.lower():
+            continue
         if SECRET.search(line):
             withheld += 1
-            continue
-        if args.grep and args.grep.lower() not in line.lower():
             continue
         print(" ", line)
         shown += 1

@@ -207,6 +207,10 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # On a PR, github.sha is the synthetic merge commit; the head sha is the one
+          # that can be found in the branch history.
+          build-args: |
+            GIT_SHA=${{ github.event.pull_request.head.sha || github.sha }}
 
   ml:
     runs-on: ubuntu-latest

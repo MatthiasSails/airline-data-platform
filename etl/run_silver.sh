@@ -7,6 +7,7 @@ cd "$SCRIPT_DIR"
 # heartbeat is only touched on success, so the healthcheck (deployment/silver.yml)
 # marks the container unhealthy when refreshes fail persistently (map1 going stale),
 # not just when the loop hangs.
+echo "[$(date)] silver loop starting, image built from commit ${GIT_SHA:-unknown}"
 while true; do
     echo "[$(date)] Running silver..."
     if python3 silver.py; then
