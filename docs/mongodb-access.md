@@ -41,9 +41,10 @@ MONGO_URI_RW=mongodb+srv://airline-collector-rw:<PASSWORD>@<cluster>.mongodb.net
 ## Retention
 
 Both raw collections (`states_all`, `adsb_raw`) expire documents via a **TTL index**
-`ttl_fetched_at_12h` (`expireAfterSeconds=43200`, 12h — the measured value from the
-issue #28 work, matching the live cluster) on the BSON-date `fetched_at` field, so a
-snapshot removes itself 12h after it was taken — without it the M0 cluster's 512 MB fills
+`ttl_fetched_at_12h` (`expireAfterSeconds=21600`, **6h** — the index name is historical,
+read the number; renaming it would need a drop+recreate with no TTL protection in
+between) on the BSON-date `fetched_at` field, so a snapshot removes itself 6h after it
+was taken — without it the M0 cluster's 512 MB fills
 within a day and Atlas blocks **all** writes cluster-wide (issue #28). The index is
 defined in code: `bronze.py` (`ensure_ttl_indexes`) creates it idempotently at every
 pipeline start, so a fresh cluster gets the retention automatically. Tuning the window

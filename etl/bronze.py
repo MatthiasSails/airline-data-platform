@@ -75,14 +75,22 @@ ADSB_URL = f"{ADSB_BASE_URL}/lat/{ADSB_GEO['lat']}/lon/{ADSB_GEO['lon']}/dist/{A
 # quota is visible in the logs instead of looking like a generic rate-limit hiccup.
 
 # Retention: both raw collections expire documents via a TTL index on fetched_at.
-# 12h is the measured value from the issue #28 work and is what the live cluster runs;
-# the code default matches it deliberately, so ensure_ttl_indexes stays silent instead
-# of warning on every pipeline start. Note the measurement was taken at the daily
-# trough (06:35-06:55 UTC) with hours 07-21 unmeasured — do not raise it without
-# measuring a full day first.
-# Changing the value on a live cluster is a collMod, no data loss, no redeploy.
+#
+# 6h, because that is what the live cluster actually runs — verified from the container
+# logs on 2026-11-19, which reported `expireAfterSeconds=21600` on both collections. The
+# value was lowered from 12h by a collMod at some point and the repo notes were never
+# updated, so a code default of 43200 only produced a "cluster value wins" warning on
+# every single pipeline start. The code describes what is, not what ought to be.
+#
+# ⚠️ The index name still says 12h. Renaming would need a drop+recreate, i.e. a window
+# with no TTL protection at all, which is not worth it — read the number, not the name.
+#
+# Whether 6h or 12h is right is still open: the original 12h was measured at the daily
+# trough (06:35-06:55 UTC) with hours 07-21 unmeasured, and ingestion has since been
+# capped at 500 writes/day by adsb.lol's quota (~90 MB/day, so even 12h would fit
+# comfortably). Decide it with a full day of real data, then collMod — no redeploy needed.
 TTL_INDEX_NAME  = "ttl_fetched_at_12h"
-TTL_SECONDS     = 43200  # 12h
+TTL_SECONDS     = 21600  # 6h — matches the live cluster; see above before changing
 TTL_COLLECTIONS = ("states_all", "adsb_raw")
 
 # =============================================================================
