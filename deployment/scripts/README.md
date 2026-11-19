@@ -17,8 +17,9 @@ export PORTAINER_URL=https://<portainer-host>
 | Which commit and compose file does one stack track? | `portainerctl.py stack 14` |
 | Is an environment reachable at all? | `portainerctl.py endpoints` — `status=down` means the agent is unreachable |
 | Why is bronze not writing? | `portainerctl.py logs etl_bronze --tail 60` — look for `Quota: N of 500 requests left` |
-| Did a deploy actually land? | `portainerctl.py watch 14 etl_bronze` — reports whether the image id changed |
-| Force a stack onto the current image | `portainerctl.py redeploy 14 --apply` (dry run without `--apply`) |
+| Force a stack onto the current image, and see whether it landed | `portainerctl.py redeploy 14 --apply --watch etl_bronze` (dry run without `--apply`) — snapshots the container first, then reports NEW image / unchanged / failed / stuck |
+| Did a deploy I did not start (the poller) land? | `portainerctl.py watch 14 etl_bronze` — start it **before** the deploy; one that is already over shows as a timeout |
+| Is a deploy stuck behind the lock? | `portainerctl.py stacks` shows `deploying` long after the fact; `watch` times out with "stale lock" |
 | Change one env var and redeploy | `portainerctl.py redeploy 14 --set OPENSKY_ENABLED=false --apply` |
 | Is the GitOps poller healthy? | `portainerctl.py logs portainer --tail 200 --grep "failed to"` |
 
@@ -47,7 +48,15 @@ print it and `redeploy` refuses to claim success.
 means a deployment holds the stack. If a deployment dies mid-flight the lock is never
 released and every later redeploy fails. Restarting the `portainer` container clears it;
 the managed containers keep running (verified — Portainer is the management plane, not
-their supervisor).
+their supervisor). Upgrading Portainer from 2.42.0 to 2.45.4 LTS did not fix it: the first
+redeploy afterwards sat in "deploying" with no Docker activity at all, and the next one
+got the 409.
+
+**Since Portainer 2.45 a redeploy is asynchronous.** The API answers 200 within a second
+and the deployment runs afterwards, so the stack's update timestamp changes before
+anything is pulled. `watch` therefore follows the stack's deployment status and the
+container, and `redeploy --watch` takes its snapshot before sending — a fast deployment
+can otherwise be over before a separately started watch takes its first look.
 
 **One broken stack can freeze all of them.** A single stack whose git clone directory was
 left in a broken state failed its fresh clone every 5 minutes for four days

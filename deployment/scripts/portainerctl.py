@@ -25,6 +25,17 @@ Hard-won details encoded here, all verified against Portainer 2.42:
     mean the endpoint was reachable. Confirm with `watch` or `endpoints`, which report
     the container's image id — the only trustworthy signal.
 
+Changed in Portainer 2.45 (upgraded 2026-11-19):
+
+  * `git/redeploy` is asynchronous: HTTP 200 after about a second, the deployment runs
+    afterwards with the stack in status 3 ("deploying"). UpdateDate changes at once, so it
+    says nothing about completion; `watch` follows the stack's DeploymentStatus instead.
+    Because a fast deployment can finish before a separately started `watch` takes its
+    first look, prefer `redeploy --apply --watch <container>`, which snapshots first.
+  * `git/redeploy` returns 403 when endpointId differs from the stack's environment.
+  * The 409 lock still happens on 2.45.4: a deployment sits in "deploying" with no Docker
+    activity behind it, and only a Portainer restart clears it.
+
 Token: macOS Keychain item `portainer_api_mk`. Never pass it on the command line.
 """
 
@@ -45,7 +56,9 @@ BASE = (os.environ.get("PORTAINER_URL") or "").rstrip("/") + "/api"
 DEFAULT_ENDPOINT = 3  # the production VM's Docker environment
 KEYCHAIN_ITEM = os.environ.get("PORTAINER_KEYCHAIN_ITEM", "portainer_api_mk")
 
-STACK_STATUS = {1: "active", 2: "inactive"}
+# Used for both Stack.Status and the entries of Stack.DeploymentStatus (observed values).
+STACK_STATUS = {1: "active", 2: "inactive", 3: "deploying", 4: "error"}
+DEPLOYING = 3
 ENDPOINT_STATUS = {1: "up", 2: "down"}
 
 # Never print a log line that could carry a connection string, password or token.
@@ -218,6 +231,10 @@ def cmd_redeploy(args, token):
         print("\nDRY RUN — nothing sent. Re-run with --apply.")
         return
 
+    # Snapshot before sending: on Portainer 2.45 a quick deployment can be over before a
+    # watch started afterwards takes its first look.
+    before = snapshot(token, args.stack_id, args.endpoint, args.watch) if args.watch else None
+
     try:
         status, _ = call(
             f"/stacks/{args.stack_id}/git/redeploy?endpointId={args.endpoint}",
@@ -232,47 +249,94 @@ def cmd_redeploy(args, token):
         sys.exit(1)
 
     print(f"\nHTTP {status} — redeploy accepted.")
-    print("  This is NOT proof the container was recreated. Verify with:")
-    print(f"    portainerctl.py watch {args.stack_id} <container>")
+    if before is None:
+        print("  This is NOT proof the container was recreated. Verify with:")
+        print(f"    portainerctl.py watch {args.stack_id} <container>")
+        return
+    print()
+    wait_for_deploy(token, args.stack_id, args.endpoint, args.watch, before,
+                    args.timeout, args.interval)
+
+
+def _utc(ts) -> str:
+    return time.strftime("%H:%M:%SZ", time.gmtime(ts)) if ts else "-"
+
+
+def snapshot(token, stack_id, endpoint, container) -> dict:
+    _, stack = call(f"/stacks/{stack_id}", token)
+    c = find_container(token, endpoint, container) or {}
+    last = (stack.get("DeploymentStatus") or [{}])[-1]
+    return {
+        "commit": ((stack.get("GitConfig") or {}).get("ConfigHash") or "")[:8],
+        "deploy": last.get("Status"),
+        "deployTime": last.get("Time"),
+        "deployMsg": last.get("Message") or "",
+        "image": c.get("ImageID") or c.get("Image"),
+        "created": c.get("Created"),
+        "status": c.get("Status"),
+    }
+
+
+def wait_for_deploy(token, stack_id, endpoint, container, first, timeout, interval):
+    """Wait until the container changes or a deployment newer than `first` finishes.
+
+    Settling on the stack's UpdateDate is wrong since Portainer 2.45: it changes the
+    moment the asynchronous redeploy is accepted, long before anything is pulled.
+    """
+    print(f"start: commit={first['commit']} "
+          f"deploy={STACK_STATUS.get(first['deploy'], first['deploy'])}"
+          f"@{_utc(first['deployTime'])} created={_utc(first['created'])}")
+    print(f"       image={first['image']}")
+
+    now = first
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        time.sleep(interval)
+        now = snapshot(token, stack_id, endpoint, container)
+        print(f"  commit={now['commit']} "
+              f"deploy={STACK_STATUS.get(now['deploy'], now['deploy'])}"
+              f"@{_utc(now['deployTime'])} created={_utc(now['created'])} "
+              f"status={now['status']}")
+
+        recreated = now["created"] != first["created"]
+        new_deploy_done = (
+            (now["deployTime"] or 0) > (first["deployTime"] or 0)
+            and now["deploy"] != DEPLOYING
+        )
+        if not (recreated or new_deploy_done):
+            continue
+
+        print("\nSETTLED:")
+        print(f"  commit : {first['commit']} -> {now['commit']}")
+        print(f"  image  : {first['image']}")
+        print(f"        -> {now['image']}")
+        if now["deploy"] == 4:
+            print(f"  verdict: deployment FAILED — {now['deployMsg']}")
+            sys.exit(1)
+        if now["image"] != first["image"]:
+            print("  verdict: container is on a NEW image")
+        elif recreated:
+            print("  verdict: container recreated, but on the SAME image id")
+        else:
+            print("  verdict: deployment finished WITHOUT recreating the container — "
+                  "the running code is unchanged (was the image built yet?)")
+        return
+
+    if now["deploy"] == DEPLOYING:
+        print(f"\nTIMEOUT — stack has been 'deploying' since {_utc(now['deployTime'])} "
+              "with the container untouched. That is the stale lock: the next redeploy "
+              "gets HTTP 409. Restart the portainer container to clear it.")
+    else:
+        print("\nTIMEOUT — no new deployment and no new container. If the redeploy was "
+              "sent before this watch started, it may already be over: compare the "
+              "image id above with what you expect, or use redeploy --watch next time.")
+    sys.exit(1)
 
 
 def cmd_watch(args, token):
-    def snapshot():
-        _, stack = call(f"/stacks/{args.stack_id}", token)
-        c = find_container(token, args.endpoint, args.container) or {}
-        return {
-            "updateDate": stack.get("UpdateDate"),
-            "commit": ((stack.get("GitConfig") or {}).get("ConfigHash") or "")[:8],
-            "image": c.get("ImageID") or c.get("Image"),
-            "created": c.get("Created"),
-            "status": c.get("Status"),
-        }
-
-    first = snapshot()
-    print(f"start: commit={first['commit']} updateDate={first['updateDate']} "
-          f"created={first['created']}")
-    print(f"       image={first['image']}")
-
-    deadline = time.time() + args.timeout
-    while time.time() < deadline:
-        time.sleep(args.interval)
-        now = snapshot()
-        print(f"  commit={now['commit']} updateDate={now['updateDate']} "
-              f"created={now['created']} status={now['status']}")
-        if now["updateDate"] != first["updateDate"] or now["created"] != first["created"]:
-            print("\nSETTLED:")
-            print(f"  commit : {first['commit']} -> {now['commit']}")
-            print(f"  image  : {first['image']}")
-            print(f"        -> {now['image']}")
-            print("  verdict: " + (
-                "container is on a NEW image"
-                if now["image"] != first["image"]
-                else "SAME image id — the redeploy did not change the running code"
-            ))
-            return
-
-    print("\nTIMEOUT — nothing moved. If the UI says 'Deploying', the lock is stale.")
-    sys.exit(1)
+    first = snapshot(token, args.stack_id, args.endpoint, args.container)
+    wait_for_deploy(token, args.stack_id, args.endpoint, args.container, first,
+                    args.timeout, args.interval)
 
 
 # ---------------------------------------------------------------------------
@@ -301,6 +365,10 @@ def main() -> None:
     p.add_argument("--set", action="append", metavar="KEY=VALUE")
     p.add_argument("--ref", help="override the git ref, e.g. refs/heads/main")
     p.add_argument("--apply", action="store_true", help="actually send it")
+    p.add_argument("--watch", metavar="CONTAINER",
+                   help="snapshot CONTAINER before sending, then wait for the result")
+    p.add_argument("--timeout", type=int, default=420)
+    p.add_argument("--interval", type=int, default=10)
 
     p = sub.add_parser("watch", help="wait for a redeploy to settle, report the image")
     p.add_argument("stack_id")
