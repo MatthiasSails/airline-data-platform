@@ -9,15 +9,18 @@ cd "$SCRIPT_DIR"
 # `x-ratelimit-limit: 500, 500;w=86400` — one request every 86400/500 = 173s.
 # At the previous 30s sleep bronze asked for ~2100/day: it burned the daily quota in
 # under 6h and then collected HTTP 429 (`x-envoy-ratelimited: true`,
-# `x-ratelimit-remaining: 0`) for the remaining ~18h, writing nothing. 170s leaves
-# ~480 requests/day with a little headroom for manual probing.
+# `x-ratelimit-remaining: 0`) for the remaining ~18h, writing nothing.
+#
+# 180s gives 86400/180 = 480 requests/day, leaving 20 for manual probing. The window is
+# a fixed UTC day: the `resets in` value counts down to 00:00Z. The earlier 170s asked
+# for ~508/day, so the quota ran dry around 23:37Z and the map froze until midnight.
 #
 # Note the quota is per IP: a Docker bridge network egresses over IPv4, so the
 # container shares the host's IPv4 budget and nothing else. Moving the container to
 # IPv6 egress only buys a second 500/day budget, it does not raise the rate.
 #
 # Override per environment via BRONZE_SLEEP_SECONDS (set in the Portainer stack env).
-SLEEP_SECONDS="${BRONZE_SLEEP_SECONDS:-170}"
+SLEEP_SECONDS="${BRONZE_SLEEP_SECONDS:-180}"
 
 # heartbeat is only touched on success, so the healthcheck (deployment/bronze.yml)
 # marks the container unhealthy when runs fail persistently, not just when the loop
