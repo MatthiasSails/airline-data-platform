@@ -35,13 +35,37 @@ All endpoints are accessed directly via HTTP GET without authentication headers.
 
 ## Rate Limiting
 
-**Policy:** Dynamic rate limiting based on server load.
+**Policy:** a hard quota of **500 requests per day, per client IP**, enforced by the API
+gateway (istio-envoy) and advertised on every single response:
 
-**Guidance from maintainers:**
-- No published hard limit
+```
+x-ratelimit-limit:     500, 500;w=86400     # 500 requests per 86400s window
+x-ratelimit-remaining: 497                  # left in the current window
+x-ratelimit-reset:     13023                # seconds until the window rolls over
+```
+
+Over quota the API answers **HTTP 429** with an empty body, `x-ratelimit-remaining: 0`
+and `x-envoy-ratelimited: true`.
+
+**Consequences for any polling loop:**
+- 86400 / 500 = **one request every 173s** is the fastest sustainable cadence. There is no
+  interval below that which works for a whole day, no matter how it is spread out.
+- The quota is **per IP**, so a Docker bridge network shares the host's IPv4 budget. Moving
+  the container to IPv6 egress grants a second, separate 500/day budget — it does not
+  raise the rate, it only postpones exhaustion.
+- The window is rolling, not a midnight reset: once exhausted, individual slots free up
+  again gradually, which looks like an intermittently working API rather than a hard stop.
+
+⚠️ **Earlier versions of this document stated "no published hard limit" and recommended
+30–60 second intervals.** That was taken from the project README's older wording and is
+wrong: measured 2026-11-19 against the live API, the limit is published per-response as
+shown above. The 50s loop built on that advice asked for ~2100 requests/day, exhausted the
+quota in under 6 hours and then collected 429s for the rest of every day — 3 successful
+writes in a 48-minute sample. Treat the response headers as the source of truth, not prose.
+
+**Remaining maintainer guidance (still valid):**
 - If you receive 4xx status codes, you are likely violating best practices (e.g., hammering endpoints in a loop)
-- Proper implementation (with backoff and reasonable intervals) will not be rate-limited
-- Recommended: 30–60 second intervals for periodic requests
+- API keys are planned and will be granted to data feeders; a key is the only path to a higher quota
 
 **For Data Engineering context:**
 - Batch requests are fine (collect aircraft by region/time window)
