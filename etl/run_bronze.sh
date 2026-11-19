@@ -13,7 +13,8 @@ cd "$SCRIPT_DIR"
 #
 # 180s gives 86400/180 = 480 requests/day, leaving 20 for manual probing. The window is
 # a fixed UTC day: the `resets in` value counts down to 00:00Z. The earlier 170s asked
-# for ~508/day, so the quota ran dry around 23:37Z and the map froze until midnight.
+# for ~508/day: on a full day the quota would run dry around 23:37Z (500 x 170s after
+# midnight, computed, not observed) and the map would freeze until the reset.
 #
 # Note the quota is per IP: a Docker bridge network egresses over IPv4, so the
 # container shares the host's IPv4 budget and nothing else. Moving the container to
