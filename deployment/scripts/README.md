@@ -75,6 +75,12 @@ is the only safe shape; never hand-build an env list.
 ## set-q-image-tag.sh
 
 Points the Q stacks at a PR image tag and is called from `.github/workflows/`. It loops
-over `PORTAINER_Q_STACK_IDS` and skips stacks that carry no `IMAGE_TAG`. Note it fails
-whenever the Q environment is down, which makes `deploy-q` red on every PR that touches
-`etl/` or `deployment/`.
+over `PORTAINER_Q_STACK_IDS` and skips stacks that carry no `IMAGE_TAG`.
+
+When the Q endpoint is down it deploys nothing and exits green with a notice. That skip
+matters for production, not just for Q: a redeploy against the unreachable endpoint is
+accepted with HTTP 200 and then spends ~90s per stack in connect timeouts, and Portainer
+runs deployments one after another. On 2026-11-19 this held every prod deploy back by
+about 15 minutes after each merge, and a prod redeploy in that window got HTTP 409. The
+Q stacks' own auto-update was switched off for the same reason; switch it back on when Q
+returns.

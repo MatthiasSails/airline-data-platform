@@ -27,6 +27,24 @@ STACK_IDS="${PORTAINER_Q_STACK_IDS:-${PORTAINER_Q_STACK_ID:?PORTAINER_Q_STACK_ID
 TMPDIR=$(mktemp -d)
 trap 'rm -rf "$TMPDIR"' EXIT
 
+# Skip everything while the Q environment is switched off. A redeploy against an
+# unreachable endpoint is not harmless: Portainer accepts it with HTTP 200, then
+# spends ~90s per stack in TCP connect timeouts, and deployments run one after
+# another — so six Q stacks held every PROD deploy behind them for ~15 minutes, and
+# a prod redeploy in that window got HTTP 409 (2026-11-19). Endpoint status 1 = up,
+# 2 = down, as Portainer's own heartbeat last saw it.
+STATUS=$(curl -s -o "$TMPDIR/endpoint.json" -w "%{http_code}" \
+  -A "curl/8.0" -H "X-API-Key: $PORTAINER_API_KEY" \
+  "$PORTAINER_URL/api/endpoints/$PORTAINER_Q_ENDPOINT_ID")
+if [ "$STATUS" != "200" ]; then
+  echo "endpoint $PORTAINER_Q_ENDPOINT_ID: GET failed with HTTP $STATUS" >&2
+  exit 1
+fi
+if [ "$(jq -r '.Status' "$TMPDIR/endpoint.json")" != "1" ]; then
+  echo "::notice::Q endpoint $PORTAINER_Q_ENDPOINT_ID is down — nothing deployed to Q (IMAGE_TAG=$TAG not applied)."
+  exit 0
+fi
+
 FAILED=0
 
 IFS=',' read -ra IDS <<< "$STACK_IDS"
