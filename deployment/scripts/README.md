@@ -48,9 +48,11 @@ print it and `redeploy` refuses to claim success.
 means a deployment holds the stack. If a deployment dies mid-flight the lock is never
 released and every later redeploy fails. Restarting the `portainer` container clears it;
 the managed containers keep running (verified — Portainer is the management plane, not
-their supervisor). Upgrading Portainer from 2.42.0 to 2.45.4 LTS did not fix it: the first
-redeploy afterwards sat in "deploying" with no Docker activity at all, and the next one
-got the 409.
+their supervisor). Upgrading Portainer from 2.42.0 to 2.45.4 LTS did not fix it, because
+the cause was not in Portainer: deployments run one after another, and redeploys of the Q
+stacks against the switched-off Q endpoint each waited out a ~90s connect timeout. Every
+prod deploy queued behind them, and a second redeploy of a queued stack got the 409. See
+`set-q-image-tag.sh` below for the fix.
 
 **Since Portainer 2.45 a redeploy is asynchronous.** The API answers 200 within a second
 and the deployment runs afterwards, so the stack's update timestamp changes before
@@ -84,3 +86,49 @@ runs deployments one after another. On 2026-11-19 this held every prod deploy ba
 about 15 minutes after each merge, and a prod redeploy in that window got HTTP 409. The
 Q stacks' own auto-update was switched off for the same reason; switch it back on when Q
 returns.
+
+---
+
+## Upgrading the Portainer server
+
+Portainer itself is not a stack: it runs from a hand-started `docker run` on the prod VM,
+and the `portainer_data` volume holds its entire state (stacks, env vars, endpoints, API
+keys). The exact run parameters are in `CLAUDE.local.md`. Last done 2026-11-19, 2.42.0 →
+2.45.4 LTS; the services kept running throughout, only the Portainer UI and API were away
+for about a minute.
+
+1. **Read the release notes** of every version in between for breaking changes to the
+   stack API — this tooling depends on `PUT /stacks/{id}/git/redeploy`. Confirm the exact
+   image tag exists on Docker Hub.
+2. **Pull the new image first** (no downtime): `docker pull portainer/portainer-ce:<version>`.
+3. **Check nothing is mid-deploy:** `portainerctl.py stacks` must show no stack in
+   `deploying`.
+4. **Stop and back up.** The database is only consistent while Portainer is stopped:
+   ```bash
+   docker stop portainer
+   sudo tar czf ~/portainer_data-<old>-<UTC>.tgz -C /var/lib/docker/volumes/portainer_data/_data .
+   ```
+   `chmod 600` the archive — it contains every stack's env vars, passwords included — and
+   check `portainer.db` is in it.
+5. **Swap the container, keeping the old one for rollback:**
+   ```bash
+   docker rename portainer portainer-<old>
+   docker update --restart=no portainer-<old>   # or a VM reboot starts both
+   docker run -d --name portainer --restart=always -p 9443:9443 \
+     -v portainer_data:/data -v /var/run/docker.sock:/var/run/docker.sock \
+     -e AGENT_SECRET="$(docker inspect portainer-<old> --format '{{range .Config.Env}}{{println .}}{{end}}' | sed -n 's/^AGENT_SECRET=//p')" \
+     portainer/portainer-ce:<version>
+   ```
+   Without `AGENT_SECRET` the server loses its agents (the Q endpoint).
+6. **Verify:** the start log shows `migrating database from version …` and `db migrated
+   to …`; `GET /api/system/status` reports the new version with the same `InstanceID`;
+   `portainerctl.py endpoints` and `stacks` look as before; `portainerctl.py logs
+   portainer --grep "failed to"` is empty.
+7. **Roundtrip:** a merge that builds an image, then `redeploy 14 --apply --watch
+   etl_bronze` must report a new image.
+
+**Rollback** is not "start the old image again": the new version migrated the database
+and the old binary will not read it. Restore the tarball into the volume, then start
+`portainer-<old>`. Delete the old container, the tarball, the old image and
+`/data/backups/portainer.db.bak` (Portainer's own pre-migration copy) once the new version
+has run cleanly for a while.
